@@ -61,6 +61,10 @@ type Game struct {
 	Hunger    int              `json:"hunger"`
 	Thirst    int              `json:"thirst"`
 	Breath    int              `json:"breath"`
+	MealLeft  int              `json:"mealLeft,omitempty"`
+	MealName  string           `json:"mealName,omitempty"`
+	Cookbook  []Dish           `json:"cookbook,omitempty"`
+	CookSel   map[int]bool     `json:"-"`
 	Known     map[int]bool     `json:"known"`
 	Secrets   []Secret         `json:"secrets"`
 	SecretSet map[string]bool  `json:"secretSet"`
@@ -402,7 +406,7 @@ func (g *Game) turn() {
 	if p.Pow("glutton") > 0 {
 		hrate = 2
 	}
-	if g.Turn%(2+g.Skills["endurance"]) != 0 {
+	if g.Turn%(2+g.Skills["endurance"]) != 0 && !g.slowHunger() {
 		g.Hunger += hrate
 		g.Thirst++
 	}
@@ -437,8 +441,9 @@ func (g *Game) turn() {
 		g.statusTick(a)
 	}
 	g.statusTick(p)
+	g.mealTick()
 	// regeneration
-	regen := 40 - p.M(TOU)*4 - p.Pow("regen")*8
+	regen := 40 - p.M(TOU)*4 - p.Pow("regen")*8 - p.mealLv("mending")*10
 	if p.Pow("albino") > 0 && g.Cur.Z == 0 && g.daylight() {
 		regen += 30
 	}
@@ -493,6 +498,10 @@ func (g *Game) statusTick(a *Actor) {
 		case "poisoned":
 			if g.Turn%3 == 0 {
 				g.hurt(a, 1, nil, "poison")
+			}
+		case "frozen":
+			if a.mealLv("rime") > 0 {
+				a.Status[k] = 1
 			}
 		case "regen":
 			if a.HP < a.MaxHP {
@@ -973,7 +982,8 @@ func (g *Game) WorldMove(dx, dy int) {
 	}
 	for i := 0; i < cost; i++ {
 		g.Turn++
-		if g.Turn%(2+g.Skills["endurance"]) != 0 {
+		g.mealTick()
+		if g.Turn%(2+g.Skills["endurance"]) != 0 && !g.slowHunger() {
 			g.Hunger++
 			g.Thirst++
 		}

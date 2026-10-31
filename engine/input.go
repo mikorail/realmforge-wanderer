@@ -131,6 +131,8 @@ func (g *Game) Key(k string) Out {
 		} else if k == "Enter" && g.Sel < len(abs) {
 			g.startAbility(abs[g.Sel])
 		}
+	case "cook":
+		g.keyCook(k)
 	case "craft":
 		rs := g.Recipes()
 		if i := letterIndex(k); i >= 0 && i < len(rs) {
@@ -148,10 +150,10 @@ func (g *Game) Key(k string) Out {
 				g.Mode = "world"
 			}
 		case "Tab", "ArrowRight":
-			g.Tab = (g.Tab + 1) % 3
+			g.Tab = (g.Tab + 1) % 4
 			g.Sel = 0
 		case "ArrowLeft":
-			g.Tab = (g.Tab + 2) % 3
+			g.Tab = (g.Tab + 3) % 4
 			g.Sel = 0
 		case "ArrowUp", "PageUp":
 			g.Sel = maxi(0, g.Sel-1-boolInt(k == "PageUp")*10)
@@ -251,6 +253,8 @@ func (g *Game) keyMain(k string) Out {
 			}
 		}
 		g.Msg("You have nothing to eat.")
+	case "C":
+		g.openCook()
 	case "T":
 		if g.Skills["tinkering"] < 2 {
 			g.Msg("You need Tinkering 2 to craft.")

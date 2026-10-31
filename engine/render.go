@@ -43,6 +43,8 @@ func (g *Game) Render() *Screen {
 		g.drawAbilities()
 	case "craft":
 		g.drawCraft()
+	case "cook":
+		g.drawCook()
 	case "dead":
 		g.drawDead()
 	case "target", "look":
@@ -203,6 +205,9 @@ func (g *Game) drawSide() {
 		ts = "{{W|Thirsty}}"
 	}
 	line(hs + " " + ts)
+	if g.Meal() != "" {
+		line("{{G|Well fed}} {{K|(j: cookbook)}}")
+	}
 	if g.Cur != nil && g.Cur.Underwater && p.Pow("gills") == 0 && !p.Has("swimmer") {
 		line(fmt.Sprintf("{{B|Breath %d}}", g.Breath))
 	}
@@ -662,7 +667,7 @@ func (g *Game) drawChar() {
 func (g *Game) drawJournal() {
 	s := g.sc
 	s.Box(0, 0, SW, SH, CDarkCyan, "Journal")
-	tabs := []string{"Quests", "Secrets & Places", "Chronicle of " + g.W.Name}
+	tabs := []string{"Quests", "Secrets & Places", "Chronicle of " + g.W.Name, "Cookbook"}
 	tx := 2
 	for i, t := range tabs {
 		c := "K"
@@ -702,6 +707,8 @@ func (g *Game) drawJournal() {
 			e := g.W.Events[i]
 			lines = append(lines, Wrap(fmt.Sprintf("{{K|Y%d}} %s", e.Y, e.Text), SW-6)...)
 		}
+	case 3:
+		lines = g.cookbookLines()
 	}
 	g.Sel = clampi(g.Sel, 0, maxi(0, len(lines)-(SH-5)))
 	for i := 0; i < SH-5 && g.Sel+i < len(lines); i++ {
@@ -751,7 +758,7 @@ func (g *Game) drawHelp() {
 		"{{Y|People}}  bump a friendly person to talk. The {{C|" + g.Sk.Ritual + "}} earns reputation and a secret from the world's real history.",
 		"Elders give quests; merchants, smiths and apothecaries trade; harbourmasters sell sea passage; priests heal.",
 		"",
-		"{{Y|Survival}}  {{W|e}} eat, {{W|d}} drink (from water, wells or your " + g.Sk.Water + "), {{W|R}} rest until healed, {{W|z}} rest a while.",
+		"{{Y|Survival}}  {{W|e}} eat, {{W|d}} drink (from water, wells or your " + g.Sk.Water + "), {{W|R}} rest until healed, {{W|z}} rest a while, {{W|C}} cook (combine ingredients for a day of buffs).",
 		"Underground is dark: keep a " + g.Sk.Light[0] + " lit. Underwater you must hold your breath unless you have " + g.Sk.Gills() + ".",
 		"",
 		"{{Y|Delving}}  ▼ dungeons and Δ towers on the world map. {{W|s}} searches for traps (^). Keys open locked vaults; Tinkering 2 picks locks. Bump ore to mine it.",

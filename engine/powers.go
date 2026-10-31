@@ -360,6 +360,10 @@ func (g *Game) useItem(it *Item) {
 			g.Msg("{{G|It disagrees with you.}}")
 		}
 		g.consume(it)
+	case "ingredient":
+		g.Hunger = maxi(0, g.Hunger-maxi(it.Power, 60))
+		g.Msg("You eat the " + it.Name + " raw. It would be better cooked (C).")
+		g.consume(it)
 	case "water":
 		if it.Charges <= 0 {
 			g.Msg("Your " + it.Name + " is empty.")

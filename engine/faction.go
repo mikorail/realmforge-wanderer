@@ -329,6 +329,9 @@ func (g *Game) makeNPC(role string, bd *BurgData, cu *CultureData, r *Rng) *Acto
 	case "merchant", "smith", "apothecary", "bookseller", "exotic":
 		a.Gold = r.Int(150, 400) + lvl*30
 		g.stockShop(a, role, tier, r)
+		if role == "merchant" {
+			g.stockIngredients(a, cu, r)
+		}
 		a.AI = "still"
 	case "priest":
 		a.Gold = r.Int(20, 60)

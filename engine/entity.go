@@ -86,7 +86,7 @@ func (it *Item) Display() string {
 
 func (it *Item) Stack() bool {
 	switch it.Kind {
-	case "ammo", "food", "tonic", "grenade", "scrap":
+	case "ammo", "food", "tonic", "grenade", "scrap", "ingredient":
 		return true
 	}
 	return false
@@ -141,6 +141,7 @@ type Actor struct {
 	Rank     int             `json:"rank,omitempty"`  // standing inside the stratum, 0 lowest (society.go)
 	House    string          `json:"house,omitempty"` // family name shared by a household (society.go)
 	Kin      []int           `json:"kins,omitempty"`  // actor ids of relatives in the same zone (society.go)
+	Meal     map[string]int  `json:"meal,omitempty"`  // cooking tag → level 1-2 from the last meal (cooking.go)
 }
 
 func (a *Actor) Has(f string) bool { return a.Flags != nil && a.Flags[f] }
@@ -184,6 +185,12 @@ func (a *Actor) Score(i int) int {
 	if i == STR && a.St("mighty") > 0 {
 		v += 6
 	}
+	if i == STR {
+		v += 2 * a.mealLv("hearty")
+	}
+	if i == INT || i == WIL {
+		v += 2 * a.mealLv("keen")
+	}
 	return v
 }
 
@@ -203,11 +210,12 @@ func (a *Actor) AV() int {
 		av += 2
 	}
 	av += shieldAV(a)
+	av += a.mealLv("thick")
 	return av
 }
 
 func (a *Actor) DV() int {
-	dv := 6 + a.DVNat + a.M(AGI)
+	dv := 6 + a.DVNat + a.M(AGI) + 2*a.mealLv("spry")
 	for _, p := range a.Body {
 		if p.Item != nil && !p.Severed {
 			dv += p.Item.DV
