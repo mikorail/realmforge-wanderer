@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Tinkering workbench (shift-C): typed bits from disassembly, learned schematics, sphere and genre
+// Tinkering workbench (T): typed bits from disassembly, learned schematics, sphere and genre
 // signature items, item mods and category infusion. Independent of the older scrap crafting in
 // powers.go, which keeps working.
 
@@ -551,7 +551,8 @@ func (g *Game) infuse(it *Item, cat string) string {
 // ---- hooks ---------------------------------------------------------------
 
 func init() {
-	mainKeys["C"] = func(g *Game) {
+	// T (Tinker) — C is cooking
+	mainKeys["T"] = func(g *Game) {
 		if g.tinkRank() < 1 {
 			g.Msg("You need the Tinkering skill to use a workbench.")
 			return

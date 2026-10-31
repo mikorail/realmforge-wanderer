@@ -82,8 +82,17 @@ type Game struct {
 	Store     map[string]json.RawMessage `json:"store,omitempty"` // per-feature saved state (hooks.go ext)
 	Genotype  string                     `json:"genotype"`        // mutant | truekin
 	GameMode  string                     `json:"gameMode"`        // classic | roleplay | wander
+	MealLeft  int                        `json:"mealLeft,omitempty"`
+	MealName  string                     `json:"mealName,omitempty"`
+	Cookbook  []Dish                     `json:"cookbook,omitempty"`
+	CookSel   map[int]bool               `json:"-"`
+	WxLast    string                     `json:"wxl,omitempty"`       // last weather announced (weather.go)
+	FeastSeen map[string]bool            `json:"feastSeen,omitempty"` // feasts joined: burg:name:year (calendar.go)
+	Feasts    []FeastLog                 `json:"feasts,omitempty"`
+	FeastNote string                     `json:"feastNote,omitempty"` // burg:day of the last feast announcement
 
 	// ui state (not saved)
+	boltN   int      // lightning strikes so far this session (MusicState.Bolt)
 	Mode    string   `json:"-"`
 	Sel     int      `json:"-"`
 	Sel2    int      `json:"-"`
@@ -103,6 +112,7 @@ type Game struct {
 	extLive map[string]any
 	Prefs   map[string]bool // host settings, not saved
 	sensed  []bool
+	wxForce *Weather // tests: pin the weather
 }
 
 type Option struct {
@@ -414,7 +424,7 @@ func (g *Game) turn() {
 	if p.Pow("glutton") > 0 {
 		hrate = 2
 	}
-	if g.Turn%(2+g.Skills["endurance"]) != 0 {
+	if g.Turn%(2+g.Skills["endurance"]) != 0 && !g.slowHunger() {
 		g.Hunger += hrate
 		g.Thirst++
 	}
@@ -449,8 +459,10 @@ func (g *Game) turn() {
 		g.statusTick(a)
 	}
 	g.statusTick(p)
+	g.mealTick()
+	g.companionsTick()
 	// regeneration
-	regen := 40 - p.M(TOU)*4 - p.Pow("regen")*8
+	regen := 40 - p.M(TOU)*4 - p.Pow("regen")*8 - p.mealLv("mending")*10
 	if p.Pow("albino") > 0 && g.Cur.Z == 0 && g.daylight() {
 		regen += 30
 	}
@@ -478,6 +490,8 @@ func (g *Game) turn() {
 	for _, h := range turnHooks {
 		h(g)
 	}
+	g.weatherTick()
+	g.calendarTick()
 }
 
 func (g *Game) statusTick(a *Actor) {
@@ -509,6 +523,10 @@ func (g *Game) statusTick(a *Actor) {
 			if g.Turn%3 == 0 {
 				g.hurt(a, 1, nil, "poison")
 			}
+		case "frozen":
+			if a.mealLv("rime") > 0 {
+				a.Status[k] = 1
+			}
 		case "regen":
 			if a.HP < a.MaxHP {
 				a.HP++
@@ -520,6 +538,9 @@ func (g *Game) statusTick(a *Actor) {
 		a.Status[k] = v - 1
 		if a.Status[k] <= 0 {
 			delete(a.Status, k)
+			if k == "fed" {
+				a.Meal = nil
+			}
 			if a == g.P {
 				g.Msg("You are no longer " + k + ".")
 			}
@@ -597,7 +618,7 @@ func (g *Game) enterZone(zn *Zone, x, y int, place bool) {
 		var fol []*Actor
 		rest := g.Cur.Actors[:0]
 		for _, a := range g.Cur.Actors {
-			if a.AI == "follower" && a.HP > 0 && abs(a.X-g.P.X) <= 8 && abs(a.Y-g.P.Y) <= 8 {
+			if a.AI == "follower" && a.HP > 0 && g.compComes(a) {
 				fol = append(fol, a)
 			} else {
 				rest = append(rest, a)
@@ -638,6 +659,7 @@ func (g *Game) enterZone(zn *Zone, x, y int, place bool) {
 	for _, h := range enterHooks {
 		h(g, zn)
 	}
+	g.feastAnnounce()
 }
 
 func (g *Game) nudge(zn *Zone, a *Actor) {
@@ -721,6 +743,10 @@ func (g *Game) MoveP(dx, dy int) {
 			g.spend(1000)
 			return
 		}
+		if a.AI == "follower" && (a.Order == OrdStay || a.Order == OrdGuard) {
+			g.openTalk(a)
+			return
+		}
 		if a.AI == "follower" {
 			a.X, a.Y, p.X, p.Y = p.X, p.Y, nx, ny
 			g.spend(1000)
@@ -796,6 +822,7 @@ func (g *Game) stepTo(nx, ny int) {
 		cost = 1300
 	}
 	cost = g.climbCost(nx, ny, cost)
+	cost = g.weatherStep(nx, ny, cost)
 	p.X, p.Y = nx, ny
 	if z.Traps != nil {
 		if _, ok := z.Traps[ny*MW+nx]; ok {
@@ -989,9 +1016,11 @@ func (g *Game) WorldMove(dx, dy int) {
 	if g.W.Height[np] >= 70 {
 		cost = cost * 3 / 2
 	}
+	cost = g.travelWeather(np, cost)
 	for i := 0; i < cost; i++ {
 		g.Turn++
-		if g.Turn%(2+g.Skills["endurance"]) != 0 {
+		g.mealTick()
+		if g.Turn%(2+g.Skills["endurance"]) != 0 && !g.slowHunger() {
 			g.Hunger++
 			g.Thirst++
 		}
@@ -1222,10 +1251,13 @@ type Music struct {
 	Day    bool    `json:"day"`
 	HP     float64 `json:"hp"`   // player hp fraction
 	Seed   uint32  `json:"seed"` // per-zone seed so each place keeps its own melody
+	Wx     string  `json:"wx"`
+	Season int     `json:"season"` // 0 spring … 3 winter
+	Bolt   int     `json:"bolt"`   // lightning strike counter: a rise means thunder now
 }
 
 func (g *Game) MusicState() Music {
-	m := Music{Genre: g.Genre, Day: g.daylight(), HP: float64(g.P.HP) / float64(maxi(g.P.MaxHP, 1))}
+	m := Music{Genre: g.Genre, Day: g.daylight(), HP: float64(g.P.HP) / float64(maxi(g.P.MaxHP, 1)), Season: g.Season(), Bolt: g.boltN}
 	if g.Dead {
 		m.Mood = "dead"
 		return m
@@ -1236,6 +1268,9 @@ func (g *Game) MusicState() Music {
 	}
 	z := g.Cur
 	m.Biome, m.Depth, m.Seed = z.Biome, z.Z, uint32(HashStr(z.Key))
+	if w := g.activeWeather(); w != nil {
+		m.Wx = w.Kind.ID // weather.go kind id when outdoors
+	}
 	switch {
 	case z.Kind == "town":
 		m.Mood = "town"

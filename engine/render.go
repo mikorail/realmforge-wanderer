@@ -35,6 +35,8 @@ func (g *Game) Render() *Screen {
 		g.drawHelp()
 	case "talk":
 		g.drawTalk()
+	case "comp":
+		g.drawCompanions()
 	case "trade":
 		g.drawTrade()
 	case "popup", "confirm":
@@ -43,6 +45,8 @@ func (g *Game) Render() *Screen {
 		g.drawAbilities()
 	case "craft":
 		g.drawCraft()
+	case "cook":
+		g.drawCook()
 	case "dead":
 		g.drawDead()
 	case "target", "look":
@@ -64,6 +68,8 @@ func (g *Game) drawMap() {
 	if !g.Pref("anim") {
 		anim = 0
 	}
+	wo := g.weatherOverlayKind()
+	_, fz := g.feastToday()
 	for y := 0; y < MH; y++ {
 		for x := 0; x < MW; x++ {
 			i := y*MW + x
@@ -107,6 +113,12 @@ func (g *Game) drawMap() {
 				}
 				s.Put(x, y, gl, f, b)
 				continue
+			}
+			if wo != nil && z.Fire[i] == 0 {
+				gl, f = g.overlayTile(wo, x, y, t, gl, f, anim)
+			}
+			if fz != nil && z.Fire[i] == 0 {
+				gl, f = feastTile(fz, x, y, t, gl, f, anim)
 			}
 			if its := z.ItemsAt(x, y); len(its) > 0 {
 				it := its[len(its)-1]
@@ -210,6 +222,9 @@ func (g *Game) drawSide() {
 		ts = "{{W|Thirsty}}"
 	}
 	line(hs + " " + ts)
+	if g.Meal() != "" {
+		line("{{G|Well fed}} {{K|(j: cookbook)}}")
+	}
 	if g.Cur != nil && g.Cur.Underwater && p.Pow("gills") == 0 && !p.Has("swimmer") {
 		line(fmt.Sprintf("{{B|Breath %d}}", g.Breath))
 	}
@@ -237,6 +252,11 @@ func (g *Game) drawSide() {
 		}
 		line(fmt.Sprintf("{{K|%s · %s}}", g.W.StateName(g.W.State[g.W.Idx(g.WX, g.WY)]), depth))
 		line("{{K|" + g.timeOfDay() + "}}")
+		line(g.dateLine())
+		if _, f := g.feastToday(); f != nil {
+			line("{{W|" + f.Name + "}}")
+		}
+		line(g.weatherLine())
 	}
 	y++
 	if g.Mode == "world" {
@@ -248,10 +268,11 @@ func (g *Game) drawSide() {
 		}
 	}
 	if g.Mode != "world" && g.Cur != nil {
+		y = g.drawCompanionsSide(x0, y)
 		line("{{K|Nearby:}}")
 		n := 0
 		for _, a := range g.Cur.Actors {
-			if a.HP <= 0 || !g.visible(a.X, a.Y) || n >= 8 {
+			if a.HP <= 0 || !g.visible(a.X, a.Y) || n >= 8 || a.AI == "follower" {
 				continue
 			}
 			n++
@@ -455,7 +476,7 @@ func (g *Game) drawWorld() {
 	s.TextB(1, 0, " World map — arrows travel, Enter/> enter, Tab realms, Esc back ", CYellow, CBgDark, MW)
 	// parasang info in the sidebar slot of the log
 	p := w.Idx(g.CX, g.CY)
-	info := []string{fmt.Sprintf("{{Y|%s}} — %s", titleCase(BiomeName(w.Biome[p])), w.StateName(w.State[p]))}
+	info := []string{fmt.Sprintf("{{Y|%s}} — %s", titleCase(BiomeName(w.Biome[p])), w.StateName(w.State[p])), g.weatherInfo(p)}
 	if cu := w.cultByID[w.Culture[p]]; cu != nil && !w.IsWater(p) {
 		info = append(info, "People: "+cu.Name)
 	}
@@ -601,7 +622,7 @@ func (g *Game) drawChar() {
 	s := g.sc
 	x, y, w, _ := g.panel("Character")
 	p := g.P
-	tabs := []string{"Attributes & Skills", g.Sk.PowersName}
+	tabs := []string{"Attributes & Skills", g.Sk.PowersName, titleCase(g.augSkin().Noun) + "s"}
 	tx := x
 	for i, t := range tabs {
 		c := "K"
@@ -640,6 +661,13 @@ func (g *Game) drawChar() {
 		s.TextB(x, y+1, "{{K|↑↓ select · Enter spend (attribute 1 AP, skill rank+1 SP) · Tab powers · Esc}}", CGray, CBgDark, x+w)
 		return
 	}
+	if g.Tab == 2 {
+		for _, ln := range g.augSheet() {
+			s.TextB(x, y, ln, CGray, CBgDark, x+w)
+			y++
+		}
+		return
+	}
 	s.TextB(x, y, fmt.Sprintf("{{W|%s points: %d}}  {{K|new: cost · upgrade: 1}}", g.Sk.PowersName, g.MP), CGray, CBgDark, x+w)
 	y += 2
 	row := 0
@@ -652,7 +680,7 @@ func (g *Game) drawChar() {
 			bg = CBgSel
 		}
 		s.Fill(x, y, w, 1, bg)
-		lv := p.Pow(pd.ID)
+		lv := p.Powers[pd.ID]
 		lvs := "{{K|—}}"
 		if lv > 0 {
 			lvs = fmt.Sprintf("{{M|lv %d}}", lv)
@@ -716,6 +744,10 @@ func (g *Game) drawJournal() {
 			e := g.W.Events[i]
 			lines = append(lines, Wrap(fmt.Sprintf("{{K|Y%d}} %s", e.Y, e.Text), SW-6)...)
 		}
+	case 7:
+		lines = g.cookbookLines()
+	case 8:
+		lines = g.calendarLines()
 	default:
 		lines = g.codexLines(g.Tab, SW-8)
 	}
@@ -766,14 +798,16 @@ func (g *Game) drawHelp() {
 		"",
 		"{{Y|People}}  bump a friendly person to talk. The {{C|" + g.Sk.Ritual + "}} earns reputation and a secret from the world's real history.",
 		"Elders give quests; merchants, smiths and apothecaries trade; harbourmasters sell sea passage; priests heal.",
+		"{{W|o}} companions: orders (follow, wait, guard, attack, keep distance, stay out of fights), talk, gifts of gear. Loyalty follows your name with their realm and faith.",
 		"",
-		"{{Y|Survival}}  {{W|e}} eat, {{W|d}} drink (from water, wells or your " + g.Sk.Water + "), {{W|R}} rest until healed, {{W|z}} rest a while.",
+		"{{Y|Survival}}  {{W|e}} eat, {{W|d}} drink (from water, wells or your " + g.Sk.Water + "), {{W|R}} rest until healed, {{W|z}} rest a while, {{W|C}} cook (combine ingredients for a day of buffs).",
 		"Underground is dark: keep a " + g.Sk.Light[0] + " lit. Underwater you must hold your breath unless you have " + g.Sk.Gills() + ".",
 		"",
 		"{{Y|Delving}}  ▼ dungeons and Δ towers on the world map. {{W|s}} searches for traps (^). Keys open locked vaults; Tinkering 2 picks locks. Bump ore to mine it.",
 		"Cities are several zones wide: market, harbor, temple, scholars, barracks, arena, forges. Trainers teach skills for coin; the arena master pays for bouts.",
 		"",
 		"{{Y|Screens}}  {{W|i}} inventory  {{W|c}} character  {{W|j}} journal  {{W|r}} reputation  {{W|m}} log  {{W|x}} look  {{W|T}} craft  {{W|g}} pick up",
+		"{{W|T}} workbench  {{W|C}} cook  {{W|o}} companions  {{W|O}} orders  {{W|W}} war  {{W|H}} home/stash  {{W|F3}} return home  {{W|F2}} sandbox  {{W|`}} settings",
 		"{{W|S}} save · {{W|Esc}} save and return to the chronicle. Slain legends and recovered relics are written into Realmforge's history.",
 	}
 	for _, l := range help {

@@ -42,6 +42,58 @@ const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 /** bitcrush-ish: quantise loudness to 32 levels (fine enough for quiet voices) */
 const q16 = (v: number) => Math.round(clamp(v, 0, 1) * 31) / 31;
 
+// ---------- weather & season colour ----------
+interface WxCfg {
+	tempo: number; // bpm multiplier
+	patter: number; // 0..1 soft 16th-note rain hats
+	sparse: number; // 0..1 chance to drop weak lead / arp notes
+	lift: number; // semitones the lead + pad move (snow sits higher)
+	soft: number; // velocity multiplier for melodic voices
+	drone: number; // 0..1 low sustained drone (fog)
+	wash: number; // 0..1 filtered noise wash (sand, ash, blizzard wind)
+	washHz: number;
+	cut: number; // master low-pass multiplier
+}
+const WX0: WxCfg = { tempo: 1, patter: 0, sparse: 0, lift: 0, soft: 1, drone: 0, wash: 0, washHz: 900, cut: 1 };
+const WX: Record<string, Partial<WxCfg>> = {
+	rain: { tempo: 1.03, patter: 0.5 },
+	acidrain: { tempo: 1.03, patter: 0.5, cut: 0.85 },
+	fallout: { tempo: 1.02, patter: 0.45, cut: 0.85 },
+	sporerain: { tempo: 1.02, patter: 0.45, cut: 0.85 },
+	storm: { tempo: 1.06, patter: 0.85, cut: 0.9 },
+	tempest: { tempo: 1.06, patter: 0.85, cut: 0.9 },
+	snow: { tempo: 0.94, sparse: 0.4, lift: 12, soft: 0.75, cut: 1.1 },
+	blizzard: { tempo: 0.92, sparse: 0.55, lift: 12, soft: 0.65, wash: 0.55, washHz: 1600, cut: 0.9 },
+	frost: { tempo: 0.95, sparse: 0.25, lift: 12, soft: 0.85 },
+	fog: { tempo: 0.95, sparse: 0.2, soft: 0.85, drone: 1, cut: 0.6 },
+	smog: { tempo: 0.95, sparse: 0.2, soft: 0.85, drone: 1, wash: 0.25, washHz: 500, cut: 0.55 },
+	steamfog: { tempo: 0.95, sparse: 0.2, soft: 0.85, drone: 1, cut: 0.6 },
+	sandstorm: { tempo: 1.02, wash: 1, washHz: 1100, cut: 0.75 },
+	ashfall: { tempo: 0.96, wash: 0.6, washHz: 700, soft: 0.9, cut: 0.7 },
+	spores: { drone: 0.5, sparse: 0.15 },
+	shimmer: { lift: 12, sparse: 0.2, soft: 0.85 },
+	pollen: { tempo: 0.98, lift: 0 },
+	heat: { tempo: 0.86, sparse: 0.15, soft: 0.9 },
+	overcast: { cut: 0.85 },
+};
+function wxCfg(id: string | undefined): WxCfg {
+	return { ...WX0, ...(id ? WX[id] : undefined) };
+}
+const SEASON_SHIFT = [0, 2, -1, -3]; // key transposition per season (spring … winter)
+/** subtly recolour a scale for the season: summer brightens, autumn/winter darken */
+function seasonScale(scale: number[], season: number, r: number): number[] {
+	if (scale.length !== 7) return scale;
+	const s = scale.slice();
+	const swap = (from: number, to: number) => {
+		const i = s.indexOf(from);
+		if (i >= 0 && !s.includes(to)) s[i] = to;
+	};
+	if (season === 1 && r < 0.4) swap(5, 6); // lydian-ish raised fourth
+	else if (season === 2 && r < 0.5) swap(11, 10); // mixolydian-ish flat seventh
+	else if (season === 3 && r < 0.6) { swap(9, 8); swap(4, 3); } // flatten sixth / third
+	return s.sort((a, b) => a - b);
+}
+
 // ---------- music theory tables ----------
 const SCALES: Record<string, number[]> = {
 	ionian: [0, 2, 4, 5, 7, 9, 11],
@@ -126,7 +178,7 @@ interface Piece {
 }
 
 function pieceKey(m: QudMusic, style: MusicStyle): string {
-	return `${style}|${m.mood}|${m.genre}|${m.seed}|${m.biome | 0}`;
+	return `${style}|${m.mood}|${m.genre}|${m.seed}|${m.biome | 0}|${(m.season ?? 0) | 0}`;
 }
 
 function snap(d: number, c: number, n: number): number {
@@ -149,10 +201,10 @@ function makePiece(m: QudMusic, style: MusicStyle): Piece {
 	const cfg = MOODS[m.mood] ?? MOODS.wild;
 	const dead = m.mood === 'dead';
 	const scaleName = dead ? 'aeolian' : rng() < gen.w ? pick(gen.scales) : pick(cfg.scales);
-	const scale = SCALES[scaleName];
+	const scale = dead ? SCALES[scaleName] : seasonScale(SCALES[scaleName], (m.season ?? 0) | 0, rng());
 	const n = scale.length;
 	const spb = dead ? 16 : gen.spb;
-	const base = 45 + ((hash(key + 'k') + (m.biome | 0) * 5) % 12);
+	const base = 45 + ((hash(key + 'k') + (m.biome | 0) * 5 + 12 + (dead ? 0 : SEASON_SHIFT[(m.season ?? 0) & 3])) % 12);
 	const center = Math.round(n * 0.9);
 
 	if (dead) {
@@ -245,6 +297,9 @@ export function createMusic(): MusicHandle {
 	let ctx: AudioContext | null = null;
 	let master: GainNode;
 	let tone: BiquadFilterNode;
+	let rumble: BiquadFilterNode; // thunder
+	let washF: BiquadFilterNode; // sand / ash / wind noise wash
+	let lastBolt = -1;
 	let waves: Record<string, PeriodicWave> = {};
 	let noiseLong: AudioBuffer;
 	let noiseShort: AudioBuffer;
@@ -311,6 +366,16 @@ export function createMusic(): MusicHandle {
 				tone.frequency.value = 6000;
 				tone.Q.value = 0.5;
 				tone.connect(comp);
+				rumble = c.createBiquadFilter();
+				rumble.type = 'lowpass';
+				rumble.frequency.value = 220;
+				rumble.Q.value = 0.7;
+				rumble.connect(tone);
+				washF = c.createBiquadFilter();
+				washF.type = 'bandpass';
+				washF.frequency.value = 900;
+				washF.Q.value = 0.6;
+				washF.connect(tone);
 				comp.connect(master);
 				master.connect(c.destination);
 				waves = { '0.125': pulseWave(c, 0.125), '0.25': pulseWave(c, 0.25), '0.5': pulseWave(c, 0.5) };
@@ -418,6 +483,59 @@ export function createMusic(): MusicHandle {
 		o.onended = () => g.disconnect();
 	}
 
+	/** a long smooth noise swell (weather wash); not quantised so it stays soft */
+	function wash(t: number, dur: number, vel: number, rate: number) {
+		const c = ctx!;
+		const s = c.createBufferSource();
+		const g = c.createGain();
+		s.buffer = noiseLong;
+		s.loop = true;
+		s.playbackRate.value = rate;
+		g.gain.setValueAtTime(0, t);
+		g.gain.linearRampToValueAtTime(vel, t + dur * 0.45);
+		g.gain.linearRampToValueAtTime(0, t + dur);
+		s.connect(g).connect(washF);
+		s.start(t);
+		s.stop(t + dur + 0.02);
+		s.onended = () => g.disconnect();
+	}
+	/** sustained low triangle with a slow swell (fog drone) */
+	function drone(p: Player, midi: number, t: number, dur: number, vel: number) {
+		const c = ctx!;
+		const o = c.createOscillator();
+		const g = c.createGain();
+		o.type = 'triangle';
+		o.frequency.value = mtof(midi);
+		g.gain.setValueAtTime(0, t);
+		g.gain.linearRampToValueAtTime(vel, t + dur * 0.35);
+		g.gain.setValueAtTime(vel, t + dur * 0.7);
+		g.gain.linearRampToValueAtTime(0, t + dur + 0.05);
+		o.connect(g).connect(p.bus);
+		o.start(t);
+		o.stop(t + dur + 0.1);
+		o.onended = () => g.disconnect();
+	}
+	/** a distant thunder hit: low noise rumble + a soft sub thump */
+	function thunder() {
+		const c = ctx;
+		if (!c || !enabled) return;
+		const t = c.currentTime + 0.02 + Math.random() * 0.25;
+		const s = c.createBufferSource();
+		const g = c.createGain();
+		s.buffer = noiseLong;
+		s.loop = true;
+		s.playbackRate.value = 0.35;
+		g.gain.setValueAtTime(0, t);
+		g.gain.linearRampToValueAtTime(0.5, t + 0.04);
+		g.gain.exponentialRampToValueAtTime(0.18, t + 0.6);
+		g.gain.exponentialRampToValueAtTime(0.001, t + 2.4);
+		s.connect(g).connect(rumble);
+		s.start(t);
+		s.stop(t + 2.5);
+		s.onended = () => g.disconnect();
+		kick(tone, t, 0.3, 0.45);
+	}
+
 	// ----- player lifecycle -----
 	function newPlayer(piece: Piece, t: number): Player {
 		const c = ctx!;
@@ -453,7 +571,7 @@ export function createMusic(): MusicHandle {
 		if (p.dead) return 52;
 		const amb = p.style === 'ambient';
 		const x = Math.pow(clamp(d, 0, 1), 0.9) * (amb ? 0.4 : 1);
-		return (p.cfg.lo + (p.cfg.hi - p.cfg.lo) * x) * p.gen.bpm * (st && !st.day ? 0.96 : 1) * (amb ? 0.55 : 1);
+		return (p.cfg.lo + (p.cfg.hi - p.cfg.lo) * x) * p.gen.bpm * (st && !st.day ? 0.96 : 1) * (amb ? 0.55 : 1) * wxCfg(st?.wx).tempo;
 	}
 
 	function scheduleStep(p: Player): number {
@@ -463,6 +581,7 @@ export function createMusic(): MusicHandle {
 		const n = pc.scale.length;
 		const pitch = (idx: number) => pc.scale[((idx % n) + n) % n] + 12 * Math.floor(idx / n);
 		const seed = hash(pc.key);
+		const wx = pc.dead ? WX0 : wxCfg(m.wx);
 
 		// continuous adaptation
 		const dTarget = pc.dead ? 0 : Math.max(clamp(m.danger, 0, 1), pc.cfg.minDanger);
@@ -511,22 +630,23 @@ export function createMusic(): MusicHandle {
 			const strong = ev.s % half === 0;
 			if (!strong && !pc.dead && hrand(bar, step, seed) > 0.55 + 0.45 * d - sparse * 0.5) continue;
 			if (strong && !pc.dead && d < 0.6 && hrand(bar, step, seed + 9) < sparse * 0.35) continue;
+			if (!strong && wx.sparse && hrand(bar, step, seed + 5) < wx.sparse) continue;
 			const len = (ev.l + (pc.dead ? 0 : 0)) * dur * (pc.dead ? 1 : 0.92);
-			pulse(p, leadDuty, leadBase + pitch(ev.d) - (day ? 0 : 12), t, len, pc.dead ? 0.1 : 0.09 + 0.025 * d, hrand(bar, step, 7) * 8 - 4);
+			pulse(p, leadDuty, leadBase + wx.lift + pitch(ev.d) - (day ? 0 : 12), t, len, pc.dead ? 0.1 : (0.09 + 0.025 * d) * wx.soft, hrand(bar, step, 7) * 8 - 4);
 		}
 
 		// harmony voice: pad when calm, arpeggio as danger rises
 		const arpAt = 0.35 - pc.gen.arpBias;
 		if (d < arpAt) {
-			if (step === 0) pulse(p, 0.25, pc.base + 12 + pitch(chord + 2), t, half * dur * 0.95, 0.06, 6);
-			if (step === half) pulse(p, 0.25, pc.base + 12 + pitch(chord + 4), t, half * dur * 0.95, 0.06, 6);
+			if (step === 0) pulse(p, 0.25, pc.base + 12 + wx.lift + pitch(chord + 2), t, half * dur * 0.95, 0.06 * wx.soft, 6);
+			if (step === half && !(wx.sparse && hrand(bar, step, seed + 6) < wx.sparse)) pulse(p, 0.25, pc.base + 12 + wx.lift + pitch(chord + 4), t, half * dur * 0.95, 0.06 * wx.soft, 6);
 		} else {
 			const div = d < 0.7 ? 2 : 1;
-			if (step % div === 0 && !(sparse && d < 0.7 && hrand(bar, step, seed + 4) < sparse * 0.5)) {
+			if (step % div === 0 && !(sparse && d < 0.7 && hrand(bar, step, seed + 4) < sparse * 0.5) && !(wx.sparse && hrand(bar, step, seed + 6) < wx.sparse)) {
 				const pat = ARPS[pc.arpStyle];
 				const k = pat[(step / div) % pat.length];
 				const idx = k === 3 ? chord + n : chord + k * 2;
-				pulse(p, 0.125, pc.base + 12 + pitch(idx), t, dur * div * 0.8, 0.06 + 0.02 * d, 5);
+				pulse(p, 0.125, pc.base + 12 + wx.lift + pitch(idx), t, dur * div * 0.8, (0.06 + 0.02 * d) * wx.soft, 5);
 			}
 		}
 
@@ -553,6 +673,18 @@ export function createMusic(): MusicHandle {
 				const fill = d > 0.8 && step % hdiv !== 0 && hrand(bar, step, seed + 2) < 0.4;
 				const skip = sparse > 0 && d < 0.7 && hrand(bar, step, seed + 3) < sparse * 0.6;
 				if ((step % hdiv === 0 || fill) && !skip) noise(p.hat, true, t, step % (hdiv * 2) === hdiv ? 0.07 : 0.035, fill ? 0.035 : 0.05, 1);
+			}
+		}
+
+		// weather colour
+		if (!pc.dead) {
+			// rain patter: soft, slightly random 16th hats on top of whatever percussion plays
+			if (wx.patter && hrand(bar, step, seed + 9) < wx.patter * (step % 2 ? 0.55 : 0.9))
+				noise(p.hat, true, t, 0.025, 0.05 + 0.04 * wx.patter, 1.6 + hrand(bar, step, seed + 10) * 0.6);
+			if (wx.drone && step === 0) drone(p, pc.base - 12 + pitch(chord), t, spb * dur * 1.05, 0.11 * wx.drone);
+			if (wx.wash && step === 0) {
+				washF.frequency.setTargetAtTime(wx.washHz, t, 0.5);
+				wash(t, spb * dur * 1.1, 0.07 * wx.wash, 0.7 + hrand(bar, 0, seed + 11) * 0.5);
 			}
 		}
 
@@ -585,7 +717,7 @@ export function createMusic(): MusicHandle {
 		const now = c.currentTime;
 
 		// brightness: day opens the filter, night and depth darken it
-		const cut = (st.day ? 7000 : 2600) * Math.max(0.4, 1 - Math.max(0, st.depth) * 0.04) * (MOODS[st.mood]?.bright ?? 1) * (style === 'ambient' ? 0.6 : 1);
+		const cut = (st.day ? 7000 : 2600) * Math.max(0.4, 1 - Math.max(0, st.depth) * 0.04) * (MOODS[st.mood]?.bright ?? 1) * (style === 'ambient' ? 0.6 : 1) * wxCfg(st.wx).cut;
 		if (Math.abs(cut - lastCut) > 1) {
 			tone.frequency.setTargetAtTime(cut, now, 0.4);
 			lastCut = cut;
@@ -625,6 +757,9 @@ export function createMusic(): MusicHandle {
 		setState(m: QudMusic) {
 			if (disposed) return;
 			st = m;
+			const bolt = m.bolt ?? 0;
+			if (lastBolt >= 0 && bolt > lastBolt && enabled && ensure()) thunder();
+			lastBolt = bolt;
 			const key = pieceKey(m, style);
 			if (key !== activeKey && key !== pendingKey) pendingKey = key;
 			else if (key === activeKey) pendingKey = null;

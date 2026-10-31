@@ -592,7 +592,7 @@ func (g *Game) cxTravelogue(r *Rng, p int) *Item {
 
 // ---- journal tabs ----
 
-var codexTabNames = []string{"Quests", "Secrets", "Chronicle", "Bestiary", "Atlas", "Library", "People"}
+var codexTabNames = []string{"Quests", "Secrets", "Chronicle", "Bestiary", "Atlas", "Library", "People", "Cookbook", "Calendar"}
 
 func (g *Game) keyJournal(k string) {
 	n := len(codexTabNames)

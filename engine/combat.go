@@ -99,6 +99,9 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 }
 
 func (g *Game) onHit(a, d *Actor, w *Item, crit bool, sk int) {
+	if lv := a.mealLv("venom"); lv > 0 && !d.Has("undead") && g.R.Chance(0.2*float64(lv)) {
+		d.AddSt("poisoned", 6)
+	}
 	switch w.Elem {
 	case "fire":
 		if g.R.Chance(0.35) {
@@ -179,6 +182,7 @@ func (g *Game) dismember(d *Actor) {
 	p := Pick(g.R, limbs)
 	p.Severed = true
 	g.Msg(fmt.Sprintf("{{R|%s %s is severed!}}", possessive(g, d), strings.ToLower(p.Name)))
+	g.augSevered(d, p)
 	limb := &Item{ID: g.newID(), Kind: "trophy", Name: strings.ToLower(possessive(g, d)) + " " + strings.ToLower(p.Name), Glyph: '~', F: CDarkRed, X: d.X, Y: d.Y, Value: 1}
 	g.Cur.Items = append(g.Cur.Items, limb)
 	if p.Item != nil {
@@ -211,6 +215,10 @@ func verb(you bool, a, b string) string {
 // hurt applies damage and handles death; src may be nil.
 func (g *Game) hurt(d *Actor, n int, src *Actor, cause string) {
 	if d.HP <= 0 || n <= 0 {
+		return
+	}
+	n = augResist(d, n, cause)
+	if n = resistMeal(d, n, cause); n <= 0 {
 		return
 	}
 	d.HP -= n
@@ -252,6 +260,7 @@ func (g *Game) provoke(d *Actor) {
 }
 
 func (g *Game) kill(d, src *Actor) {
+	g.compOnKill(d, src)
 	if g.visible(d.X, d.Y) || src == g.P {
 		g.Msg(fmt.Sprintf("{{R|%s %s.}}", g.The(d), deathVerb(d)))
 	}
@@ -276,7 +285,7 @@ func (g *Game) kill(d, src *Actor) {
 		z.Items = append(z.Items, &Item{ID: g.newID(), Kind: "gold", Name: g.Sk.Currency, Glyph: '$', F: CYellow, Count: d.Gold, X: d.X, Y: d.Y})
 	}
 	if !d.Has("undead") && d.Tpl != "golem" && d.Tpl != "turret" {
-		z.Items = append(z.Items, &Item{ID: g.newID(), Kind: "corpse", Name: d.Name + " corpse", Glyph: '%', F: CDarkRed, X: d.X, Y: d.Y, Power: 200})
+		z.Items = append(z.Items, &Item{ID: g.newID(), Kind: "corpse", Name: d.Name + " corpse", Glyph: '%', F: CDarkRed, X: d.X, Y: d.Y, Power: 200, Effect: corpseTag(d), Weight: 10})
 	}
 	if src == g.P || src != nil && src.AI == "follower" {
 		g.Kills++
@@ -390,7 +399,7 @@ func (g *Game) shoot(a *Actor, tx, ty int, w *Item) {
 			continue
 		}
 		roll := g.R.Int(1, 20)
-		hit := roll + a.M(AGI) + g.skillLv(a, "missile") - i/4
+		hit := roll + a.M(AGI) + g.skillLv(a, "missile") - i/4 - g.weatherMissile(a)
 		if roll != 20 && hit < d.DV() {
 			if a == g.P || d == g.P {
 				g.Msg(fmt.Sprintf("%s %s %s.", g.The(a), verb(a == g.P, "miss", "misses"), g.the(d)))
