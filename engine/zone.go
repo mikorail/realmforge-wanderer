@@ -416,6 +416,11 @@ func (g *Game) genSurface(zn *Zone, r *Rng, p int) {
 	} else if bid := w.Burg[p]; bid > 0 {
 		if bd := w.burgByID[bid]; bd != nil && bd.Alive {
 			g.genOutskirts(zn, r, bd)
+			if bd.Bandit && zn.ZX == 0 && zn.ZY == 1 {
+				g.genCamp(zn, r)
+				zn.Name = "Outlaw camp outside " + bd.Name
+				zn.Kind = "camp"
+			}
 		}
 	}
 	if zn.Kind == "surface" && r.Chance(0.06) {
@@ -637,7 +642,7 @@ func (g *Game) genFeature(zn *Zone, r *Rng, p int) {
 		}
 	}
 	if bd := w.burgByID[w.Burg[p]]; bd != nil {
-		if bd.Alive && !bd.Bandit {
+		if bd.Alive {
 			g.genTown(zn, r, bd)
 		} else {
 			g.genRuin(zn, r, bd)
@@ -966,9 +971,6 @@ func (g *Game) genRuin(zn *Zone, r *Rng, bd *BurgData) {
 	w := g.W
 	zn.Kind = "ruin"
 	zn.Name = "Ruins of " + bd.Name
-	if bd.Bandit && bd.Alive {
-		zn.Name = bd.Name + ", " + g.Sk.Bandits + " den"
-	}
 	for i := 0; i < 9; i++ {
 		rw, rh := r.Int(5, 11), r.Int(4, 7)
 		rx, ry := r.Int(10, MW-rw-10), r.Int(2, MH-rh-2)
@@ -1026,12 +1028,6 @@ func (g *Game) genRuin(zn *Zone, r *Rng, bd *BurgData) {
 	n := r.Int(3, 6)
 	for i := 0; i < n; i++ {
 		tp := pickCreature(r, zn.Biome, 'r', zn.Level)
-		if bd.Bandit && bd.Alive {
-			tp = Pick(r, []string{"bandit", "bandit", "archer"})
-			if i == 0 {
-				tp = "chief"
-			}
-		}
 		a := g.Spawn(tp, zn.Level, r)
 		if x, y, ok := zn.FreeSpot(r, nil); ok {
 			a.X, a.Y = x, y

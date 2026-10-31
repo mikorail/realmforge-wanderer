@@ -145,7 +145,7 @@
 			<div class="list">
 				{#each starts as b (b.ID)}
 					<button class:on={start === b.ID} onclick={() => (start = b.ID)}>
-						<b>{b.Name}</b> {b.Capital ? '★' : ''} <span class="dim">— {b.Realm} · {b.Culture} {b.Species === species?.ID ? '· your people' : ''}</span>
+						<b>{b.Name}</b> {b.Capital ? '★' : ''} <span class="dim">— {b.Realm} · {b.Culture}{b.Notables ? ` · ${b.Notables} notable${b.Notables > 1 ? 's' : ''}` : ''} {b.Species === species?.ID ? '· your people' : ''}</span>
 					</button>
 				{/each}
 			</div>

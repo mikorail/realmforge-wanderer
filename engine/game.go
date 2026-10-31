@@ -212,10 +212,10 @@ func NewGame(w *WorldData, spec CharSpec) *Game {
 	g.Breath = 30 + p.M(TOU)*5
 	// start location
 	b := w.burgByID[spec.Start]
-	if b == nil || !b.Alive || b.Bandit {
+	if b == nil || !b.Alive {
 		b = nil
 		for i := range w.Burgs {
-			if w.Burgs[i].Alive && !w.Burgs[i].Bandit && w.Burgs[i].Layer == "surface" && (b == nil || w.Burgs[i].Pop > b.Pop) {
+			if w.Burgs[i].Alive && w.Burgs[i].Layer == "surface" && len(w.peopleByBrg[w.Burgs[i].ID]) > 0 && (b == nil || w.Burgs[i].Pop > b.Pop) {
 				b = &w.Burgs[i]
 			}
 		}

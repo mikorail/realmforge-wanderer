@@ -130,18 +130,19 @@ func CharOptions(w *WorldData) string {
 		ps = append(ps, p)
 	}
 	type st struct {
-		ID      int
-		Name    string
-		Realm   string
-		Culture string
-		Species string
-		Pop     float64
-		Layer   string
-		Capital bool
+		ID       int
+		Name     string
+		Realm    string
+		Culture  string
+		Species  string
+		Pop      float64
+		Layer    string
+		Capital  bool
+		Notables int
 	}
 	var starts []st
 	for _, b := range w.Burgs {
-		if !b.Alive || b.Bandit || b.Layer != "surface" {
+		if !b.Alive || b.Layer != "surface" {
 			continue
 		}
 		cu := w.cultByID[b.Culture]
@@ -150,9 +151,14 @@ func CharOptions(w *WorldData) string {
 			cn = cu.Name
 			spn = cu.Species
 		}
-		starts = append(starts, st{b.ID, b.Name, w.StateName(b.State), cn, spn, b.Pop, b.Layer, b.Capital})
+		starts = append(starts, st{b.ID, b.Name, w.StateName(b.State), cn, spn, b.Pop, b.Layer, b.Capital, len(w.peopleByBrg[b.ID])})
 	}
-	sort.Slice(starts, func(i, j int) bool { return starts[i].Pop > starts[j].Pop })
+	sort.Slice(starts, func(i, j int) bool {
+		if (starts[i].Notables > 0) != (starts[j].Notables > 0) {
+			return starts[i].Notables > 0
+		}
+		return starts[i].Pop > starts[j].Pop
+	})
 	if len(starts) > 60 {
 		starts = starts[:60]
 	}
