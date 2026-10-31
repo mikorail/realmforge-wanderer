@@ -283,6 +283,8 @@ func (g *Game) finishTarget() {
 				return
 			}
 		}
+	case strings.HasPrefix(pend, "order:"):
+		g.orderAttack(pend, tx, ty)
 	case strings.HasPrefix(pend, "power:"):
 		g.usePower(pend[6:], nil, tx, ty)
 	case strings.HasPrefix(pend, "art:"):

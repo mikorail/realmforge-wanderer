@@ -142,6 +142,8 @@ type Actor struct {
 	House    string          `json:"house,omitempty"` // family name shared by a household (society.go)
 	Kin      []int           `json:"kins,omitempty"`  // actor ids of relatives in the same zone (society.go)
 	Meal     map[string]int  `json:"meal,omitempty"`  // cooking tag → level 1-2 from the last meal (cooking.go)
+	Order    string          `json:"ord,omitempty"`   // companion order (companions.go)
+	Comp     *Companion      `json:"comp,omitempty"`  // companion record (companions.go)
 }
 
 func (a *Actor) Has(f string) bool { return a.Flags != nil && a.Flags[f] }

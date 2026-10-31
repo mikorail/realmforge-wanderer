@@ -258,6 +258,7 @@ func (g *Game) provoke(d *Actor) {
 }
 
 func (g *Game) kill(d, src *Actor) {
+	g.compOnKill(d, src)
 	if g.visible(d.X, d.Y) || src == g.P {
 		g.Msg(fmt.Sprintf("{{R|%s %s.}}", g.The(d), deathVerb(d)))
 	}

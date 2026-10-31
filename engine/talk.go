@@ -33,6 +33,10 @@ func (g *Game) openTalk(a *Actor) {
 	g.Mode = "talk"
 	g.Sel = 0
 	g.Popup = nil
+	if a.AI == "follower" {
+		g.companionTalk(a, g.compGreeting(a))
+		return
+	}
 	greet := g.greeting(a)
 	g.talkMenu(greet)
 }
@@ -306,13 +310,7 @@ func (g *Game) shareSecret(a *Actor) {
 }
 
 func (g *Game) recruit(a *Actor) {
-	n := 0
-	for _, o := range g.Cur.Actors {
-		if o.AI == "follower" {
-			n++
-		}
-	}
-	if n >= 3 {
+	if g.companionCount() >= maxCompanions {
 		g.talkMenu("\"You've enough company already.\"")
 		return
 	}
@@ -325,10 +323,7 @@ func (g *Game) recruit(a *Actor) {
 		g.talkMenu(fmt.Sprintf("\"I don't know you well enough.\" (needs reputation %d with %s, or the %s and Persuasion)", need, g.FactionName(a.Faction), g.Sk.Ritual))
 		return
 	}
-	a.AI = "follower"
-	a.Faction = "player"
-	a.F = CGreen
-	g.Msg(fmt.Sprintf("{{G|%s joins you.}}", a.Name))
+	g.joinCompanion(a)
 	g.Mode = "main"
 }
 

@@ -442,6 +442,7 @@ func (g *Game) turn() {
 	}
 	g.statusTick(p)
 	g.mealTick()
+	g.companionsTick()
 	// regeneration
 	regen := 40 - p.M(TOU)*4 - p.Pow("regen")*8 - p.mealLv("mending")*10
 	if p.Pow("albino") > 0 && g.Cur.Z == 0 && g.daylight() {
@@ -594,7 +595,7 @@ func (g *Game) enterZone(zn *Zone, x, y int, place bool) {
 		var fol []*Actor
 		rest := g.Cur.Actors[:0]
 		for _, a := range g.Cur.Actors {
-			if a.AI == "follower" && a.HP > 0 && abs(a.X-g.P.X) <= 8 && abs(a.Y-g.P.Y) <= 8 {
+			if a.AI == "follower" && a.HP > 0 && g.compComes(a) {
 				fol = append(fol, a)
 			} else {
 				rest = append(rest, a)
@@ -713,6 +714,10 @@ func (g *Game) MoveP(dx, dy int) {
 		if g.Hostile(a) {
 			g.melee(p, a)
 			g.spend(1000)
+			return
+		}
+		if a.AI == "follower" && (a.Order == OrdStay || a.Order == OrdGuard) {
+			g.openTalk(a)
 			return
 		}
 		if a.AI == "follower" {
