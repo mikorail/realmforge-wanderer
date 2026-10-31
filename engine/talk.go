@@ -33,6 +33,10 @@ func (g *Game) openTalk(a *Actor) {
 	g.Mode = "talk"
 	g.Sel = 0
 	g.Popup = nil
+	if a.AI == "follower" {
+		g.companionTalk(a, g.compGreeting(a))
+		return
+	}
 	greet := g.greeting(a)
 	g.talkMenu(greet)
 }
@@ -47,7 +51,13 @@ func (g *Game) greeting(a *Actor) string {
 	case rep <= -250:
 		return "\"...What do you want?\" They eye you warily."
 	}
+	if fg := g.feastGreeting(a); fg != "" {
+		return fg
+	}
 	if rm := g.attireRemark(a); rm != "" {
+		return rm
+	}
+	if rm := g.augRemark(a); rm != "" {
 		return rm
 	}
 	if cg := g.casteGreeting(a); cg != "" {
@@ -67,13 +77,23 @@ func (g *Game) talkMenu(text string) {
 	add := func(t string, f func()) { g.Opts = append(g.Opts, Option{t, f}) }
 	add("Who are you?", func() { g.talkMenu(g.aboutNPC(a)) })
 	add("What news is there?", func() { g.talkMenu(g.gossip(a)) })
+	if g.canJoinFeast(a) {
+		_, f := g.feastToday()
+		add("{{W|Join the "+f.Name+".}}", func() { g.joinFeast(a) })
+	}
 	if !a.Kinship {
 		add(fmt.Sprintf("{{C|Perform the %s.}}", g.Sk.Ritual), func() { g.ritual(a) })
 	} else if !a.Talked && len(g.Secrets) > 0 {
 		add("{{c|Share a secret with them.}}", func() { g.shareSecret(a) })
 	}
+	if a.Kinship && !a.Has("recipes") && a.AI != "follower" {
+		add("{{y|Swap recipes.}}", func() { g.swapRecipes(a) })
+	}
 	if a.Role == "tailor" {
 		add("{{O|Have a garment remade (transmog).}}", func() { g.tailorMenu(a) })
+	}
+	if a.Role == "augmenter" {
+		add(fmt.Sprintf("{{O|Install or remove a %s.}}", g.augSkin().Noun), func() { g.augMenu(a) })
 	}
 	if a.Teach != "" {
 		add("{{O|Teach me.}}", func() { g.trainMenu(a) })
@@ -162,6 +182,9 @@ func (g *Game) aboutNPC(a *Actor) string {
 
 // gossip pulls real events from the simulation near this place.
 func (g *Game) gossip(a *Actor) string {
+	if s := g.feastGossip(a); s != "" {
+		return s
+	}
 	r := NewRng(fmt.Sprintf("%d:%d", a.ID, g.Turn/600))
 	w := g.W
 	p := w.Idx(g.Cur.WX, g.Cur.WY)
@@ -303,13 +326,7 @@ func (g *Game) shareSecret(a *Actor) {
 }
 
 func (g *Game) recruit(a *Actor) {
-	n := 0
-	for _, o := range g.Cur.Actors {
-		if o.AI == "follower" {
-			n++
-		}
-	}
-	if n >= 3 {
+	if g.companionCount() >= maxCompanions {
 		g.talkMenu("\"You've enough company already.\"")
 		return
 	}
@@ -322,10 +339,7 @@ func (g *Game) recruit(a *Actor) {
 		g.talkMenu(fmt.Sprintf("\"I don't know you well enough.\" (needs reputation %d with %s, or the %s and Persuasion)", need, g.FactionName(a.Faction), g.Sk.Ritual))
 		return
 	}
-	a.AI = "follower"
-	a.Faction = "player"
-	a.F = CGreen
-	g.Msg(fmt.Sprintf("{{G|%s joins you.}}", a.Name))
+	g.joinCompanion(a)
 	g.Mode = "main"
 }
 
@@ -660,14 +674,14 @@ func (g *Game) price(it *Item, buy bool) int {
 		if g.Talk.Has("markup") {
 			f += 0.15
 		}
-		f *= g.castePriceMod(g.Talk)
+		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk)
 		if f < 0.75 {
 			f = 0.75
 		}
 		return maxi(1, int(float64(v)*f))
 	}
 	f := 0.4 + ego + per + rep
-	f /= g.castePriceMod(g.Talk)
+	f /= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk)
 	if f > 0.8 {
 		f = 0.8
 	}
@@ -675,6 +689,7 @@ func (g *Game) price(it *Item, buy bool) int {
 }
 
 func (g *Game) openTrade(a *Actor) {
+	g.feastStock(a)
 	g.Talk = a
 	g.Mode = "trade"
 	g.Tab = 0

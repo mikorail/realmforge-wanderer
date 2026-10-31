@@ -112,6 +112,8 @@ func (g *Game) Key(k string) Out {
 		g.Pend = ""
 	case "talk":
 		g.keyMenu(k, func() { g.Mode = "main"; g.Talk = nil })
+	case "comp":
+		g.keyMenu(k, func() { g.Mode = "main" })
 	case "trade":
 		g.keyTrade(k)
 	case "inv":
@@ -131,6 +133,8 @@ func (g *Game) Key(k string) Out {
 		} else if k == "Enter" && g.Sel < len(abs) {
 			g.startAbility(abs[g.Sel])
 		}
+	case "cook":
+		g.keyCook(k)
 	case "craft":
 		rs := g.Recipes()
 		if i := letterIndex(k); i >= 0 && i < len(rs) {
@@ -148,10 +152,10 @@ func (g *Game) Key(k string) Out {
 				g.Mode = "world"
 			}
 		case "Tab", "ArrowRight":
-			g.Tab = (g.Tab + 1) % 3
+			g.Tab = (g.Tab + 1) % journalTabs
 			g.Sel = 0
 		case "ArrowLeft":
-			g.Tab = (g.Tab + 2) % 3
+			g.Tab = (g.Tab + journalTabs - 1) % journalTabs
 			g.Sel = 0
 		case "ArrowUp", "PageUp":
 			g.Sel = maxi(0, g.Sel-1-boolInt(k == "PageUp")*10)
@@ -220,6 +224,8 @@ func (g *Game) keyMain(k string) Out {
 		g.Msg("You have nothing to throw. (Throw any item from the inventory.)")
 	case "a":
 		g.Mode, g.Sel = "abilities", 0
+	case "o":
+		g.openCompanions()
 	case "x", "L":
 		g.Mode = "look"
 		g.CX, g.CY = g.P.X, g.P.Y
@@ -251,6 +257,8 @@ func (g *Game) keyMain(k string) Out {
 			}
 		}
 		g.Msg("You have nothing to eat.")
+	case "C":
+		g.openCook()
 	case "T":
 		if g.Skills["tinkering"] < 2 {
 			g.Msg("You need Tinkering 2 to craft.")
@@ -491,8 +499,12 @@ func (g *Game) keyItem(k string) {
 
 func (g *Game) keyChar(k string) {
 	switch k {
-	case "Tab", "ArrowRight", "ArrowLeft":
-		g.Tab = 1 - g.Tab
+	case "Tab", "ArrowRight":
+		g.Tab = (g.Tab + 1) % 3
+		g.Sel = 0
+		return
+	case "ArrowLeft":
+		g.Tab = (g.Tab + 2) % 3
 		g.Sel = 0
 		return
 	case "Escape", "c":
@@ -505,7 +517,7 @@ func (g *Game) keyChar(k string) {
 		g.Sel++
 		return
 	}
-	if k != "Enter" && k != "+" {
+	if k != "Enter" && k != "+" || g.Tab == 2 {
 		return
 	}
 	if g.Tab == 0 {
@@ -544,7 +556,7 @@ func (g *Game) keyChar(k string) {
 	}
 	if g.Sel < len(ps) {
 		pd := ps[g.Sel]
-		lv := g.P.Pow(pd.ID)
+		lv := g.P.Powers[pd.ID]
 		cost := pd.Cost
 		if lv > 0 {
 			cost = 1

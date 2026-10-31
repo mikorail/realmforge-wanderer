@@ -22,6 +22,7 @@ func (g *Game) recompute() {
 	if p.Pow("nearsight") > 0 {
 		radius = 8
 	}
+	radius = g.weatherSight(radius)
 	los[p.Y*MW+p.X] = true
 	for oct := 0; oct < 8; oct++ {
 		g.castLight(los, p.X, p.Y, 1, 1.0, 0.0, radius, oct)
@@ -242,6 +243,9 @@ func (g *Game) aiAct(a *Actor) {
 	}
 	if a.St("confused") > 0 && g.R.Chance(0.5) {
 		g.wander(a)
+		return
+	}
+	if g.companionAct(a) {
 		return
 	}
 	p := g.P

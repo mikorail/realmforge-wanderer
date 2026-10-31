@@ -7,7 +7,7 @@
 		"dev": "./scripts/run-with-nvm.sh vite",
 		"build": "npm run wasm && ./scripts/run-with-nvm.sh vite build",
 		"preview": "./scripts/run-with-nvm.sh vite preview",
-		"wasm": "GOOS=js GOARCH=wasm go build -ldflags=\"-s -w\" -o public/wasm/qud.wasm ./cmd/wasm && cp \"$(go env GOROOT)/misc/wasm/wasm_exec.js\" public/wasm/",
+		"wasm": "GOOS=js GOARCH=wasm go build -ldflags=\"-s -w\" -o public/wasm/qud.wasm ./cmd/wasm && (cp \"$(go env GOROOT)/lib/wasm/wasm_exec.js\" public/wasm/ 2>/dev/null || cp \"$(go env GOROOT)/misc/wasm/wasm_exec.js\" public/wasm/)",
 		"fuzz": "go run ./cmd/fuzz"
 	},
 	"devDependencies": {

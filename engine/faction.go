@@ -172,6 +172,7 @@ func (g *Game) AddRep(f string, n int, why string) {
 		return
 	}
 	g.Rep[f] += n
+	g.compRep(f, n)
 	col := "G"
 	sign := "+"
 	if n < 0 {
@@ -261,7 +262,7 @@ func (g *Game) roleTitle(role string) string {
 	return role
 }
 
-var roleColor = map[string]byte{"guard": CCyan, "merchant": CYellow, "smith": COrange, "apothecary": CGreen, "priest": CWhite, "elder": CMagenta, "villager": CGray, "ferry": CBlue, "notable": CMagenta, "bookseller": CCyan, "exotic": CMagenta, "trainer": COrange, "arena": CRed, "tailor": CMagenta}
+var roleColor = map[string]byte{"guard": CCyan, "merchant": CYellow, "smith": COrange, "apothecary": CGreen, "priest": CWhite, "elder": CMagenta, "villager": CGray, "ferry": CBlue, "notable": CMagenta, "bookseller": CCyan, "exotic": CMagenta, "trainer": COrange, "arena": CRed, "tailor": CMagenta, "augmenter": CCyan}
 
 func (g *Game) speciesOf(cu *CultureData) *SpeciesData {
 	if cu != nil && cu.Species != "" {
@@ -329,6 +330,9 @@ func (g *Game) makeNPC(role string, bd *BurgData, cu *CultureData, r *Rng) *Acto
 	case "merchant", "smith", "apothecary", "bookseller", "exotic":
 		a.Gold = r.Int(150, 400) + lvl*30
 		g.stockShop(a, role, tier, r)
+		if role == "merchant" {
+			g.stockIngredients(a, cu, r)
+		}
 		a.AI = "still"
 	case "priest":
 		a.Gold = r.Int(20, 60)

@@ -489,6 +489,7 @@ func (g *Game) genDistrict(zn *Zone, r *Rng, bd *BurgData, cp *cityPlan, kind st
 	}
 	g.placeLandmarks(zn, r, bd, kind)
 	g.assignSociety(zn, r, bd)
+	g.placeInstaller(zn, bd, cp)
 }
 
 func sq(v float64) float64 { return v * v }

@@ -14,7 +14,7 @@ func (g *Game) swimCostMult() int {
 
 // breathCap is the player's maximum breath; diving triples it.
 func (g *Game) breathCap() int {
-	c := 30 + g.P.M(TOU)*5
+	c := 30 + g.P.M(TOU)*5 + 30*g.P.mealLv("deep")
 	if g.P.Pow("diving") > 0 {
 		c *= 3
 	}

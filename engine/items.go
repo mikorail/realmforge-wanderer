@@ -207,13 +207,25 @@ func (it *Item) Describe(g *Game) []string {
 	case "tonic":
 		l = append(l, "A tonic: "+it.Effect)
 	case "food":
-		l = append(l, "Food. Eat it when hungry.")
+		l = append(l, "Food. Eat it when hungry, or cook it (C) for a warmer meal.")
+	case "dish":
+		l = append(l, "A cooked dish, ready to eat: "+describeTags(tagsOf(it.Effect))+".")
+	case "ingredient", "corpse":
+		if t, ok := cookTags[it.Effect]; ok {
+			l = append(l, fmt.Sprintf("A cooking ingredient {{%s|<%s>}}: in a meal, %s.", t.Col, t.Name, t.Desc(1)))
+		}
 	case "water":
 		l = append(l, fmt.Sprintf("Holds %d/%d drams of fresh water.", it.Charges, it.Power))
 	case "grenade":
 		l = append(l, "Throw it (t) at a target.")
 	case "book":
 		l = append(l, "Read it (r).")
+	case "augment":
+		l = append(l, g.augDescribe(it)...)
+		if it.Lore != "" {
+			l = append(l, "", it.Lore)
+		}
+		return append(l, "", fmt.Sprintf("Value: %d %s", it.Value, g.Sk.Currency))
 	case "artifact":
 		if it.DN > 0 {
 			l = append(l, fmt.Sprintf("{{c|→}}%d  {{R|♥}}%dd%d", it.PV, it.DN, it.DS))

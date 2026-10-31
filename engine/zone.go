@@ -230,10 +230,16 @@ func (g *Game) genZone(wx, wy, zx, zy, z int) *Zone {
 		g.genSky(zn, r, p)
 	case z == 0:
 		g.genSurface(zn, r, p)
+		if zn.Kind == "surface" {
+			g.scatterHerbs(zn, p)
+		}
 	case site != nil && site.Kind == "dungeon" && z <= site.Depth && !(site.Ruin && z == 1):
 		g.genDungeon(zn, r, site)
 	default:
 		g.genUnder(zn, r, p)
+		if zn.Kind == "underdark" {
+			g.scatterHerbs(zn, p)
+		}
 	}
 	// stairs to the level below, '<' from the level above
 	for _, s := range g.stairsDown(wx, wy, zx, zy, z) {

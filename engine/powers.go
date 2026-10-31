@@ -31,6 +31,7 @@ func (g *Game) Abilities() []Ability {
 		}
 		out = append(out, Ability{ID: id, Name: g.Sk.PowerName(id), Target: pd.Target, Cool: g.P.Cool[id]})
 	}
+	out = append(out, g.augAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
 	for _, bp := range g.P.Body {
 		if bp.Item != nil {
@@ -283,6 +284,8 @@ func (g *Game) finishTarget() {
 				return
 			}
 		}
+	case strings.HasPrefix(pend, "order:"):
+		g.orderAttack(pend, tx, ty)
 	case strings.HasPrefix(pend, "power:"):
 		g.usePower(pend[6:], nil, tx, ty)
 	case strings.HasPrefix(pend, "art:"):
@@ -359,6 +362,12 @@ func (g *Game) useItem(it *Item) {
 			p.AddSt("poisoned", 6)
 			g.Msg("{{G|It disagrees with you.}}")
 		}
+		g.consume(it)
+	case "dish":
+		g.eatDish(it)
+	case "ingredient":
+		g.Hunger = maxi(0, g.Hunger-maxi(it.Power, 60))
+		g.Msg("You eat the " + it.Name + " raw. It would be better cooked (C).")
 		g.consume(it)
 	case "water":
 		if it.Charges <= 0 {

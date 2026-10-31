@@ -464,6 +464,10 @@ func (g *Game) lockedVault(zn *Zone, r *Rng, rooms [][4]int, st themeStyle) {
 				}
 				gold := &Item{ID: g.newID(), Kind: "gold", Name: g.Sk.Currency, Glyph: '$', F: CYellow, Count: 30 * zn.Level, X: x, Y: y}
 				zn.Items = append(zn.Items, gold)
+				if au := g.augLoot(zn.Key+":vault", 0.4); au != nil {
+					au.X, au.Y = x+w-1, y
+					zn.Items = append(zn.Items, au)
+				}
 				return
 			}
 		}
@@ -505,6 +509,9 @@ func (g *Game) placeBoss(zn *Zone, r *Rng, s *Site, rooms [][4]int, st themeStyl
 	boss.X, boss.Y = big[0]+big[2]/2, big[1]+big[3]/2
 	g.nudge(zn, boss)
 	boss.Inv = append(boss.Inv, g.MakeOddity(r, 4), g.bossDrop(r, zn.Level))
+	if au := g.augLoot(zn.Key+":boss", 0.35); au != nil {
+		boss.Inv = append(boss.Inv, au)
+	}
 	boss.Gold += 50*zn.Level + s.Gold
 	zn.Actors = append(zn.Actors, boss)
 	it := g.Loot(r, 5)
