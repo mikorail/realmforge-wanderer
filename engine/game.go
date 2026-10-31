@@ -83,6 +83,7 @@ type Game struct {
 	ArenaWins int              `json:"arenaWins"`
 	ArenaFoes []int            `json:"arenaFoes"`
 	ArenaKey  string           `json:"arenaKey"`
+	WxLast    string           `json:"wxl,omitempty"` // last weather announced (weather.go)
 
 	// ui state (not saved)
 	Mode    string   `json:"-"`
@@ -102,6 +103,7 @@ type Game struct {
 	sites   map[string]*Site
 	wmInfo  []string
 	sensed  []bool
+	wxForce *Weather // tests: pin the weather
 }
 
 type Option struct {
@@ -469,6 +471,7 @@ func (g *Game) turn() {
 		}
 	}
 	g.fireTick()
+	g.weatherTick()
 }
 
 func (g *Game) statusTick(a *Actor) {
@@ -795,6 +798,7 @@ func (g *Game) stepTo(nx, ny int) {
 		cost = 1300
 	}
 	cost = g.climbCost(nx, ny, cost)
+	cost = g.weatherStep(nx, ny, cost)
 	p.X, p.Y = nx, ny
 	if z.Traps != nil {
 		if _, ok := z.Traps[ny*MW+nx]; ok {
@@ -988,6 +992,7 @@ func (g *Game) WorldMove(dx, dy int) {
 	if g.W.Height[np] >= 70 {
 		cost = cost * 3 / 2
 	}
+	cost = g.travelWeather(np, cost)
 	for i := 0; i < cost; i++ {
 		g.Turn++
 		g.mealTick()
@@ -1221,6 +1226,7 @@ type Music struct {
 	Day    bool    `json:"day"`
 	HP     float64 `json:"hp"`   // player hp fraction
 	Seed   uint32  `json:"seed"` // per-zone seed so each place keeps its own melody
+	Wx     string  `json:"wx"`
 }
 
 func (g *Game) MusicState() Music {
@@ -1235,6 +1241,9 @@ func (g *Game) MusicState() Music {
 	}
 	z := g.Cur
 	m.Biome, m.Depth, m.Seed = z.Biome, z.Z, uint32(HashStr(z.Key))
+	if w := g.activeWeather(); w != nil {
+		m.Wx = w.Kind.ID // weather.go kind id when outdoors
+	}
 	switch {
 	case z.Kind == "town":
 		m.Mood = "town"

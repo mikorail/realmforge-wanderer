@@ -394,7 +394,7 @@ func (g *Game) shoot(a *Actor, tx, ty int, w *Item) {
 			continue
 		}
 		roll := g.R.Int(1, 20)
-		hit := roll + a.M(AGI) + g.skillLv(a, "missile") - i/4
+		hit := roll + a.M(AGI) + g.skillLv(a, "missile") - i/4 - g.weatherMissile(a)
 		if roll != 20 && hit < d.DV() {
 			if a == g.P || d == g.P {
 				g.Msg(fmt.Sprintf("%s %s %s.", g.The(a), verb(a == g.P, "miss", "misses"), g.the(d)))

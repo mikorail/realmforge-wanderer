@@ -61,6 +61,7 @@ func (g *Game) drawMap() {
 	s := g.sc
 	z := g.Cur
 	anim := g.Tick / 10
+	wo := g.weatherOverlayKind()
 	for y := 0; y < MH; y++ {
 		for x := 0; x < MW; x++ {
 			i := y*MW + x
@@ -104,6 +105,9 @@ func (g *Game) drawMap() {
 				}
 				s.Put(x, y, gl, f, b)
 				continue
+			}
+			if wo != nil && z.Fire[i] == 0 {
+				gl, f = g.overlayTile(wo, x, y, t, gl, f, anim)
 			}
 			if its := z.ItemsAt(x, y); len(its) > 0 {
 				it := its[len(its)-1]
@@ -237,6 +241,7 @@ func (g *Game) drawSide() {
 		}
 		line(fmt.Sprintf("{{K|%s · %s}}", g.W.StateName(g.W.State[g.W.Idx(g.WX, g.WY)]), depth))
 		line("{{K|" + g.timeOfDay() + "}}")
+		line(g.weatherLine())
 	}
 	y++
 	if g.Mode == "world" {
@@ -449,7 +454,7 @@ func (g *Game) drawWorld() {
 	s.TextB(1, 0, " World map — arrows travel, Enter/> enter, Tab realms, Esc back ", CYellow, CBgDark, MW)
 	// parasang info in the sidebar slot of the log
 	p := w.Idx(g.CX, g.CY)
-	info := []string{fmt.Sprintf("{{Y|%s}} — %s", titleCase(BiomeName(w.Biome[p])), w.StateName(w.State[p]))}
+	info := []string{fmt.Sprintf("{{Y|%s}} — %s", titleCase(BiomeName(w.Biome[p])), w.StateName(w.State[p])), g.weatherInfo(p)}
 	if cu := w.cultByID[w.Culture[p]]; cu != nil && !w.IsWater(p) {
 		info = append(info, "People: "+cu.Name)
 	}
