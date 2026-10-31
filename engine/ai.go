@@ -244,6 +244,9 @@ func (g *Game) aiAct(a *Actor) {
 		g.wander(a)
 		return
 	}
+	if g.companionAct(a) {
+		return
+	}
 	p := g.P
 	// pick a target: the player if hostile, else the nearest enemy actor
 	var tgt *Actor

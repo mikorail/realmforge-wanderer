@@ -172,6 +172,7 @@ func (g *Game) AddRep(f string, n int, why string) {
 		return
 	}
 	g.Rep[f] += n
+	g.compRep(f, n)
 	col := "G"
 	sign := "+"
 	if n < 0 {

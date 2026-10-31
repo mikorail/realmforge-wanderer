@@ -112,6 +112,8 @@ func (g *Game) Key(k string) Out {
 		g.Pend = ""
 	case "talk":
 		g.keyMenu(k, func() { g.Mode = "main"; g.Talk = nil })
+	case "comp":
+		g.keyMenu(k, func() { g.Mode = "main" })
 	case "trade":
 		g.keyTrade(k)
 	case "inv":
@@ -220,6 +222,8 @@ func (g *Game) keyMain(k string) Out {
 		g.Msg("You have nothing to throw. (Throw any item from the inventory.)")
 	case "a":
 		g.Mode, g.Sel = "abilities", 0
+	case "o":
+		g.openCompanions()
 	case "x", "L":
 		g.Mode = "look"
 		g.CX, g.CY = g.P.X, g.P.Y

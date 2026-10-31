@@ -35,6 +35,8 @@ func (g *Game) Render() *Screen {
 		g.drawHelp()
 	case "talk":
 		g.drawTalk()
+	case "comp":
+		g.drawCompanions()
 	case "trade":
 		g.drawTrade()
 	case "popup", "confirm":
@@ -241,10 +243,11 @@ func (g *Game) drawSide() {
 		}
 	}
 	if g.Mode != "world" && g.Cur != nil {
+		y = g.drawCompanionsSide(x0, y)
 		line("{{K|Nearby:}}")
 		n := 0
 		for _, a := range g.Cur.Actors {
-			if a.HP <= 0 || !g.visible(a.X, a.Y) || n >= 8 {
+			if a.HP <= 0 || !g.visible(a.X, a.Y) || n >= 8 || a.AI == "follower" {
 				continue
 			}
 			n++
@@ -750,6 +753,7 @@ func (g *Game) drawHelp() {
 		"",
 		"{{Y|People}}  bump a friendly person to talk. The {{C|" + g.Sk.Ritual + "}} earns reputation and a secret from the world's real history.",
 		"Elders give quests; merchants, smiths and apothecaries trade; harbourmasters sell sea passage; priests heal.",
+		"{{W|o}} companions: orders (follow, wait, guard, attack, keep distance, stay out of fights), talk, gifts of gear. Loyalty follows your name with their realm and faith.",
 		"",
 		"{{Y|Survival}}  {{W|e}} eat, {{W|d}} drink (from water, wells or your " + g.Sk.Water + "), {{W|R}} rest until healed, {{W|z}} rest a while.",
 		"Underground is dark: keep a " + g.Sk.Light[0] + " lit. Underwater you must hold your breath unless you have " + g.Sk.Gills() + ".",
