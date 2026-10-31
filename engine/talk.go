@@ -51,6 +51,9 @@ func (g *Game) greeting(a *Actor) string {
 	case rep <= -250:
 		return "\"...What do you want?\" They eye you warily."
 	}
+	if fg := g.feastGreeting(a); fg != "" {
+		return fg
+	}
 	if rm := g.attireRemark(a); rm != "" {
 		return rm
 	}
@@ -74,6 +77,10 @@ func (g *Game) talkMenu(text string) {
 	add := func(t string, f func()) { g.Opts = append(g.Opts, Option{t, f}) }
 	add("Who are you?", func() { g.talkMenu(g.aboutNPC(a)) })
 	add("What news is there?", func() { g.talkMenu(g.gossip(a)) })
+	if g.canJoinFeast(a) {
+		_, f := g.feastToday()
+		add("{{W|Join the "+f.Name+".}}", func() { g.joinFeast(a) })
+	}
 	if !a.Kinship {
 		add(fmt.Sprintf("{{C|Perform the %s.}}", g.Sk.Ritual), func() { g.ritual(a) })
 	} else if !a.Talked && len(g.Secrets) > 0 {
@@ -175,6 +182,9 @@ func (g *Game) aboutNPC(a *Actor) string {
 
 // gossip pulls real events from the simulation near this place.
 func (g *Game) gossip(a *Actor) string {
+	if s := g.feastGossip(a); s != "" {
+		return s
+	}
 	r := NewRng(fmt.Sprintf("%d:%d", a.ID, g.Turn/600))
 	w := g.W
 	p := w.Idx(g.Cur.WX, g.Cur.WY)
@@ -679,6 +689,7 @@ func (g *Game) price(it *Item, buy bool) int {
 }
 
 func (g *Game) openTrade(a *Actor) {
+	g.feastStock(a)
 	g.Talk = a
 	g.Mode = "trade"
 	g.Tab = 0

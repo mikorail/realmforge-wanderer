@@ -152,10 +152,10 @@ func (g *Game) Key(k string) Out {
 				g.Mode = "world"
 			}
 		case "Tab", "ArrowRight":
-			g.Tab = (g.Tab + 1) % 4
+			g.Tab = (g.Tab + 1) % journalTabs
 			g.Sel = 0
 		case "ArrowLeft":
-			g.Tab = (g.Tab + 3) % 4
+			g.Tab = (g.Tab + journalTabs - 1) % journalTabs
 			g.Sel = 0
 		case "ArrowUp", "PageUp":
 			g.Sel = maxi(0, g.Sel-1-boolInt(k == "PageUp")*10)

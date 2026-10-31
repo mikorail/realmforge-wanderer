@@ -62,6 +62,7 @@ func (g *Game) drawMap() {
 	z := g.Cur
 	anim := g.Tick / 10
 	wo := g.weatherOverlayKind()
+	_, fz := g.feastToday()
 	for y := 0; y < MH; y++ {
 		for x := 0; x < MW; x++ {
 			i := y*MW + x
@@ -108,6 +109,9 @@ func (g *Game) drawMap() {
 			}
 			if wo != nil && z.Fire[i] == 0 {
 				gl, f = g.overlayTile(wo, x, y, t, gl, f, anim)
+			}
+			if fz != nil && z.Fire[i] == 0 {
+				gl, f = feastTile(fz, x, y, t, gl, f, anim)
 			}
 			if its := z.ItemsAt(x, y); len(its) > 0 {
 				it := its[len(its)-1]
@@ -241,6 +245,10 @@ func (g *Game) drawSide() {
 		}
 		line(fmt.Sprintf("{{K|%s · %s}}", g.W.StateName(g.W.State[g.W.Idx(g.WX, g.WY)]), depth))
 		line("{{K|" + g.timeOfDay() + "}}")
+		line(g.dateLine())
+		if _, f := g.feastToday(); f != nil {
+			line("{{W|" + f.Name + "}}")
+		}
 		line(g.weatherLine())
 	}
 	y++
@@ -682,7 +690,7 @@ func (g *Game) drawChar() {
 func (g *Game) drawJournal() {
 	s := g.sc
 	s.Box(0, 0, SW, SH, CDarkCyan, "Journal")
-	tabs := []string{"Quests", "Secrets & Places", "Chronicle of " + g.W.Name, "Cookbook"}
+	tabs := []string{"Quests", "Secrets & Places", "Chronicle of " + g.W.Name, "Cookbook", "Calendar"}
 	tx := 2
 	for i, t := range tabs {
 		c := "K"
@@ -724,6 +732,8 @@ func (g *Game) drawJournal() {
 		}
 	case 3:
 		lines = g.cookbookLines()
+	case 4:
+		lines = g.calendarLines()
 	}
 	g.Sel = clampi(g.Sel, 0, maxi(0, len(lines)-(SH-5)))
 	for i := 0; i < SH-5 && g.Sel+i < len(lines); i++ {

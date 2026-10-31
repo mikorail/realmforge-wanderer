@@ -83,7 +83,10 @@ type Game struct {
 	ArenaWins int              `json:"arenaWins"`
 	ArenaFoes []int            `json:"arenaFoes"`
 	ArenaKey  string           `json:"arenaKey"`
-	WxLast    string           `json:"wxl,omitempty"` // last weather announced (weather.go)
+	WxLast    string           `json:"wxl,omitempty"`       // last weather announced (weather.go)
+	FeastSeen map[string]bool  `json:"feastSeen,omitempty"` // feasts joined: burg:name:year (calendar.go)
+	Feasts    []FeastLog       `json:"feasts,omitempty"`
+	FeastNote string           `json:"feastNote,omitempty"` // burg:day of the last feast announcement
 
 	// ui state (not saved)
 	boltN   int      // lightning strikes so far this session (MusicState.Bolt)
@@ -473,6 +476,7 @@ func (g *Game) turn() {
 	}
 	g.fireTick()
 	g.weatherTick()
+	g.calendarTick()
 }
 
 func (g *Game) statusTick(a *Actor) {
@@ -637,6 +641,7 @@ func (g *Game) enterZone(zn *Zone, x, y int, place bool) {
 	p := g.W.Idx(zn.WX, zn.WY)
 	g.Known[p] = true
 	g.Msg("{{C|" + zn.Name + "}}")
+	g.feastAnnounce()
 }
 
 func (g *Game) nudge(zn *Zone, a *Actor) {
