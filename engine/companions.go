@@ -29,6 +29,7 @@ type Companion struct {
 	GY       int      `json:"gy,omitempty"`
 	Since    int      `json:"since,omitempty"` // turn they joined
 	Summoned bool     `json:"sum,omitempty"`
+	MealAt   int      `json:"ma,omitempty"` // turn+1 of the last shared meal (loyalty bonus cooldown)
 }
 
 // Orders (Actor.Order); "" means follow.
@@ -634,6 +635,12 @@ func (g *Game) companionTalk(a *Actor, text string) {
 	add("{{C|I have orders for you.}}", func() { g.compOrderMenu(a) })
 	add("{{W|Take this.}} {{K|(give an item)}}", func() { g.compGiveMenu(a) })
 	add("Hand me something you carry.", func() { g.compTakeMenu(a) })
+	if inst := g.augInstallerHere(); inst != nil {
+		add(fmt.Sprintf("{{O|Let the %s fit you with a %s.}}", inst.Title, g.augSkin().Noun), func() {
+			g.Talk = inst
+			g.augMenuFor(inst, a)
+		})
+	}
 	add("Tell me about yourself.", func() { g.companionTalk(a, g.compAbout(a)) })
 	add("How are you holding up?", func() { g.companionTalk(a, g.compMood(a)) })
 	add("{{r|Let's part ways.}}", func() {
@@ -683,7 +690,7 @@ func itemScore(it *Item) float64 {
 
 func giftable(it *Item) bool {
 	switch it.Kind {
-	case "weapon", "armor", "ranged", "light", "food", "tonic":
+	case "weapon", "armor", "ranged", "light", "food", "tonic", "dish", "ingredient":
 		return true
 	}
 	return false
@@ -717,6 +724,21 @@ func (g *Game) takeOne(it *Item) *Item {
 // compGive: a companion takes a gift; gear is worn if it beats what they have, food and tonics are used.
 func (g *Game) compGive(a *Actor, it *Item) string {
 	switch it.Kind {
+	case "dish":
+		name := it.Name
+		g.takeOne(it)
+		g.feedCompanion(a, tagsOf(it.Effect), 1200)
+		g.addLoyalty(a, 10)
+		msg := fmt.Sprintf("They eat the %s while it is still warm. \"Now that is a meal.\"", name)
+		if d := describeTags(a.Meal); d != "" {
+			msg += " {{K|(" + a.Name + " feels:}} " + d + "{{K|)}}"
+		}
+		return msg
+	case "ingredient":
+		g.takeOne(it)
+		a.HP = mini(a.MaxHP, a.HP+2)
+		g.addLoyalty(a, 2)
+		return "They chew it raw and shrug. \"Better than nothing. Cooked would be better.\""
 	case "food":
 		g.takeOne(it)
 		a.HP = mini(a.MaxHP, a.HP+5)
@@ -848,6 +870,20 @@ func (g *Game) compMood(a *Actor) string {
 	}
 	if g.Hunger > 2400 {
 		s += " \"And we're starving.\""
+	}
+	if a.Meal != nil && a.Has("fed") {
+		if d := describeTags(a.Meal); d != "" {
+			s += "\n\n{{K|Well fed:}} " + d
+		}
+	}
+	var augs []string
+	for _, p := range a.Body {
+		if p.Aug != nil {
+			augs = append(augs, p.Aug.Name)
+		}
+	}
+	if len(augs) > 0 {
+		s += fmt.Sprintf("\n\n{{K|Augments (%d/%d):}} %s", a.AugLoad(), a.AugCapacity(), strings.Join(augs, ", "))
 	}
 	return fmt.Sprintf("%s\n\n{{K|Level %d, %d/%d XP, %d kills, %d days together. Loyalty:}} %s {{K|(%d)}}", s, a.Level, c.XP, compXPFor(a.Level), c.Kills, days, loyaltyWord(c.Loyalty), c.Loyalty)
 }

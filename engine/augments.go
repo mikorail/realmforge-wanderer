@@ -428,8 +428,11 @@ func (g *Game) augFee(d *AugDef) int {
 }
 
 // augFreePart is a working, empty body part of the player that fits the augment.
-func (g *Game) augFreePart(d *AugDef) *BodyPart {
-	for _, p := range g.P.Body {
+func (g *Game) augFreePart(d *AugDef) *BodyPart { return augFreePartOf(g.P, d) }
+
+// augFreePartOf is a working, empty body part of any actor (player or companion) that fits the augment.
+func augFreePartOf(a *Actor, d *AugDef) *BodyPart {
+	for _, p := range a.Body {
 		if augFits(d.Slot, p) && !p.Severed && p.Aug == nil {
 			return p
 		}
@@ -437,27 +440,33 @@ func (g *Game) augFreePart(d *AugDef) *BodyPart {
 	return nil
 }
 
-// augCanInstall explains why an augment cannot be fitted ("" when it can).
-func (g *Game) augCanInstall(d *AugDef) string {
-	if g.augFreePart(d) == nil {
+// augCanInstall explains why an augment cannot be fitted into the player ("" when it can).
+func (g *Game) augCanInstall(d *AugDef) string { return augCanInstallOn(g.P, d) }
+
+// augCanInstallOn: the same check against any actor's own body and capacity (Toughness, level).
+func augCanInstallOn(a *Actor, d *AugDef) string {
+	if augFreePartOf(a, d) == nil {
 		return "no free " + augSlotNames[d.Slot]
 	}
-	if g.P.AugLoad()+d.Cost > g.P.AugCapacity() {
-		return fmt.Sprintf("needs %d capacity, %d free", d.Cost, g.P.AugCapacity()-g.P.AugLoad())
+	if a.AugLoad()+d.Cost > a.AugCapacity() {
+		return fmt.Sprintf("needs %d capacity, %d free", d.Cost, a.AugCapacity()-a.AugLoad())
 	}
 	return ""
 }
 
 // InstallAug fits an augment item into the player (no fee); it returns "" or the reason it failed.
-func (g *Game) InstallAug(it *Item) string {
+func (g *Game) InstallAug(it *Item) string { return g.InstallAugOn(g.P, it) }
+
+// InstallAugOn fits an augment item from the player's pack into who (the player or a companion).
+func (g *Game) InstallAugOn(who *Actor, it *Item) string {
 	d := augByID[it.Effect]
 	if it.Kind != "augment" || d == nil {
 		return "not an augment"
 	}
-	if why := g.augCanInstall(d); why != "" {
+	if why := augCanInstallOn(who, d); why != "" {
 		return why
 	}
-	p := g.augFreePart(d)
+	p := augFreePartOf(who, d)
 	p.Aug = it
 	g.removeInv(it)
 	return ""
@@ -474,12 +483,42 @@ func (g *Game) RemoveAug(p *BodyPart) *Item {
 	return it
 }
 
-// augMenu: the installer's install/remove dialogue.
-func (g *Game) augMenu(a *Actor) {
+// augPatients: who the installer can work on: the player, then companions in this zone.
+func (g *Game) augPatients() []*Actor {
+	return append([]*Actor{g.P}, g.localCompanions()...)
+}
+
+// augMenu: the installer's install/remove dialogue for the player.
+func (g *Game) augMenu(a *Actor) { g.augMenuFor(a, g.P) }
+
+// augMenuFor: the installer's dialogue for one patient (the player or a companion). Augments always
+// come from the player's pack or the installer's stock; removed ones go back to the player's pack.
+func (g *Game) augMenuFor(a, who *Actor) {
 	sk := g.augSkin()
-	g.Popup = Wrap(fmt.Sprintf("\"Which %s shall it be?\" {{K|Capacity %d/%d (3 + Toughness modifier + level/5).}}", sk.Noun, g.P.AugLoad(), g.P.AugCapacity()), 100)
+	me := who == g.P
+	whoName := "you"
+	if !me {
+		whoName = who.Name
+	}
+	head := fmt.Sprintf("\"Which %s shall it be?\" {{K|Capacity %d/%d (3 + Toughness modifier + level/5).}}", sk.Noun, who.AugLoad(), who.AugCapacity())
+	if !me {
+		head = fmt.Sprintf("\"And what shall %s wear?\" {{K|%s: capacity %d/%d (3 + Toughness modifier + level/5).}}", who.Name, who.Name, who.AugLoad(), who.AugCapacity())
+	}
+	g.Popup = Wrap(head, 100)
 	g.Opts = nil
 	add := func(t string, f func()) { g.Opts = append(g.Opts, Option{t, f}) }
+	back := func() { g.augMenuFor(a, who) }
+	for _, o := range g.augPatients() {
+		o := o
+		if o == who {
+			continue
+		}
+		if o == g.P {
+			add("{{c|Work on me instead.}}", func() { g.augMenuFor(a, g.P) })
+		} else {
+			add(fmt.Sprintf("{{c|Work on %s instead.}} {{K|(%d/%d)}}", o.Name, o.AugLoad(), o.AugCapacity()), func() { g.augMenuFor(a, o) })
+		}
+	}
 	fit := func(it *Item, price int, fromStock bool) {
 		if g.P.Gold < price {
 			g.talkMenu("\"Come back with coin.\"")
@@ -489,7 +528,7 @@ func (g *Game) augMenu(a *Actor) {
 			removeItem(&a.Inv, it)
 			g.P.Inv = append(g.P.Inv, it)
 		}
-		if why := g.InstallAug(it); why != "" {
+		if why := g.InstallAugOn(who, it); why != "" {
 			if fromStock {
 				removeItem(&g.P.Inv, it)
 				a.Inv = append(a.Inv, it)
@@ -500,8 +539,15 @@ func (g *Game) augMenu(a *Actor) {
 		g.P.Gold -= price
 		a.Gold += price
 		g.Turn += 120
-		g.Msg("{{G|" + fmt.Sprintf(sk.Install, it.Name) + "}}")
-		g.augMenu(a)
+		if me {
+			g.Msg("{{G|" + fmt.Sprintf(sk.Install, it.Name) + "}}")
+		} else {
+			g.Msg(fmt.Sprintf("{{G|The %s fits %s with the %s.}}", sk.Installer, who.Name, it.Name))
+			if who.Comp != nil && !who.Comp.Summoned {
+				g.addLoyalty(who, 4)
+			}
+		}
+		back()
 	}
 	for _, it := range g.P.Inv {
 		it := it
@@ -510,11 +556,15 @@ func (g *Game) augMenu(a *Actor) {
 			continue
 		}
 		fee := g.augFee(d)
-		if why := g.augCanInstall(d); why != "" {
-			add(fmt.Sprintf("{{K|Install %s (%s)}}", it.Name, why), func() { g.augMenu(a) })
+		if why := augCanInstallOn(who, d); why != "" {
+			add(fmt.Sprintf("{{K|Install %s (%s)}}", it.Name, why), back)
 			continue
 		}
-		add(fmt.Sprintf("Install your %s — %d %s", it.Name, fee, g.Sk.Currency), func() { fit(it, fee, false) })
+		label := fmt.Sprintf("Install your %s — %d %s", it.Name, fee, g.Sk.Currency)
+		if !me {
+			label = fmt.Sprintf("Install your %s in %s — %d %s", it.Name, who.Name, fee, g.Sk.Currency)
+		}
+		add(label, func() { fit(it, fee, false) })
 	}
 	for _, it := range a.Inv {
 		it := it
@@ -523,13 +573,13 @@ func (g *Game) augMenu(a *Actor) {
 			continue
 		}
 		price := g.augFee(d) + g.price(it, true)
-		if why := g.augCanInstall(d); why != "" {
-			add(fmt.Sprintf("{{K|Buy and install %s (%s)}}", it.Name, why), func() { g.augMenu(a) })
+		if why := augCanInstallOn(who, d); why != "" {
+			add(fmt.Sprintf("{{K|Buy and install %s (%s)}}", it.Name, why), back)
 			continue
 		}
 		add(fmt.Sprintf("Buy and install %s {{K|(%s)}} — %d %s", it.Name, strings.Join(g.augEffects(d), ", "), price, g.Sk.Currency), func() { fit(it, price, true) })
 	}
-	for _, p := range g.P.Body {
+	for _, p := range who.Body {
 		p := p
 		if p.Aug == nil {
 			continue
@@ -539,7 +589,11 @@ func (g *Game) augMenu(a *Actor) {
 			continue
 		}
 		fee := g.augFee(d) / 2
-		add(fmt.Sprintf("Remove the %s from your %s — %d %s", p.Aug.Name, strings.ToLower(p.Name), fee, g.Sk.Currency), func() {
+		whose := "your"
+		if !me {
+			whose = who.Name + "'s"
+		}
+		add(fmt.Sprintf("Remove the %s from %s %s — %d %s", p.Aug.Name, whose, strings.ToLower(p.Name), fee, g.Sk.Currency), func() {
 			if g.P.Gold < fee {
 				g.talkMenu("\"Come back with coin.\"")
 				return
@@ -548,12 +602,29 @@ func (g *Game) augMenu(a *Actor) {
 			a.Gold += fee
 			g.Turn += 60
 			it := g.RemoveAug(p)
-			g.Msg(fmt.Sprintf("{{Y|The %s is taken out and handed back to you.}}", it.Name))
-			g.augMenu(a)
+			if me {
+				g.Msg(fmt.Sprintf("{{Y|The %s is taken out and handed back to you.}}", it.Name))
+			} else {
+				g.Msg(fmt.Sprintf("{{Y|The %s is taken out of %s and handed to you.}}", it.Name, whoName))
+			}
+			back()
 		})
 	}
 	add("Enough for now.", func() { g.talkMenu(g.greeting(a)) })
 	g.Sel = 0
+}
+
+// augInstallerHere is a living augment installer in the current zone, or nil.
+func (g *Game) augInstallerHere() *Actor {
+	if g.Cur == nil {
+		return nil
+	}
+	for _, o := range g.Cur.Actors {
+		if o.HP > 0 && o.Role == "augmenter" && !isFollower(o) {
+			return o
+		}
+	}
+	return nil
 }
 
 func removeItem(list *[]*Item, it *Item) {

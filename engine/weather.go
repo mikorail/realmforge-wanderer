@@ -411,6 +411,7 @@ func tallTerrain(t Terrain) bool {
 
 // lightning strikes something tall, or now and then a creature standing in the open.
 func (g *Game) lightning() {
+	g.boltN++
 	z := g.Cur
 	if g.wxRoll(0xa1, 1) < 0.25 {
 		var cand []*Actor

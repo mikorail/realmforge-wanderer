@@ -482,18 +482,28 @@ func (g *Game) applyMeal(name string, tags map[string]int, dur int, share bool) 
 	var fed []string
 	for _, a := range g.Cur.Actors {
 		if a.HP > 0 && a.AI == "follower" {
-			a.Meal = map[string]int{}
-			for k, v := range tags {
-				a.Meal[k] = v
+			g.feedCompanion(a, tags, dur)
+			// breaking bread together: a small loyalty bonus, at most once every 6 hours
+			if c := a.Comp; c != nil && !c.Summoned && (c.MealAt == 0 || g.Turn+1-c.MealAt >= 360) {
+				c.MealAt = g.Turn + 1 // +1 so a meal on turn 0 still counts as eaten
+				g.addLoyalty(a, 3)
 			}
-			a.AddSt("fed", dur)
-			a.HP = mini(a.MaxHP, a.HP+maxi(2, a.MaxHP/8))
 			fed = append(fed, g.the(a))
 		}
 	}
 	if len(fed) > 0 {
 		g.Msg("You share the meal with " + joinAnd(fed) + ".")
 	}
+}
+
+// feedCompanion gives a follower a meal's tags (Actor.Meal, cleared when "fed" runs out) and a little health.
+func (g *Game) feedCompanion(a *Actor, tags map[string]int, dur int) {
+	a.Meal = map[string]int{}
+	for k, v := range tags {
+		a.Meal[k] = v
+	}
+	a.AddSt("fed", dur)
+	a.HP = mini(a.MaxHP, a.HP+maxi(2, a.MaxHP/8))
 }
 
 func joinAnd(xs []string) string {

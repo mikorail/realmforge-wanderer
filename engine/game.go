@@ -86,6 +86,7 @@ type Game struct {
 	WxLast    string           `json:"wxl,omitempty"` // last weather announced (weather.go)
 
 	// ui state (not saved)
+	boltN   int      // lightning strikes so far this session (MusicState.Bolt)
 	Mode    string   `json:"-"`
 	Sel     int      `json:"-"`
 	Sel2    int      `json:"-"`
@@ -1227,10 +1228,12 @@ type Music struct {
 	HP     float64 `json:"hp"`   // player hp fraction
 	Seed   uint32  `json:"seed"` // per-zone seed so each place keeps its own melody
 	Wx     string  `json:"wx"`
+	Season int     `json:"season"` // 0 spring … 3 winter
+	Bolt   int     `json:"bolt"`   // lightning strike counter: a rise means thunder now
 }
 
 func (g *Game) MusicState() Music {
-	m := Music{Genre: g.Genre, Day: g.daylight(), HP: float64(g.P.HP) / float64(maxi(g.P.MaxHP, 1))}
+	m := Music{Genre: g.Genre, Day: g.daylight(), HP: float64(g.P.HP) / float64(maxi(g.P.MaxHP, 1)), Season: g.Season(), Bolt: g.boltN}
 	if g.Dead {
 		m.Mood = "dead"
 		return m
