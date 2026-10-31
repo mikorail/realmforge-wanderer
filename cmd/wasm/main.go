@@ -26,7 +26,12 @@ func frame(out engine.Out) any {
 	return map[string]any{
 		"w": engine.SW, "h": engine.SH, "g": string(s.G), "f": string(fg), "b": string(bg),
 		"save": out.Save, "exit": out.Exit, "dead": game.Dead, "mode": game.Mode,
+		"music": musicJS(game.MusicState()),
 	}
+}
+
+func musicJS(m engine.Music) any {
+	return map[string]any{"mood": m.Mood, "danger": m.Danger, "genre": m.Genre, "biome": m.Biome, "depth": m.Depth, "day": m.Day, "hp": m.HP, "seed": m.Seed}
 }
 
 func errObj(err error) any { return map[string]any{"error": err.Error()} }

@@ -76,6 +76,9 @@ type Game struct {
 	Visited   map[string]bool  `json:"visited"`
 	Read      map[string]bool  `json:"read"`
 	DeedsSent int              `json:"deedsSent"`
+	ArenaWins int              `json:"arenaWins"`
+	ArenaFoes []int            `json:"arenaFoes"`
+	ArenaKey  string           `json:"arenaKey"`
 
 	// ui state (not saved)
 	Mode    string   `json:"-"`
@@ -91,6 +94,8 @@ type Game struct {
 	Path    [][2]int `json:"-"`
 	Opts    []Option `json:"-"`
 	vis     []bool
+	plans   map[int]*cityPlan
+	sites   map[string]*Site
 	wmInfo  []string
 	sensed  []bool
 }
@@ -195,6 +200,7 @@ func NewGame(w *WorldData, spec CharSpec) *Game {
 	if p.Pow("stinger") > 0 {
 		p.Body = append(p.Body, &BodyPart{Name: "Stinger", Slot: "tail", Limb: true, Natural: natural(g.Sk.PowerName("stinger"), 1, 6, 3, "poison")})
 	}
+	applyBodyPowers(p)
 	if spID == "merfolk" || spID == "saurian" || spID == "lizardfolk" {
 		p.Set("swimmer")
 	}
@@ -290,6 +296,7 @@ func (g *Game) removeInv(it *Item) {
 
 func (g *Game) kit(calling string) {
 	r := g.R
+	g.give(g.MakeBackpack(0))
 	switch calling {
 	case "warrior":
 		g.give(g.MakeWeapon(Pick(r, []string{"longblade", "axe"}), 1, r))
@@ -367,12 +374,13 @@ func (g *Game) spend(cost int) {
 				a.Energy -= 1000
 			}
 		}
-		g.P.Energy += g.P.Quick()
+		g.P.Energy += maxi(g.P.Quick()+g.encumbranceQuick(), 20)
 		if g.Tick%10 == 0 {
 			g.turn()
 		}
 	}
 	g.cleanup()
+	g.arenaCheck()
 	g.recompute()
 }
 
@@ -420,7 +428,7 @@ func (g *Game) turn() {
 			g.hurt(p, 3, nil, "drowning")
 		}
 	} else {
-		g.Breath = mini(g.Breath+3, 30+p.M(TOU)*5)
+		g.Breath = mini(g.Breath+3, g.breathCap())
 	}
 	for _, a := range g.Cur.Actors {
 		if a.HP <= 0 {
@@ -461,6 +469,7 @@ func (g *Game) statusTick(a *Actor) {
 	if a.Status == nil {
 		return
 	}
+	g.powerStatusTick(a)
 	for k, v := range a.Status {
 		if v <= 0 {
 			delete(a.Status, k)
@@ -651,7 +660,7 @@ func (g *Game) nearestFree(zn *Zone, x, y int) (int, int, bool) {
 
 func (g *Game) discover(zn *Zone) {
 	k := zn.Kind
-	if k == "town" || k == "ruin" || k == "lair" || k == "wonder" || k == "crypt" || k == "underdark" && zn.ZX == 1 && zn.ZY == 1 {
+	if k == "town" || k == "ruin" || k == "lair" || k == "wonder" || k == "crypt" || k == "dungeon" || k == "tower" || k == "camp" || k == "underdark" && zn.ZX == 1 && zn.ZY == 1 {
 		key := zn.Name
 		if !g.Visited[key] {
 			g.Visited[key] = true
@@ -669,6 +678,10 @@ func (g *Game) canSwim() bool {
 // MoveP is a bump: attack, talk, open, interact or step.
 func (g *Game) MoveP(dx, dy int) {
 	p := g.P
+	if !g.canMoveLoad() {
+		g.Msg("{{R|You are overloaded; drop something first.}}")
+		return
+	}
 	if p.St("frozen") > 0 || p.St("stunned") > 0 {
 		g.Msg("You can't move!")
 		g.spend(1000)
@@ -705,12 +718,30 @@ func (g *Game) MoveP(dx, dy int) {
 		g.spend(1000)
 		return
 	}
+	switch t {
+	case TLocked:
+		g.unlock(nx, ny)
+		return
+	case TOre:
+		g.mineOre(nx, ny)
+		return
+	case TDummy:
+		g.Msg("You drill your forms against the dummy.")
+		if g.Turn%5 == 0 {
+			g.gainXP(1)
+		}
+		g.spend(1000)
+		return
+	case TThrone:
+		g.Msg("A throne of state. Sitting on it would not be wise.")
+		return
+	}
 	if t.D().Interact || t == TStatue {
 		g.interact(nx, ny)
 		return
 	}
 	phasing := p.St("phased") > 0
-	if !t.D().Walk && !phasing {
+	if !t.D().Walk && !phasing && !g.canClimb(t) {
 		if t == TRock || t == TWall {
 			if p.Pow("burrow") > 0 {
 				g.dig(nx, ny)
@@ -735,7 +766,7 @@ func (g *Game) stepTo(nx, ny int) {
 	cost := 1000
 	w := z.WaterAt(nx, ny)
 	if w >= 2 && !z.Underwater && !g.canSwim() {
-		cost = 2000
+		cost = 1000 * g.swimCostMult()
 		if p.X == nx && p.Y == ny {
 			return
 		}
@@ -746,7 +777,17 @@ func (g *Game) stepTo(nx, ny int) {
 	if z.At(nx, ny) == TBush || z.At(nx, ny) == TReeds {
 		cost = 1300
 	}
+	cost = g.climbCost(nx, ny, cost)
 	p.X, p.Y = nx, ny
+	if z.Traps != nil {
+		if _, ok := z.Traps[ny*MW+nx]; ok {
+			g.springTrap(nx, ny)
+			if g.Dead || g.Cur != z {
+				return
+			}
+		}
+		g.noticeTraps(0)
+	}
 	t := z.At(nx, ny)
 	switch t {
 	case TLava:
@@ -828,6 +869,14 @@ func (g *Game) Ascend() {
 	z := g.Cur
 	t := z.At(g.P.X, g.P.Y)
 	switch {
+	case t == TUp && z.Z == 0 && g.siteAt(z.WX, z.WY, z.ZX, z.ZY) != nil && g.siteAt(z.WX, z.WY, z.ZX, z.ZY).Kind == "tower":
+		g.enterZone(g.GetZone(z.WX, z.WY, z.ZX, z.ZY, towerBase-1), g.P.X, g.P.Y, true)
+		g.spend(1000)
+	case t == TUp && z.Z <= towerBase-1:
+		g.enterZone(g.GetZone(z.WX, z.WY, z.ZX, z.ZY, z.Z-1), g.P.X, g.P.Y, true)
+		g.spend(1000)
+	case z.Z <= towerBase-1:
+		g.Msg("Find the stairs up (<) on this floor.")
 	case t == TUp && z.Z > 0:
 		g.enterZone(g.GetZone(z.WX, z.WY, z.ZX, z.ZY, z.Z-1), g.P.X, g.P.Y, true)
 		g.spend(1000)
@@ -845,9 +894,20 @@ func (g *Game) Ascend() {
 }
 
 func (g *Game) Descend() {
+	if g.tryDive() {
+		return
+	}
 	z := g.Cur
 	t := z.At(g.P.X, g.P.Y)
 	switch {
+	case t == TDown && z.Z == towerBase-1:
+		g.enterZone(g.GetZone(z.WX, z.WY, z.ZX, z.ZY, 0), g.P.X, g.P.Y, true)
+		g.spend(1000)
+	case t == TDown && z.Z < towerBase-1:
+		g.enterZone(g.GetZone(z.WX, z.WY, z.ZX, z.ZY, z.Z+1), g.P.X, g.P.Y, true)
+		g.spend(1000)
+	case z.Z <= towerBase-1:
+		g.Msg("Find the stairs down (>) on this floor.")
 	case t == TDown:
 		g.enterZone(g.GetZone(z.WX, z.WY, z.ZX, z.ZY, z.Z+1), g.P.X, g.P.Y, true)
 		g.spend(1000)
@@ -1131,4 +1191,61 @@ func (g *Game) Meta() string {
 	b, _ := json.Marshal(map[string]any{"name": g.P.Name, "level": g.P.Level, "calling": g.Sk.Calling(g.Calling), "species": g.P.Species,
 		"world": g.W.Name, "genre": g.Genre, "year": g.W.Year, "place": g.Cur.Name, "dead": g.Dead, "seed": g.Seed})
 	return string(b)
+}
+
+// Music describes the moment for the host's adaptive soundtrack.
+type Music struct {
+	Mood   string  `json:"mood"`   // town wild dungeon tower sky sea underdark crypt world dead
+	Danger float64 `json:"danger"` // 0 calm … 1 deadly (visible hostiles, boss, low hp)
+	Genre  string  `json:"genre"`
+	Biome  int     `json:"biome"`
+	Depth  int     `json:"depth"` // z level (tower floors negative)
+	Day    bool    `json:"day"`
+	HP     float64 `json:"hp"`   // player hp fraction
+	Seed   uint32  `json:"seed"` // per-zone seed so each place keeps its own melody
+}
+
+func (g *Game) MusicState() Music {
+	m := Music{Genre: g.Genre, Day: g.daylight(), HP: float64(g.P.HP) / float64(maxi(g.P.MaxHP, 1))}
+	if g.Dead {
+		m.Mood = "dead"
+		return m
+	}
+	if g.OnWorld || g.Cur == nil {
+		m.Mood = "world"
+		return m
+	}
+	z := g.Cur
+	m.Biome, m.Depth, m.Seed = z.Biome, z.Z, uint32(HashStr(z.Key))
+	switch {
+	case z.Kind == "town":
+		m.Mood = "town"
+	case z.Kind == "dungeon" || z.Kind == "crypt":
+		m.Mood = "dungeon"
+	case z.Kind == "tower":
+		m.Mood = "tower"
+	case z.Sky:
+		m.Mood = "sky"
+	case z.Underwater || z.Kind == "sea":
+		m.Mood = "sea"
+	case z.Z > 0:
+		m.Mood = "underdark"
+	default:
+		m.Mood = "wild"
+	}
+	d := 0.0
+	for _, a := range z.Actors {
+		if a.HP > 0 && g.visible(a.X, a.Y) && g.Hostile(a) {
+			d += 0.2 + float64(a.Level)/float64(maxi(g.P.Level, 1))*0.1
+			if a.Boss {
+				d += 0.5
+			}
+		}
+	}
+	d += (1 - m.HP) * 0.4
+	if d > 1 {
+		d = 1
+	}
+	m.Danger = d
+	return m
 }

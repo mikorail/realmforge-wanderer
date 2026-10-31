@@ -76,6 +76,7 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 	for i := 0; i < pens; i++ {
 		dmg += g.R.Dice(maxi(w.DN, 1), maxi(w.DS, 1)) + w.DB
 	}
+	dmg += g.categoryBonusDamage(w, d)
 	if a.St("mighty") > 0 {
 		dmg += 2
 	}

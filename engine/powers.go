@@ -206,6 +206,8 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 		}
 		g.Msg("Nothing to dig there.")
 		used = false
+	default:
+		used = g.usePower2(id, lv, tx, ty)
 	}
 	if used && it == nil && pd != nil {
 		p.Cool[id] = maxi(5, pd.Cool-lv*2)
@@ -402,6 +404,14 @@ func (g *Game) useItem(it *Item) {
 		}
 		it.Extra["lit"] = 1 - it.Extra["lit"]
 		g.Msg(fmt.Sprintf("You %s the %s.", map[int]string{0: "douse", 1: "light"}[it.Extra["lit"]], it.Name))
+	case "manual":
+		if g.Skills[it.Effect] >= 2 {
+			g.Msg("You know more than this " + g.Sk.Book + " can teach.")
+			return
+		}
+		g.Skills[it.Effect]++
+		g.Msg(fmt.Sprintf("{{G|You study it closely. %s rises to rank %d.}}", skillName(it.Effect), g.Skills[it.Effect]))
+		g.removeInv(it)
 	case "letter":
 		g.showPopup(it.Name, "It is sealed. You shouldn't open it.")
 		return

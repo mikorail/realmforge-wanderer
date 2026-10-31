@@ -11,6 +11,18 @@ export interface QudFrame {
 	exit: boolean;
 	dead: boolean;
 	mode: string;
+	/** what the soundtrack should play (engine/game.go MusicState) */
+	music: QudMusic;
+}
+export interface QudMusic {
+	mood: 'town' | 'wild' | 'dungeon' | 'tower' | 'sky' | 'sea' | 'underdark' | 'crypt' | 'world' | 'dead';
+	danger: number;
+	genre: string;
+	biome: number;
+	depth: number;
+	day: boolean;
+	hp: number;
+	seed: number;
 }
 type Err = { error: string };
 export interface QudApi {

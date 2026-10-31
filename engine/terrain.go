@@ -53,6 +53,17 @@ const (
 	TBrazier
 	TTrunk // world tree
 	TChasm
+	TThrone
+	TAnvil
+	TDummy
+	TCrate
+	TCrop
+	TBoat
+	TLocked
+	TOre
+	TSeat
+	TCobble
+	TTrap
 	NTerrain
 )
 
@@ -119,6 +130,17 @@ var TDefs = [NTerrain]TDef{
 	TBrazier:      {"brazier", 'Ψ', COrange, CBg, false, false, 0, false, "A fire burns here, giving light.", false},
 	TTrunk:        {"world-tree trunk", '█', CBrown, CBg, false, true, 0, false, "Bark like a cliff face, rising out of sight.", false},
 	TChasm:        {"chasm", ' ', CDarkGray, CBgDark, true, false, 0, false, "A drop into the dark below.", false},
+	TThrone:       {"throne", 'Ж', CYellow, CBg, false, false, 0, false, "A throne of state.", false},
+	TAnvil:        {"anvil", 'π', CGray, CBg, false, false, 0, false, "A smith's anvil, scarred by work.", false},
+	TDummy:        {"training dummy", 'Ŧ', CBrown, CBg, false, false, 0, true, "Straw and sackcloth, hacked to ribbons. Bump to practise.", false},
+	TCrate:        {"crates", '■', CBrown, CBg, false, false, 0, true, "Stacked crates and barrels.", false},
+	TCrop:         {"crops", '"', CYellow, CBg, true, false, 0, true, "Rows of crops.", false},
+	TBoat:         {"boat deck", '=', CBrown, CDarkBlue, true, false, 0, true, "Planks of a moored ship.", false},
+	TLocked:       {"locked door", '+', CRed, CBg, false, true, 0, false, "Locked. You need a key.", false},
+	TOre:          {"ore vein", '%', COrange, CBgDark, false, true, 0, false, "A seam of ore. Bump to mine it.", false},
+	TSeat:         {"stands", '≡', CDarkGray, CBg, false, false, 0, false, "Tiered seating for spectators.", false},
+	TCobble:       {"cobbles", '·', CGray, CBg, true, false, 0, false, "", false},
+	TTrap:         {"trap", '^', CMagenta, CBg, true, false, 0, false, "A trap you spotted. Step around it.", false},
 }
 
 func (t Terrain) D() *TDef { return &TDefs[t] }

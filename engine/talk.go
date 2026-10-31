@@ -47,13 +47,22 @@ func (g *Game) greeting(a *Actor) string {
 	case rep <= -250:
 		return "\"...What do you want?\" They eye you warily."
 	}
+	if rm := g.attireRemark(a); rm != "" {
+		return rm
+	}
+	if cg := g.casteGreeting(a); cg != "" {
+		return cg
+	}
 	lines := []string{"\"Live and drink, wanderer.\"", "\"Travelers are rare. Speak.\"", "\"Mm? Yes?\"", "\"You're not from here.\""}
 	return Pick(NewRng(fmt.Sprint(a.ID)), lines)
 }
 
 func (g *Game) talkMenu(text string) {
 	a := g.Talk
-	g.Popup = Wrap(text, 70)
+	g.Popup = Wrap(text, 100)
+	if vs := g.innerVoices(a); len(vs) > 0 {
+		g.Popup = append(Wrap(strings.Join(vs, "\n\n"), 100), append([]string{""}, g.Popup...)...)
+	}
 	g.Opts = nil
 	add := func(t string, f func()) { g.Opts = append(g.Opts, Option{t, f}) }
 	add("Who are you?", func() { g.talkMenu(g.aboutNPC(a)) })
@@ -63,7 +72,20 @@ func (g *Game) talkMenu(text string) {
 	} else if !a.Talked && len(g.Secrets) > 0 {
 		add("{{c|Share a secret with them.}}", func() { g.shareSecret(a) })
 	}
-	if a.Role == "merchant" || a.Role == "smith" || a.Role == "apothecary" || len(a.Inv) > 0 {
+	if a.Role == "tailor" {
+		add("{{O|Have a garment remade (transmog).}}", func() { g.tailorMenu(a) })
+	}
+	if a.Teach != "" {
+		add("{{O|Teach me.}}", func() { g.trainMenu(a) })
+	}
+	if a.Role == "arena" {
+		if len(g.ArenaFoes) > 0 {
+			add("{{K|(A bout is already under way.)}}", func() { g.talkMenu(g.greeting(a)) })
+		} else {
+			add(fmt.Sprintf("{{R|Fight in the arena.}} {{K|(bout %d)}}", g.ArenaWins+1), func() { g.startArena(a) })
+		}
+	}
+	if a.Role == "merchant" || a.Role == "smith" || a.Role == "apothecary" || a.Role == "bookseller" || a.Role == "exotic" || a.Role == "tailor" || len(a.Inv) > 0 {
 		add("{{W|Let's trade.}}", func() { g.openTrade(a) })
 	}
 	for _, q := range g.Quests {
@@ -102,6 +124,7 @@ func (g *Game) talkMenu(text string) {
 	if a.Role == "villager" || a.Role == "guard" {
 		add("Travel with me.", func() { g.recruit(a) })
 	}
+	g.Opts = append(g.Opts, g.checkOptions(a)...)
 	add("Goodbye.", func() { g.Mode = "main"; g.Talk = nil })
 	g.Sel = 0
 }
@@ -114,6 +137,9 @@ func (g *Game) aboutNPC(a *Actor) string {
 	s += ".\""
 	if a.Desc != "" {
 		s += " " + a.Desc
+	}
+	if l := g.socialLine(a); l != "" {
+		s += "\n\n" + l
 	}
 	if a.SimPer > 0 {
 		for _, pp := range g.W.People {
@@ -224,6 +250,24 @@ func (g *Game) revealSecret(a *Actor) string {
 			cs = append(cs, cand{fmt.Sprintf("The relic %s is held by %s, near %s.", ar.Name, nonEmpty(ar.Holder, "the dead"), w.RegionName(ar.P)), "relic", ar.P, ar.Year})
 		}
 	}
+	for dy := -8; dy <= 8; dy++ {
+		for dx := -10; dx <= 10; dx++ {
+			if !w.In(cx+dx, cy+dy) {
+				continue
+			}
+			p := w.Idx(cx+dx, cy+dy)
+			if w.Burg[p] > 0 {
+				continue
+			}
+			if s := g.parasangSite(p); s != nil {
+				what := "a dungeon"
+				if s.Kind == "tower" {
+					what = fmt.Sprintf("a tower of %d floors", s.Depth)
+				}
+				cs = append(cs, cand{fmt.Sprintf("%s is %s near %s. Few who go in come back rich; fewer come back at all.", s.Name, what, w.RegionName(p)), "dungeon", p, w.Year})
+			}
+		}
+	}
 	for _, wd := range w.Wonders {
 		if near(wd.P) {
 			cs = append(cs, cand{fmt.Sprintf("%s stands at %s.", wd.Name, w.RegionName(wd.P)), "wonder", wd.P, wd.Year})
@@ -305,7 +349,7 @@ func (g *Game) ferryMenu(a *Actor) {
 	if len(ps) > 12 {
 		ps = ps[:12]
 	}
-	g.Popup = Wrap("\"Where to? I know every harbour on these waters.\"", 70)
+	g.Popup = Wrap("\"Where to? I know every harbour on these waters.\"", 100)
 	g.Opts = nil
 	for _, p := range ps {
 		p := p
@@ -610,12 +654,20 @@ func (g *Game) price(it *Item, buy bool) int {
 	rep := float64(clampi(g.Rep[g.Talk.Faction], -500, 800)) / 8000
 	if buy {
 		f := 1.4 - ego - per - rep
-		if f < 0.9 {
-			f = 0.9
+		if g.Talk.Has("disc") {
+			f -= 0.15
+		}
+		if g.Talk.Has("markup") {
+			f += 0.15
+		}
+		f *= g.castePriceMod(g.Talk)
+		if f < 0.75 {
+			f = 0.75
 		}
 		return maxi(1, int(float64(v)*f))
 	}
 	f := 0.4 + ego + per + rep
+	f /= g.castePriceMod(g.Talk)
 	if f > 0.8 {
 		f = 0.8
 	}
@@ -685,5 +737,111 @@ func (g *Game) tradeAct() {
 			g.deed("relic", fmt.Sprintf("The relic %s was sold by the wanderer %s to %s.", one.Name, g.P.Name, a.Name), 0, one.SimArt)
 		}
 		g.Msg(fmt.Sprintf("You sell %s for %d %s.", one.Display(), pr, g.Sk.Currency))
+	}
+}
+
+// ---- trainers ----
+
+func trainCost(rank int) int { return 80 * (rank + 1) * (rank + 1) }
+
+func (g *Game) trainMenu(a *Actor) {
+	g.Popup = Wrap("\"I can teach you, for a price. Past the second rank you must find your own way.\"", 100)
+	g.Opts = nil
+	for _, sk := range strings.Split(a.Teach, ",") {
+		sk := sk
+		rk := g.Skills[sk]
+		if rk >= 2 {
+			g.Opts = append(g.Opts, Option{fmt.Sprintf("{{K|%s — rank %d, nothing more to learn here}}", skillName(sk), rk), func() { g.trainMenu(a) }})
+			continue
+		}
+		cost := trainCost(rk) * (100 - g.Skills["persuasion"]*10) / 100
+		g.Opts = append(g.Opts, Option{fmt.Sprintf("%s to rank %d — %d %s", skillName(sk), rk+1, cost, g.Sk.Currency), func() {
+			if g.P.Gold < cost {
+				g.talkMenu("\"Come back with coin.\"")
+				return
+			}
+			g.P.Gold -= cost
+			g.Skills[sk]++
+			g.Turn += 240
+			g.Msg(fmt.Sprintf("{{G|Hours of drills later, %s rises to rank %d.}}", skillName(sk), g.Skills[sk]))
+			g.trainMenu(a)
+		}})
+	}
+	g.Opts = append(g.Opts, Option{"Enough for now.", func() { g.talkMenu(g.greeting(a)) }})
+	g.Sel = 0
+}
+
+// ---- arena ----
+
+var arenaFoes = []string{"wolf", "bandit", "boar", "scorpion", "jaguar", "bear", "golem", "yeti", "salamander", "chief", "crystalgolem", "horror"}
+
+func (g *Game) startArena(master *Actor) {
+	z := g.Cur
+	n := mini(1+g.ArenaWins/2, 4)
+	lvl := g.P.Level + g.ArenaWins/2
+	tpl := arenaFoes[mini(g.ArenaWins, len(arenaFoes)-1)]
+	g.ArenaFoes = nil
+	for i := 0; i < n; i++ {
+		a := g.Spawn(tpl, lvl, g.R)
+		a.Faction, a.Angry = "arena", true
+		a.X, a.Y = 36+i*3, 6
+		g.nudge(z, a)
+		z.Actors = append(z.Actors, a)
+		g.ArenaFoes = append(g.ArenaFoes, a.ID)
+	}
+	g.ArenaKey = z.Key
+	g.P.X, g.P.Y = 40, 17
+	if !z.Walkable(40, 17) {
+		if x, y, ok := g.nearestFree(z, 40, 17); ok {
+			g.P.X, g.P.Y = x, y
+		}
+	}
+	g.Mode, g.Talk = "main", nil
+	g.Msg(fmt.Sprintf("{{R|The crowd roars! Bout %d: %d %s.}}", g.ArenaWins+1, n, tplByID[tpl].Name(g.Genre)))
+	g.recompute()
+}
+
+func (g *Game) arenaCheck() {
+	if len(g.ArenaFoes) == 0 {
+		return
+	}
+	z := g.Zones[g.ArenaKey]
+	if z == nil {
+		g.ArenaFoes = nil
+		return
+	}
+	alive := 0
+	for _, a := range z.Actors {
+		for _, id := range g.ArenaFoes {
+			if a.ID == id && a.HP > 0 {
+				alive++
+			}
+		}
+	}
+	if g.Cur != z && alive > 0 {
+		keep := z.Actors[:0]
+		for _, a := range z.Actors {
+			if a.Faction != "arena" {
+				keep = append(keep, a)
+			}
+		}
+		z.Actors = keep
+		g.ArenaFoes = nil
+		g.Msg("{{K|You fled the arena. The crowd jeers.}}")
+		return
+	}
+	if alive > 0 {
+		return
+	}
+	g.ArenaWins++
+	purse := 40 * g.ArenaWins * (g.ArenaWins + 1)
+	g.P.Gold += purse
+	g.gainXP(30 * g.ArenaWins)
+	g.ArenaFoes = nil
+	g.Msg(fmt.Sprintf("{{W|Victory! The crowd showers you with %d %s.}}", purse, g.Sk.Currency))
+	g.AddRep(z.Faction, 25, " for your arena victory")
+	if g.ArenaWins == 5 {
+		g.Msg("{{Y|You are hailed as Champion of the Arena!}}")
+		g.deed("quest", fmt.Sprintf("The wanderer %s became champion of the arena in %s.", g.P.Name, z.Name), 0, 0)
 	}
 }

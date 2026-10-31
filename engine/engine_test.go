@@ -208,9 +208,15 @@ func TestQuestSlayLoop(t *testing.T) {
 func TestTradeBuyAndSell(t *testing.T) {
 	g := newGame(t, nil)
 	var shop *Actor
-	for _, a := range g.Cur.Actors {
-		if (a.Role == "merchant" || a.Role == "smith" || a.Role == "apothecary") && len(a.Inv) > 0 {
-			shop = a
+	for zy := 0; zy < 3 && shop == nil; zy++ {
+		for zx := 0; zx < 3 && shop == nil; zx++ {
+			zn := g.GetZone(g.WX, g.WY, zx, zy, 0)
+			for _, a := range zn.Actors {
+				if (a.Role == "merchant" || a.Role == "smith" || a.Role == "apothecary") && len(a.Inv) > 0 {
+					shop = a
+					g.Warp(g.WX, g.WY, zx, zy, 0)
+				}
+			}
 		}
 	}
 	if shop == nil {
@@ -414,12 +420,298 @@ func TestBanditTownsStayTowns(t *testing.T) {
 			if z.Kind != "town" {
 				t.Fatalf("%s generated as %s", b.Name, z.Kind)
 			}
-			camp := g.GetZone(b.P%w.W, b.P/w.W, 0, 1, 0)
-			if camp.Kind != "camp" {
-				t.Errorf("no outlaw camp outside %s (got %s)", b.Name, camp.Kind)
+			ol := w.outlawByBrg[b.ID]
+			if ol == nil {
+				t.Skip("world file predates outlaw export")
+			}
+			oz := g.outlawZone(&b)
+			if oz[0] < 0 {
+				return // full-size city: the outlaws hide in its warrens instead
+			}
+			camp := g.GetZone(b.P%w.W, b.P/w.W, oz[0], oz[1], 0)
+			if camp.Kind != "camp" || camp.Name != ol.Name {
+				t.Errorf("no outlaw camp outside %s (got %s %q)", b.Name, camp.Kind, camp.Name)
 			}
 			return
 		}
 	}
 	t.Skip("no bandit-harassed town")
+}
+
+func findSiteZone(g *Game, ok func(*Site) bool) (int, int, int, int, *Site) {
+	w := g.W
+	for p := 0; p < w.W*w.H; p++ {
+		for zy := 0; zy < 3; zy++ {
+			for zx := 0; zx < 3; zx++ {
+				if s := g.siteAt(p%w.W, p/w.W, zx, zy); s != nil && ok(s) {
+					return p % w.W, p / w.W, zx, zy, s
+				}
+			}
+		}
+	}
+	return 0, 0, 0, 0, nil
+}
+
+// linked reports whether every '<' and '>' on a level is reachable from the first of them.
+func linked(g *Game, zn *Zone) bool {
+	var pts [][2]int
+	for y := 0; y < MH; y++ {
+		for x := 0; x < MW; x++ {
+			if t := zn.At(x, y); t == TUp || t == TDown {
+				pts = append(pts, [2]int{x, y})
+			}
+		}
+	}
+	if len(pts) < 2 {
+		return true
+	}
+	reach := g.reachable(zn, pts[0][0], pts[0][1])
+	for _, p := range pts {
+		if !reach[p[1]*MW+p[0]] {
+			return false
+		}
+	}
+	return true
+}
+
+func TestCityDistricts(t *testing.T) {
+	g := newGame(t, nil)
+	w := g.W
+	tiers := map[int]int{}
+	for _, b := range w.Burgs {
+		if b.Alive && b.Layer == "surface" {
+			tiers[w.cityTier[b.ID]]++
+		}
+	}
+	t.Logf("city tiers: %v", tiers)
+	if tiers[2] == 0 || tiers[1] == 0 || tiers[0] == 0 {
+		t.Fatalf("expected towns of every size, got %v", tiers)
+	}
+	for _, b := range w.Burgs {
+		if !b.Alive || w.cityTier[b.ID] != 2 {
+			continue
+		}
+		cp := g.cityPlanFor(&b)
+		kinds := map[string]bool{}
+		for zy := 0; zy < 3; zy++ {
+			for zx := 0; zx < 3; zx++ {
+				zn := g.GetZone(b.P%w.W, b.P/w.W, zx, zy, 0)
+				if zn.Kind != "town" {
+					t.Errorf("%s zone %d,%d is %s", b.Name, zx, zy, zn.Kind)
+				}
+				kinds[cp.districts[[2]int{zx, zy}]] = true
+				if len(zn.Actors) == 0 {
+					t.Errorf("%s %s is empty", b.Name, zn.Name)
+				}
+			}
+		}
+		if !kinds["market"] || b.Port && !kinds["harbor"] {
+			t.Errorf("%s districts %v", b.Name, kinds)
+		}
+		t.Logf("%s: %v", b.Name, kinds)
+		return
+	}
+}
+
+func TestDungeonDescentToBoss(t *testing.T) {
+	g := newGame(t, nil)
+	wx, wy, zx, zy, s := findSiteZone(g, func(s *Site) bool { return s.Kind == "dungeon" && !s.Ruin && s.Depth >= 3 && s.Theme != "abyss" })
+	if s == nil {
+		t.Skip("no dungeon")
+	}
+	top := g.GetZone(wx, wy, zx, zy, 0)
+	if st := g.stairsDown(wx, wy, zx, zy, 0); len(st) == 0 || top.At(st[0][0], st[0][1]) != TDown {
+		t.Fatalf("no entrance to %s", s.Name)
+	}
+	for z := 1; z <= s.Depth; z++ {
+		zn := g.GetZone(wx, wy, zx, zy, z)
+		if zn.Kind != "dungeon" {
+			t.Fatalf("%s level %d is %s", s.Name, z, zn.Kind)
+		}
+		if !linked(g, zn) {
+			t.Errorf("%s level %d: stairs not connected", s.Name, z)
+		}
+		boss := false
+		for _, a := range zn.Actors {
+			boss = boss || a.Boss
+		}
+		if z == s.Depth && !boss {
+			t.Errorf("no boss at the bottom of %s", s.Name)
+		}
+	}
+	if len(g.stairsDown(wx, wy, zx, zy, s.Depth)) != 0 {
+		t.Errorf("stairs below the bottom of %s", s.Name)
+	}
+}
+
+func TestSpireClimb(t *testing.T) {
+	g := newGame(t, nil)
+	wx, wy, zx, zy, s := findSiteZone(g, func(s *Site) bool { return s.Kind == "tower" && s.Theme == "trials" })
+	if s == nil {
+		t.Fatal("no Spire of Trials placed")
+	}
+	g.Warp(wx, wy, zx, zy, 0)
+	x, y := g.towerStair(siteKey(wx, wy, zx, zy), 0)
+	if g.Cur.At(x, y) != TUp {
+		t.Fatalf("no stair into %s", s.Name)
+	}
+	g.P.X, g.P.Y = x, y
+	g.P.HP, g.P.MaxHP = 1e6, 1e6
+	clearAround(g)
+	g.Cur.Set(x, y, TUp)
+	g.Key("<")
+	for f := 1; f <= s.Depth; f++ {
+		if g.Cur.Z != towerBase-f {
+			t.Fatalf("expected floor %d, z=%d (%s)", f, g.Cur.Z, g.Cur.Name)
+		}
+		if !linked(g, g.Cur) {
+			t.Errorf("floor %d stairs not connected", f)
+		}
+		if f == s.Depth {
+			break
+		}
+		for yy := 0; yy < MH; yy++ {
+			for xx := 0; xx < MW; xx++ {
+				if g.Cur.At(xx, yy) == TUp {
+					g.P.X, g.P.Y = xx, yy
+				}
+			}
+		}
+		g.Cur.Actors = nil
+		g.Key("<")
+	}
+	g.Key(">")
+	if g.Cur.Z != towerBase-s.Depth+1 {
+		t.Errorf("could not step back down")
+	}
+}
+
+func TestArenaBout(t *testing.T) {
+	g := newGame(t, nil)
+	w := g.W
+	for _, b := range w.Burgs {
+		if !b.Alive || b.Layer != "surface" || w.cityTier[b.ID] == 0 {
+			continue
+		}
+		for s, kind := range g.cityPlanFor(&b).districts {
+			if kind != "arena" {
+				continue
+			}
+			g.Warp(b.P%w.W, b.P/w.W, s[0], s[1], 0)
+			var master *Actor
+			for _, a := range g.Cur.Actors {
+				if a.Role == "arena" {
+					master = a
+				}
+			}
+			if master == nil {
+				t.Fatal("arena without a master")
+			}
+			gold := g.P.Gold
+			g.startArena(master)
+			if len(g.ArenaFoes) == 0 {
+				t.Fatal("no foes")
+			}
+			for _, a := range g.Cur.Actors {
+				if a.Faction == "arena" {
+					if !g.Hostile(a) {
+						t.Errorf("arena foe not hostile")
+					}
+					g.hurt(a, a.HP+50, g.P, "test")
+				}
+			}
+			g.Key(".")
+			if g.ArenaWins != 1 || g.P.Gold <= gold {
+				t.Errorf("bout not paid: wins %d gold %d→%d", g.ArenaWins, gold, g.P.Gold)
+			}
+			return
+		}
+	}
+	t.Skip("no arena")
+}
+
+func TestTrainerTeaches(t *testing.T) {
+	g := newGame(t, nil)
+	w := g.W
+	for _, b := range w.Burgs {
+		if !b.Alive || b.Layer != "surface" || w.cityTier[b.ID] == 0 {
+			continue
+		}
+		for s := range g.cityPlanFor(&b).districts {
+			zn := g.GetZone(b.P%w.W, b.P/w.W, s[0], s[1], 0)
+			for _, a := range zn.Actors {
+				if a.Teach == "" {
+					continue
+				}
+				g.Warp(b.P%w.W, b.P/w.W, s[0], s[1], 0)
+				sk := strings.Split(a.Teach, ",")[0]
+				before := g.Skills[sk]
+				g.P.Gold = 10000
+				g.Talk = a
+				g.trainMenu(a)
+				g.Opts[0].Do()
+				if g.Skills[sk] != before+1 && before < 2 {
+					t.Errorf("%s not taught: %d → %d", sk, before, g.Skills[sk])
+				}
+				return
+			}
+		}
+	}
+	t.Skip("no trainer")
+}
+
+func TestLockedVaultAndTrap(t *testing.T) {
+	g := newGame(t, nil)
+	w := g.W
+	tried := 0
+	for p := 0; p < w.W*w.H && tried < 60; p++ {
+		for zy := 0; zy < 3; zy++ {
+			for zx := 0; zx < 3; zx++ {
+				s := g.siteAt(p%w.W, p/w.W, zx, zy)
+				if s == nil || s.Kind != "dungeon" || s.Ruin {
+					continue
+				}
+				tried++
+				for z := 1; z <= s.Depth; z++ {
+					zn := g.GetZone(p%w.W, p/w.W, zx, zy, z)
+					for i, t0 := range zn.T {
+						if t0 != TLocked {
+							continue
+						}
+						g.Warp(p%w.W, p/w.W, zx, zy, z)
+						for _, it := range zn.Items {
+							if it.Kind == "key" {
+								g.give(it)
+							}
+						}
+						g.P.X, g.P.Y = i%MW, i/MW+1
+						g.Key("ArrowUp")
+						if zn.At(i%MW, i/MW) != TDoorOpen {
+							t.Fatalf("key did not open the vault")
+						}
+						if zn.Traps == nil {
+							zn.Traps = map[int]uint8{}
+						}
+						g.P.HP, g.P.MaxHP = 500, 500
+						g.P.X, g.P.Y = i%MW, i/MW+1
+						zn.Traps[i] = 1
+						g.Key("ArrowUp")
+						if _, still := zn.Traps[i]; still {
+							t.Errorf("trap did not trigger")
+						}
+						return
+					}
+				}
+			}
+		}
+	}
+	t.Fatalf("no locked vault in %d dungeons", tried)
+}
+
+func TestEveryTerrainDefined(t *testing.T) {
+	for i := Terrain(1); i < NTerrain; i++ {
+		if i.D().Name == "" || i.D().G == 0 {
+			t.Errorf("terrain %d has no definition", i)
+		}
+	}
 }

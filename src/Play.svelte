@@ -3,17 +3,43 @@
 	import { onMount, onDestroy } from 'svelte';
 	import type { QudApi, QudFrame } from './qud';
 	import { saveRun, deleteRun } from './store';
+	import { createMusic, type MusicHandle } from './music';
+	import { loadSettings, saveSettings, PALETTES, type Settings as Prefs, type PaletteName } from './settings';
+	import Settings from './Settings.svelte';
 
 	let { api, first, world, onquit }: { api: QudApi; first: QudFrame; world: string | null; onquit: () => void } = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let wrap = $state<HTMLDivElement | null>(null);
-	let palette: string[] = JSON.parse(api.palette());
+	let gear = $state<HTMLButtonElement | null>(null);
+	const enginePalette: string[] = JSON.parse(api.palette());
+	let prefs = $state<Prefs>(loadSettings());
+	let settingsOpen = $state(false);
+	let palette: string[] = paletteFor(prefs.palette);
 	let frame: QudFrame = first;
 	let cw = 9;
 	let chh = 16;
 	let keys = 0;
 	let worldPending = world;
+	const music: MusicHandle = createMusic();
+
+	function paletteFor(p: PaletteName): string[] {
+		return p === 'qud' ? enginePalette : PALETTES[p];
+	}
+
+	function applyAudio() {
+		music.setEnabled(prefs.music);
+		music.setVolume(prefs.musicVolume);
+	}
+
+	/** Called by the settings pane on every change: store it, then re-apply what it touches. */
+	function applyPrefs(next: Prefs) {
+		prefs = next;
+		saveSettings(next);
+		palette = paletteFor(next.palette);
+		applyAudio();
+		resize();
+	}
 
 	async function persist() {
 		const meta = JSON.parse(api.meta());
@@ -32,7 +58,14 @@
 
 	const NUMPAD: Record<string, string> = { Numpad1: 'N1', Numpad2: 'N2', Numpad3: 'N3', Numpad4: 'N4', Numpad5: 'N5', Numpad6: 'N6', Numpad7: 'N7', Numpad8: 'N8', Numpad9: 'N9' };
 	function onkey(e: KeyboardEvent) {
+		// while the settings pane is open it owns the keyboard
+		if (settingsOpen) return;
 		if (e.metaKey || e.ctrlKey || e.altKey) return;
+		if (e.code === 'Backquote' || e.key === '`') {
+			e.preventDefault();
+			settingsOpen = true;
+			return;
+		}
 		const k = NUMPAD[e.code] ?? e.key;
 		if (k === 'Shift' || k === 'Control' || k === 'Alt' || k === 'Meta' || k === 'CapsLock') return;
 		e.preventDefault();
@@ -42,9 +75,10 @@
 		const f = api.key(k);
 		if (!f || 'error' in f) return;
 		frame = f;
+		music.setState(f.music);
 		draw();
 		keys++;
-		if (f.save || keys % 150 === 0) void persist();
+		if (f.save || keys % prefs.autosaveEvery === 0) void persist();
 		if (f.exit) void quit();
 	}
 	function onclick(e: MouseEvent) {
@@ -56,7 +90,9 @@
 	function resize() {
 		if (!canvas || !wrap) return;
 		const W = wrap.clientWidth, H = wrap.clientHeight;
-		chh = Math.max(8, Math.floor(Math.min(H / frame.h, W / (frame.w * 0.6))));
+		const fit = Math.max(8, Math.floor(Math.min(H / frame.h, W / (frame.w * 0.6))));
+		const scale = prefs.scale;
+		chh = scale === 'auto' ? fit : Math.max(8, Math.floor(fit * scale));
 		cw = Math.max(5, Math.floor(chh * 0.6));
 		const dpr = window.devicePixelRatio || 1;
 		canvas.width = frame.w * cw * dpr;
@@ -91,13 +127,23 @@
 		}
 	}
 
+	function closeSettings() {
+		settingsOpen = false;
+		gear?.focus();
+	}
+
 	onMount(() => {
+		applyAudio();
+		music.setState(frame.music);
 		resize();
 		void persist();
 		// fonts load after first paint: redraw once they are in
 		void document.fonts?.ready.then(draw);
 	});
-	onDestroy(() => void persist());
+	onDestroy(() => {
+		music.dispose();
+		void persist();
+	});
 </script>
 
 <svelte:window onkeydown={onkey} onresize={resize} />
@@ -106,7 +152,13 @@
 <div class="screen" bind:this={wrap} onclick={onclick}>
 	<canvas bind:this={canvas} aria-label="Game screen"></canvas>
 </div>
-<button class="quit" onclick={quit} title="Save and return to the title screen">Save &amp; quit</button>
+<div class="chrome">
+	<button class="gear" bind:this={gear} onclick={() => (settingsOpen = true)} title="Settings (`)" aria-label="Settings">⚙</button>
+	<button class="quit" onclick={quit} title="Save and return to the title screen">Save &amp; quit</button>
+</div>
+{#if settingsOpen}
+	<Settings settings={prefs} onchange={applyPrefs} onclose={closeSettings} />
+{/if}
 
 <style>
 	.screen {
@@ -121,14 +173,24 @@
 		display: block;
 		cursor: crosshair;
 	}
-	.quit {
+	.chrome {
 		position: fixed;
 		top: 6px;
 		right: 8px;
+		display: flex;
+		gap: 4px;
+	}
+	.gear,
+	.quit {
 		padding: 2px 8px;
 		font-size: 12px;
 		opacity: 0.6;
 	}
+	.gear {
+		font-size: 14px;
+		line-height: 1.3;
+	}
+	.gear:hover,
 	.quit:hover {
 		opacity: 1;
 	}

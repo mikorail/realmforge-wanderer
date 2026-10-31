@@ -180,7 +180,7 @@ func (g *Game) drawSide() {
 	}
 	y++
 	line(fmt.Sprintf("{{C|◆}}AV %d  {{K|○}}DV %d  {{m|ψ}}MA %d", p.AV(), p.DV(), p.MA()))
-	line(fmt.Sprintf("Quickness %d  {{W|$}}%d", p.Quick(), p.Gold))
+	line(fmt.Sprintf("Quickness %d  {{W|$}}%d", maxi(p.Quick()+g.encumbranceQuick(), 20), p.Gold))
 	at := ""
 	for i := 0; i < 6; i++ {
 		at += fmt.Sprintf("{{K|%s}}%d ", AttrShort[i], p.Score(i))
@@ -414,6 +414,18 @@ func (g *Game) drawWorld() {
 				if len(w.wondersAt[p]) > 0 {
 					gl, f = '☼', CMagenta
 				}
+				if w.Burg[p] == 0 {
+					if s := g.parasangSite(p); s != nil {
+						switch {
+						case s.Theme == "abyss":
+							gl, f = '◘', CMagenta
+						case s.Kind == "tower":
+							gl, f = 'Δ', CMagenta
+						default:
+							gl, f = '▼', COrange
+						}
+					}
+				}
 			}
 			if questAt[p] && (g.Tick/5)%2 == 0 {
 				gl, f = '!', CYellow
@@ -569,79 +581,7 @@ func (g *Game) panel(title string) (int, int, int, int) {
 	return x0 + 2, y0 + 1, w - 4, h - 2
 }
 
-func (g *Game) drawInv() {
-	s := g.sc
-	x, y, w, _ := g.panel("Inventory")
-	list := g.invList()
-	eq := map[*Item]string{}
-	for _, bp := range g.P.Body {
-		if bp.Item != nil {
-			eq[bp.Item] = bp.Name
-		}
-	}
-	weight := 0
-	for _, it := range list {
-		weight += it.Weight
-	}
-	s.TextB(x, y, fmt.Sprintf("{{K|%d items · weight %d · %d %s}}", len(list), weight, g.P.Gold, g.Sk.Currency), CGray, CBgDark, x+w)
-	y += 2
-	start := 0
-	if g.Sel > 20 {
-		start = g.Sel - 20
-	}
-	for i := start; i < len(list) && i < start+23; i++ {
-		it := list[i]
-		bg := CBgDark
-		if i == g.Sel {
-			bg = CBgSel
-		}
-		s.Fill(x, y, w-32, 1, bg)
-		key := ' '
-		if i < 26 {
-			key = rune('a' + i)
-		}
-		s.TextB(x, y, fmt.Sprintf("{{W|%c)}} ", key), CGray, bg, x+w)
-		s.Put(x+3, y, it.Glyph, it.F, bg)
-		lbl := it.Display()
-		if where, ok := eq[it]; ok {
-			lbl += " {{K|(" + strings.ToLower(where) + ")}}"
-		}
-		s.TextB(x+5, y, lbl, CGray, bg, x+w-32)
-		y++
-	}
-	// body plan
-	bx := x + w - 30
-	by := 4
-	s.TextB(bx, by, "{{Y|Body}}", CGray, CBgDark, x+w)
-	by++
-	for _, bp := range g.P.Body {
-		lbl := "{{K|—}}"
-		if bp.Item != nil {
-			lbl = bp.Item.Display()
-		}
-		if bp.Severed {
-			lbl = "{{r|severed}}"
-		}
-		s.TextB(bx, by, fmt.Sprintf("{{c|%s:}} %s", bp.Name, lbl), CGray, CBgDark, x+w)
-		by++
-	}
-	if g.Mode == "item" && g.ItemSel != nil {
-		it := g.ItemSel
-		lines := it.Describe(g)
-		lines = append(lines, "", "{{W|e}} equip/unequip  {{W|u}} use  {{W|d}} drop  {{W|t}} throw  {{W|x}} examine  {{W|k}} disassemble  {{W|Esc}}")
-		var ww []string
-		for _, l := range lines {
-			ww = append(ww, Wrap(l, 56)...)
-		}
-		h := len(ww) + 2
-		s.Box(12, 6, 60, h, CYellow, Plain(it.Display()))
-		for k, l := range ww {
-			s.TextB(14, 7+k, l, CGray, CBgDark, 71)
-		}
-	} else {
-		s.TextB(x, MH+4, "{{K|letter or Enter: item actions · Esc close}}", CGray, CBgDark, x+w)
-	}
-}
+func (g *Game) drawInv() { g.drawInventory() }
 
 func (g *Game) drawChar() {
 	s := g.sc
@@ -814,6 +754,9 @@ func (g *Game) drawHelp() {
 		"{{Y|Survival}}  {{W|e}} eat, {{W|d}} drink (from water, wells or your " + g.Sk.Water + "), {{W|R}} rest until healed, {{W|z}} rest a while.",
 		"Underground is dark: keep a " + g.Sk.Light[0] + " lit. Underwater you must hold your breath unless you have " + g.Sk.Gills() + ".",
 		"",
+		"{{Y|Delving}}  ▼ dungeons and Δ towers on the world map. {{W|s}} searches for traps (^). Keys open locked vaults; Tinkering 2 picks locks. Bump ore to mine it.",
+		"Cities are several zones wide: market, harbor, temple, scholars, barracks, arena, forges. Trainers teach skills for coin; the arena master pays for bouts.",
+		"",
 		"{{Y|Screens}}  {{W|i}} inventory  {{W|c}} character  {{W|j}} journal  {{W|r}} reputation  {{W|m}} log  {{W|x}} look  {{W|T}} craft  {{W|g}} pick up",
 		"{{W|S}} save · {{W|Esc}} save and return to the chronicle. Slain legends and recovered relics are written into Realmforge's history.",
 	}
@@ -837,11 +780,12 @@ func (g *Game) drawTalk() {
 	}
 	h := len(g.Popup) + len(g.Opts) + 5
 	y0 := maxi(1, (MH-h)/2)
-	s.Box(4, y0, MW-8, h, CDarkCyan, title)
-	s.Put(6, y0+1, a.Glyph, a.F, CBgDark)
+	// dialogue covers the whole screen width so long lines and skill checks fit
+	s.Box(2, y0, SW-4, h, CDarkCyan, title)
+	s.Put(4, y0+1, a.Glyph, a.F, CBgDark)
 	y := y0 + 1
 	for _, l := range g.Popup {
-		s.TextB(8, y, l, CGray, CBgDark, MW-5)
+		s.TextB(6, y, l, CGray, CBgDark, SW-3)
 		y++
 	}
 	y++
@@ -850,8 +794,8 @@ func (g *Game) drawTalk() {
 		if i == g.Sel {
 			bg = CBgSel
 		}
-		s.Fill(6, y, MW-12, 1, bg)
-		s.TextB(6, y, fmt.Sprintf("{{W|%c)}} %s", 'a'+i, o.Text), CGray, bg, MW-5)
+		s.Fill(4, y, SW-8, 1, bg)
+		s.TextB(4, y, fmt.Sprintf("{{W|%c)}} %s", 'a'+i, o.Text), CGray, bg, SW-3)
 		y++
 	}
 }

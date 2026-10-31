@@ -2,44 +2,48 @@ package engine
 
 import (
 	"encoding/json"
+	"sort"
 	"strings"
 )
 
 // WorldData is the snapshot Realmforge exports from its live simulation (src/lib/adventure/export.ts).
 // The overworld is rasterised into W×H parasangs; every per-parasang array is row-major.
 type WorldData struct {
-	Seed       string            `json:"seed"`
-	Name       string            `json:"name"`
-	Genre      string            `json:"genre"`
-	Planet     string            `json:"planet"`
-	PlanetKind string            `json:"planetKind"`
-	Year       int               `json:"year"`
-	Era        string            `json:"era"`
-	W          int               `json:"w"`
-	H          int               `json:"h"`
-	Biome      []int             `json:"biome"`
-	Height     []int             `json:"height"`
-	Temp       []int             `json:"temp"`
-	River      []int             `json:"river"`
-	Road       []int             `json:"road"`
-	State      []int             `json:"state"`
-	Culture    []int             `json:"culture"`
-	Religion   []int             `json:"religion"`
-	Burg       []int             `json:"burg"`
-	Cell       []int             `json:"cell"`
-	Layers     []LayerData       `json:"layers"`
-	Burgs      []BurgData        `json:"burgs"`
-	States     []StateData       `json:"states"`
-	Cultures   []CultureData     `json:"cultures"`
-	Religions  []ReligionData    `json:"religions"`
-	People     []PersonData      `json:"people"`
-	Events     []EventData       `json:"events"`
-	Monsters   []MonsterData     `json:"monsters"`
-	Artifacts  []ArtifactData    `json:"artifacts"`
-	Wonders    []WonderData      `json:"wonders"`
-	Species    []SpeciesData     `json:"species"`
-	Terms      map[string]string `json:"terms"`
-	LayerNames map[string]string `json:"layerNames"`
+	Seed        string            `json:"seed"`
+	Name        string            `json:"name"`
+	Genre       string            `json:"genre"`
+	Planet      string            `json:"planet"`
+	PlanetKind  string            `json:"planetKind"`
+	Year        int               `json:"year"`
+	Era         string            `json:"era"`
+	W           int               `json:"w"`
+	H           int               `json:"h"`
+	Biome       []int             `json:"biome"`
+	Height      []int             `json:"height"`
+	Temp        []int             `json:"temp"`
+	River       []int             `json:"river"`
+	Road        []int             `json:"road"`
+	State       []int             `json:"state"`
+	Culture     []int             `json:"culture"`
+	Religion    []int             `json:"religion"`
+	Burg        []int             `json:"burg"`
+	Cell        []int             `json:"cell"`
+	Layers      []LayerData       `json:"layers"`
+	Burgs       []BurgData        `json:"burgs"`
+	States      []StateData       `json:"states"`
+	Cultures    []CultureData     `json:"cultures"`
+	Religions   []ReligionData    `json:"religions"`
+	People      []PersonData      `json:"people"`
+	Events      []EventData       `json:"events"`
+	Monsters    []MonsterData     `json:"monsters"`
+	Artifacts   []ArtifactData    `json:"artifacts"`
+	Wonders     []WonderData      `json:"wonders"`
+	Species     []SpeciesData     `json:"species"`
+	Outlaws     []OutlawData      `json:"outlaws"`
+	Megas       []MegaData        `json:"megastructures"`
+	SectorNames []string          `json:"sectorNames"`
+	Terms       map[string]string `json:"terms"`
+	LayerNames  map[string]string `json:"layerNames"`
 
 	burgByID    map[int]*BurgData
 	stateByID   map[int]*StateData
@@ -57,6 +61,26 @@ type WorldData struct {
 	seaBurg     map[int]int
 	maxDepth    int
 	peopleByBrg map[int][]int
+	outlawByBrg map[int]*OutlawData
+	cityTier    map[int]int // burg id → 0 town, 1 mid city, 2 great city (ranked by size score)
+}
+
+// OutlawData is a Realmforge bandit camp or pirate haven harassing a living town.
+type OutlawData struct {
+	Burg     int    `json:"burg"`
+	Kind     string `json:"kind"` // bandit pirate
+	Name     string `json:"name"`
+	Strength int    `json:"strength"`
+	Gold     int    `json:"gold"`
+	P        int    `json:"p"`
+}
+
+// MegaData is the Spire of Trials or the Bottomless Abyss, once the sim has placed them.
+type MegaData struct {
+	Kind    string `json:"kind"` // tower abyss
+	Name    string `json:"name"`
+	P       int    `json:"p"`
+	Cleared int    `json:"cleared"`
 }
 
 type LayerData struct {
@@ -84,6 +108,10 @@ type BurgData struct {
 	Governor  string         `json:"governor"`
 	Bandit    bool           `json:"bandit"`
 	Original  string         `json:"original"`
+	Sectors   []float64      `json:"sectors"` // shares in WorldData.SectorNames order
+	Garrison  int            `json:"garrison"`
+	Charter   bool           `json:"charter"`
+	League    string         `json:"league"`
 }
 
 type StateData struct {
@@ -281,6 +309,10 @@ func (w *WorldData) index() {
 			w.peopleByBrg[p.Burg] = append(w.peopleByBrg[p.Burg], i)
 		}
 	}
+	w.outlawByBrg = map[int]*OutlawData{}
+	for i := range w.Outlaws {
+		w.outlawByBrg[w.Outlaws[i].Burg] = &w.Outlaws[i]
+	}
 	w.deepOpen = map[int][]bool{}
 	w.deepBurg = map[int]map[int]int{}
 	w.skyBurg = map[int]int{}
@@ -307,6 +339,8 @@ func (w *WorldData) index() {
 	if w.seaOpen == nil {
 		w.seaOpen = make([]bool, n)
 	}
+	w.placeMegas()
+	w.rankCities()
 	if w.Terms == nil {
 		w.Terms = map[string]string{}
 	}
@@ -376,4 +410,87 @@ func titleCase(s string) string {
 		}
 	}
 	return strings.Join(ws, " ")
+}
+
+// Sector returns a town's share of an economic sector (0 when the world has no sectors).
+func (w *WorldData) Sector(b *BurgData, name string) float64 {
+	for i, n := range w.SectorNames {
+		if n == name && i < len(b.Sectors) {
+			return b.Sectors[i]
+		}
+	}
+	return 0
+}
+
+// placeMegas gives a world without placed megastructures its own Spire (highest peak) and Abyss
+// (the most remote rugged land), so every world has both.
+func (w *WorldData) placeMegas() {
+	has := map[string]bool{}
+	for _, m := range w.Megas {
+		has[m.Kind] = true
+	}
+	bestT, bestA := -1, -1
+	var hT, hA float64
+	for p := range w.Biome {
+		if w.IsWater(p) || w.Burg[p] > 0 || len(w.wondersAt[p]) > 0 {
+			continue
+		}
+		if t := float64(w.Height[p]); t > hT {
+			hT, bestT = t, p
+		}
+		a := float64(w.Height[p]) / 4
+		if w.State[p] == 0 {
+			a += 20
+		}
+		if b := w.Biome[p]; b == 13 || b == 16 || b == 11 || b == 14 || b == 15 {
+			a += 15
+		}
+		a += float64((p*2654435761)%97) / 20
+		if a > hA && p != bestT {
+			hA, bestA = a, p
+		}
+	}
+	if !has["tower"] && bestT >= 0 {
+		w.Megas = append(w.Megas, MegaData{Kind: "tower", Name: "The Spire of Trials", P: bestT})
+	}
+	if !has["abyss"] && bestA >= 0 {
+		w.Megas = append(w.Megas, MegaData{Kind: "abyss", Name: "The Bottomless Abyss", P: bestA})
+	}
+}
+
+// rankCities sizes towns by a composite score, since Realmforge caps population and many small
+// realms make most towns capitals: top 8% become great cities, the next 25% mid-size ones.
+func (w *WorldData) rankCities() {
+	type sc struct {
+		id int
+		v  float64
+	}
+	var all []sc
+	for _, b := range w.Burgs {
+		if !b.Alive || b.Layer != "surface" {
+			continue
+		}
+		v := b.Pop/60 + 3*float64(len(w.peopleByBrg[b.ID])) + float64(b.Garrison)/10
+		for _, d := range b.Districts {
+			v += float64(d)
+		}
+		if b.Capital {
+			v += 3
+		}
+		if b.Port {
+			v++
+		}
+		v += float64(uint32(b.ID)*2654435761%1000) / 1e4
+		all = append(all, sc{b.ID, v})
+	}
+	sort.Slice(all, func(i, j int) bool { return all[i].v > all[j].v })
+	w.cityTier = map[int]int{}
+	for i, s := range all {
+		switch {
+		case i < len(all)*8/100+1:
+			w.cityTier[s.id] = 2
+		case i < len(all)*33/100+1:
+			w.cityTier[s.id] = 1
+		}
+	}
 }

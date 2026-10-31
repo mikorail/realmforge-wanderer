@@ -123,13 +123,19 @@ func (g *Game) MakeBook(title, text string) *Item {
 // Loot rolls one random item of a rough tier.
 func (g *Game) Loot(r *Rng, tier int) *Item {
 	tier = clampi(tier, 0, 5)
+	gear := func(it *Item) *Item {
+		g.applyRarity(it, r, g.rollRarity(r, tier*3+r.Int(0, 3)))
+		return it
+	}
 	switch x := r.Int(0, 99); {
 	case x < 20:
-		return g.MakeWeapon(Pick(r, []string{"longblade", "shortblade", "axe", "cudgel"}), tier, r)
+		return gear(g.MakeWeapon(Pick(r, []string{"longblade", "shortblade", "axe", "cudgel"}), tier, r))
+	case x < 33:
+		return gear(g.MakeArmor(Pick(r, []string{"body", "head", "feet", "hands", "back", "face"}), tier, r))
 	case x < 35:
-		return g.MakeArmor(Pick(r, []string{"body", "head", "feet", "hands", "back", "face"}), tier, r)
+		return gear(g.MakeBackpack(clampi(tier, 0, 5)))
 	case x < 42:
-		return g.MakeRanged(tier, r)
+		return gear(g.MakeRanged(tier, r))
 	case x < 50:
 		return g.MakeAmmo(r.Int(8, 20))
 	case x < 66:
@@ -139,9 +145,9 @@ func (g *Game) Loot(r *Rng, tier int) *Item {
 	case x < 84:
 		return g.MakeFood(r, r.Int(1, 3))
 	case x < 88:
-		return g.MakeLight(r.Int(0, 2))
+		return gear(g.MakeLight(r.Int(0, 2)))
 	case x < 93:
-		return g.MakeOddity(r, tier)
+		return gear(g.MakeOddity(r, tier))
 	}
 	return g.MakeScrap(r, r.Int(2, 8))
 }
@@ -188,7 +194,7 @@ func (it *Item) Describe(g *Game) []string {
 	if it.Kind == "artifact" && !it.Ident {
 		return []string{"An object of unknown make: {{M|" + it.Unid + "}}.", "Examine it closely to learn more (Tinkering or Lore help)."}
 	}
-	l = append(l, "{{Y|"+it.Name+"}}")
+	l = append(l, "{{Y|"+it.ShownName()+"}}", it.RarityTagG(g))
 	switch it.Kind {
 	case "weapon":
 		l = append(l, fmt.Sprintf("%s  {{c|→}}%d  {{R|♥}}%dd%d  max STR bonus %d", skillName(it.Skill), it.PV, it.DN, it.DS, it.MaxStr))
@@ -233,4 +239,10 @@ func (it *Item) Describe(g *Game) []string {
 	}
 	l = append(l, "", fmt.Sprintf("Value: %d %s", it.Value, g.Sk.Currency))
 	return l
+}
+
+// MakeManual teaches a skill rank when read (up to rank 2; higher ranks need skill points).
+func (g *Game) MakeManual(skill string) *Item {
+	return &Item{ID: g.newID(), Kind: "manual", Effect: skill, Name: fmt.Sprintf("%s on %s", titleCase(g.Sk.Book), skillName(skill)), Glyph: '■', F: COrange, Value: 140,
+		Text: skillDesc[skill]}
 }

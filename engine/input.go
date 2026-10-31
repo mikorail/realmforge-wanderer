@@ -227,6 +227,10 @@ func (g *Game) keyMain(k string) Out {
 		g.rest(true)
 	case "z":
 		g.rest(false)
+	case "s":
+		g.Msg("You search carefully.")
+		g.noticeTraps(4)
+		g.spend(1000)
 	case "d":
 		if g.Cur.WaterAt(g.P.X, g.P.Y) > 0 && !g.Cur.Underwater || g.adjacent(TWell) || g.adjacent(TShallow) {
 			g.drinkHere()
@@ -424,38 +428,10 @@ func (g *Game) keyTrade(k string) {
 	}
 }
 
-// invList: equipped items first, then the pack
-func (g *Game) invList() []*Item {
-	var out []*Item
-	for _, bp := range g.P.Body {
-		if bp.Item != nil {
-			out = append(out, bp.Item)
-		}
-	}
-	return append(out, g.P.Inv...)
-}
+// invList: the visible (tab-filtered, sorted) items; see inventory.go
+func (g *Game) invList() []*Item { return g.invVisible() }
 
-func (g *Game) keyInv(k string) {
-	list := g.invList()
-	if i := letterIndex(k); i >= 0 && i < len(list) {
-		g.ItemSel = list[i]
-		g.Mode = "item"
-		return
-	}
-	switch k {
-	case "ArrowUp":
-		g.Sel = maxi(0, g.Sel-1)
-	case "ArrowDown":
-		g.Sel = maxi(0, mini(len(list)-1, g.Sel+1))
-	case "Enter":
-		if g.Sel < len(list) {
-			g.ItemSel = list[g.Sel]
-			g.Mode = "item"
-		}
-	case "Escape", "i":
-		g.Mode = "main"
-	}
-}
+func (g *Game) keyInv(k string) { g.invKeys(k) }
 
 func (g *Game) keyItem(k string) {
 	it := g.ItemSel

@@ -26,7 +26,7 @@ func main() {
 	_ = engine.CharOptions(w)
 	r := engine.NewRng("fuzz")
 	keys := []string{"ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", "ArrowUp", "ArrowRight", "ArrowRight",
-		">", "<", "g", "i", "a", "b", "c", "Enter", "Escape", "f", "t", "x", "j", "r", "m", "?", "e", "d", "z", "w", "Tab", "u", "k", "click:40,12", "y", "n", "T", "+"}
+		">", "<", ">", "s", "g", "i", "a", "b", "c", "Enter", "Escape", "f", "t", "x", "j", "r", "m", "?", "e", "d", "z", "w", "Tab", "u", "k", "click:40,12", "y", "n", "T", "+"}
 	g := engine.NewGame(w, engine.CharSpec{Name: "Fuzz", Species: "human", Calling: "warrior", Attr: [6]int{16, 16, 16, 16, 16, 16},
 		Powers: map[string]int{"flames": 1, "teleport": 1, "wings": 1}, Start: 0})
 	g.P.MaxHP, g.P.HP = 100000, 100000
@@ -35,7 +35,11 @@ func main() {
 		g.Key(k)
 		g.Render()
 		if i%250 == 0 {
-			g.Warp(r.Int(0, w.W-1), r.Int(0, w.H-1), r.Int(0, 2), r.Int(0, 2), r.Int(-1, 5))
+			z := r.Int(-1, 5)
+			if r.Chance(0.25) {
+				z = -100 - r.Int(1, 6) // tower floors
+			}
+			g.Warp(r.Int(0, w.W-1), r.Int(0, w.H-1), r.Int(0, 2), r.Int(0, 2), z)
 		}
 		if i%1000 == 0 {
 			s := g.Save()

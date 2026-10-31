@@ -67,13 +67,17 @@ type Item struct {
 	Charges int            `json:"ch,omitempty"`
 	Elem    string         `json:"el,omitempty"` // fire frost shock acid poison
 	Extra   map[string]int `json:"ex,omitempty"`
+	Rarity  string         `json:"ra,omitempty"`   // common uncommon rare ultrarare legendary mythic unique (rarity.go)
+	Cat     string         `json:"cat,omitempty"`  // special category: biblical occult omni ... (rarity.go)
+	Look    string         `json:"look,omitempty"` // transmog: name of the appearance shown instead (attire.go)
+	Region  string         `json:"reg,omitempty"`  // culture sphere of regional attire (attire.go)
 }
 
 func (it *Item) Display() string {
 	if it.Kind == "artifact" && !it.Ident {
 		return "{{M|" + it.Unid + "}}"
 	}
-	n := it.Name
+	n := it.ShownName()
 	if it.Count > 1 {
 		n = fmt.Sprintf("%s x%d", n, it.Count)
 	}
@@ -132,6 +136,11 @@ type Actor struct {
 	Religion int             `json:"rel,omitempty"`
 	State    int             `json:"sta,omitempty"`
 	Talked   bool            `json:"tk,omitempty"`
+	Teach    string          `json:"teach,omitempty"`
+	Caste    string          `json:"caste,omitempty"` // social stratum (society.go)
+	Rank     int             `json:"rank,omitempty"`  // standing inside the stratum, 0 lowest (society.go)
+	House    string          `json:"house,omitempty"` // family name shared by a household (society.go)
+	Kin      []int           `json:"kins,omitempty"`  // actor ids of relatives in the same zone (society.go)
 }
 
 func (a *Actor) Has(f string) bool { return a.Flags != nil && a.Flags[f] }
@@ -193,6 +202,7 @@ func (a *Actor) AV() int {
 	if a.St("frozen") > 0 {
 		av += 2
 	}
+	av += shieldAV(a)
 	return av
 }
 

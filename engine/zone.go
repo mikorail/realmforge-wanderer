@@ -35,6 +35,7 @@ type Zone struct {
 	Visited    bool           `json:"vis"`
 	Faction    string         `json:"fac"`
 	Biome      int            `json:"biome"`
+	Traps      map[int]uint8  `json:"traps,omitempty"`
 }
 
 func ZoneKey(wx, wy, zx, zy, z int) string { return fmt.Sprintf("%d.%d.%d.%d.%d", wx, wy, zx, zy, z) }
@@ -117,6 +118,17 @@ func (g *Game) stairsDown(wx, wy, zx, zy, z int) [][2]int {
 		return nil
 	}
 	p := g.W.Idx(wx, wy)
+	if z >= 0 {
+		if s := g.siteAt(wx, wy, zx, zy); s != nil {
+			if s.Kind == "tower" && z == 0 || s.Kind == "dungeon" && z >= s.Depth {
+				return nil
+			}
+			if s.Kind == "dungeon" {
+				x, y := posFor(siteKey(wx, wy, zx, zy) + fmt.Sprintf(":down%d", z))
+				return [][2]int{{x, y}}
+			}
+		}
+	}
 	r := NewRng(g.W.Seed + ":stairs:" + ZoneKey(wx, wy, zx, zy, z))
 	chance := 0.6
 	if z == 0 {
@@ -207,11 +219,19 @@ func (g *Game) genZone(wx, wy, zx, zy, z int) *Zone {
 	p := g.W.Idx(wx, wy)
 	zn.Biome = g.W.Biome[p]
 	zn.Level = g.zoneLevel(wx, wy, z)
+	site := g.siteAt(wx, wy, zx, zy)
 	switch {
+	case z <= towerBase-1:
+		if site == nil || site.Kind != "tower" {
+			site = &Site{Kind: "tower", Theme: "magic", Name: "A forgotten tower", Depth: 1}
+		}
+		g.genTowerFloor(zn, r, site, towerBase-z)
 	case z < 0:
 		g.genSky(zn, r, p)
 	case z == 0:
 		g.genSurface(zn, r, p)
+	case site != nil && site.Kind == "dungeon" && z <= site.Depth && !(site.Ruin && z == 1):
+		g.genDungeon(zn, r, site)
 	default:
 		g.genUnder(zn, r, p)
 	}
@@ -224,6 +244,15 @@ func (g *Game) genZone(wx, wy, zx, zy, z int) *Zone {
 		for _, s := range g.stairsDown(wx, wy, zx, zy, z-1) {
 			g.clearAround(zn, s[0], s[1], 1)
 			zn.Set(s[0], s[1], TUp)
+		}
+	}
+	if z == 0 && site != nil {
+		if site.Kind == "tower" {
+			x, y := g.towerStair(siteKey(wx, wy, zx, zy), 0)
+			g.siteEntrance(zn, site, x, y)
+		} else if st := g.stairsDown(wx, wy, zx, zy, 0); len(st) > 0 {
+			g.siteEntrance(zn, site, st[0][0], st[0][1])
+			zn.Set(st[0][0], st[0][1], TDown)
 		}
 	}
 	if z == 0 {
@@ -249,7 +278,7 @@ func (g *Game) genZone(wx, wy, zx, zy, z int) *Zone {
 	}
 	g.connect(zn)
 	g.computeLight(zn)
-	if zn.Kind != "town" {
+	if zn.Kind != "town" && zn.Kind != "dungeon" && zn.Kind != "tower" {
 		g.populate(zn, r)
 	}
 	return zn
@@ -415,11 +444,23 @@ func (g *Game) genSurface(zn *Zone, r *Rng, p int) {
 		g.genFeature(zn, r, p)
 	} else if bid := w.Burg[p]; bid > 0 {
 		if bd := w.burgByID[bid]; bd != nil && bd.Alive {
-			g.genOutskirts(zn, r, bd)
-			if bd.Bandit && zn.ZX == 0 && zn.ZY == 1 {
-				g.genCamp(zn, r)
-				zn.Name = "Outlaw camp outside " + bd.Name
-				zn.Kind = "camp"
+			if kind, _ := g.districtAt(zn.WX, zn.WY, zn.ZX, zn.ZY); kind != "" {
+				g.genDistrict(zn, r, bd, g.cityPlanFor(bd), kind)
+			} else {
+				g.genOutskirts(zn, r, bd)
+				if ol := w.outlawByBrg[bd.ID]; ol != nil && g.outlawZone(bd) == [2]int{zn.ZX, zn.ZY} {
+					g.genCamp(zn, r)
+					for i := 0; i < ol.Strength/6; i++ {
+						a := g.Spawn(Pick(r, []string{"bandit", "archer"}), zn.Level, r)
+						if x, y, ok := zn.FreeSpot(r, nil); ok {
+							a.X, a.Y = x, y
+							a.Desc = "One of " + ol.Name + "."
+							zn.Actors = append(zn.Actors, a)
+						}
+					}
+					zn.Name = ol.Name
+					zn.Kind = "camp"
+				}
 			}
 		}
 	}
@@ -643,7 +684,11 @@ func (g *Game) genFeature(zn *Zone, r *Rng, p int) {
 	}
 	if bd := w.burgByID[w.Burg[p]]; bd != nil {
 		if bd.Alive {
-			g.genTown(zn, r, bd)
+			if cp := g.cityPlanFor(bd); cp.tier > 0 {
+				g.genDistrict(zn, r, bd, cp, cp.districts[[2]int{1, 1}])
+			} else {
+				g.genTown(zn, r, bd)
+			}
 		} else {
 			g.genRuin(zn, r, bd)
 		}
@@ -913,6 +958,7 @@ func (g *Game) genTown(zn *Zone, r *Rng, bd *BurgData) {
 	sx, sy := 40+3, 12-1
 	zn.Set(sx, sy, TInscription)
 	zn.Notes[sy*MW+sx] = g.townPlaque(bd)
+	g.assignSociety(zn, r, bd)
 }
 
 func (g *Game) townPlaque(bd *BurgData) string {
@@ -1351,6 +1397,9 @@ func (g *Game) connect(zn *Zone) {
 	}
 	floor := g.floorFor(zn)
 	targets := [][2]int{{40, 0}, {40, MH - 1}, {0, 12}, {MW - 1, 12}}
+	if zn.Kind == "dungeon" || zn.Kind == "crypt" {
+		targets = nil // sealed levels: only the stairs need linking
+	}
 	for y := 0; y < MH; y++ {
 		for x := 0; x < MW; x++ {
 			t := zn.At(x, y)

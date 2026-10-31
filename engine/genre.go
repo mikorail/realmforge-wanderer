@@ -60,10 +60,38 @@ func baseSkin() Skin {
 			"sense": "Second Sight", "forcewall": "Arcane Bulwark", "stinger": "Venom Fang", "carapace": "Stoneskin", "darkvision": "Darksight",
 			"sprint": "Fleetfoot", "beguile": "Beguile", "heal": "Laying of Hands", "burrow": "Earthmeld", "gills": "Merrow-Gills", "wings": "Wings",
 			"psiblast": "Mind Spike", "spikes": "Thornhide", "leech": "Life Drain",
+			"swimming": "Strong Swimmer", "diving": "Deep Lungs", "climbing": "Spiderclimb", "clipping": "Shadowstep", "arcanebolt": "Arcane Missile", "slumber": "Sleep",
+			"glimmer": "Dazzling Light", "forcepush": "Force Push", "clairvoyance": "Clairvoyance", "timedilation": "Time Dilation", "forcebubble": "Force Bubble",
+			"syphon": "Syphon Vim", "stunforce": "Stunning Force", "disintegrate": "Disintegrate", "corrosive": "Corrosive Cloud", "fugue": "Temporal Fugue", "multiarms": "Multiple Arms",
 		},
 		Bandits: "Brigands", Undead: "the Restless Dead", WallColor: CGray, AccentColor: CYellow,
 		Updraft: "wind-stair", Dive: "a sea-cave", Ferry: "book passage on a ship", Kinship: "Share salt",
 	}
+}
+
+// genreNames2 re-skins the newer powers per genre (spells, tech, psionics).
+var genreNames2 = map[string]map[string]string{
+	"mythic": {"swimming": "Poseidon's Stroke", "diving": "Pearl-Diver's Breath", "climbing": "Cliff-Goat", "clipping": "Shade-Slip", "arcanebolt": "Hecate's Dart", "slumber": "Breath of Hypnos",
+		"glimmer": "Helios' Flare", "forcepush": "Boreas' Gust", "clairvoyance": "Sight of Tiresias", "timedilation": "Chronos' Drag", "forcebubble": "Aegis", "syphon": "Vampire's Kiss",
+		"stunforce": "Thunderclap of Zeus", "disintegrate": "Wrath of Ares", "corrosive": "Lernaean Fume", "fugue": "Doppelganger of Proteus", "multiarms": "Hundred-Handed"},
+	"steampunk": {"swimming": "Paddle Wheels", "diving": "Compressed-Air Tank", "climbing": "Grapple Gauntlets", "clipping": "Aetheric Shunt", "arcanebolt": "Aether Needle", "slumber": "Chloroform Atomiser",
+		"glimmer": "Magnesium Flash", "forcepush": "Steam Ram", "clairvoyance": "Cartographic Engine", "timedilation": "Chronometer Drag", "forcebubble": "Pressure Shield", "syphon": "Transfusion Engine",
+		"stunforce": "Concussion Pulse", "disintegrate": "Disruptor Cannon", "corrosive": "Vitriol Sprayer", "fugue": "Clockwork Doubles", "multiarms": "Automaton Arms"},
+	"dieselpunk": {"swimming": "Flipper Rig", "diving": "Rebreather Tank", "climbing": "Piton Gloves", "clipping": "Tunnel Charge Step", "arcanebolt": "Tracer Burst", "slumber": "Knockout Gas",
+		"glimmer": "Signal Flare", "forcepush": "Concussion Charge", "clairvoyance": "Aerial Recon", "timedilation": "Stutter Field", "forcebubble": "Armor Plating Surge", "syphon": "Blood Transfuser",
+		"stunforce": "Shockwave Charge", "disintegrate": "Demolition Charge", "corrosive": "Mustard Canister", "fugue": "Decoy Squad", "multiarms": "Mechanic Arms"},
+	"atompunk": {"swimming": "Webbed Hands", "diving": "Big Lungs", "climbing": "Sticky Fingers", "clipping": "Quantum Tunneling", "arcanebolt": "Force Blast", "slumber": "Hypnosis",
+		"glimmer": "Photokinesis", "forcepush": "Telekinesis", "clairvoyance": "Clairvoyance", "timedilation": "Temporal Slowing", "forcebubble": "Force Bubble", "syphon": "Syphon Vim",
+		"stunforce": "Stunning Force", "disintegrate": "Disintegration", "corrosive": "Acid Spit", "fugue": "Temporal Fugue", "multiarms": "Multiple Arms"},
+	"cyberpunk": {"swimming": "Hydro Limbs", "diving": "Oxygen Reservoir", "climbing": "Gecko Grips", "clipping": "Ghost Shunt", "arcanebolt": "Smart Dart", "slumber": "Sleep Virus",
+		"glimmer": "Flashbang Eyes", "forcepush": "Kinetic Ram", "clairvoyance": "Satellite Uplink", "timedilation": "Sandevistan", "forcebubble": "Hardlight Shell", "syphon": "Vampire Interface",
+		"stunforce": "Shock Pulse", "disintegrate": "Disassembler Beam", "corrosive": "Nano-Acid Cloud", "fugue": "Digital Echoes", "multiarms": "Extra Cyberarms"},
+	"biopunk": {"swimming": "Web-Toed Feet", "diving": "Whale Lungs", "climbing": "Gecko Pads", "clipping": "Phase Bloom", "arcanebolt": "Spine Dart", "slumber": "Narcotic Spores",
+		"glimmer": "Biolume Burst", "forcepush": "Pressure Burp", "clairvoyance": "Mycelial Mapping", "timedilation": "Sluggish Pheromones", "forcebubble": "Chitin Bubble", "syphon": "Parasitic Tendrils",
+		"stunforce": "Sonic Shriek", "disintegrate": "Enzyme Bloom", "corrosive": "Acid Spores", "fugue": "Budding Clones", "multiarms": "Extra Limbs"},
+	"solarpunk": {"swimming": "Otter Strokes", "diving": "Kelp Lungs", "climbing": "Vine Grip", "clipping": "Rootslip", "arcanebolt": "Sunbeam", "slumber": "Lullaby Pollen",
+		"glimmer": "Solar Flare", "forcepush": "Gale Burst", "clairvoyance": "Canopy Sight", "timedilation": "Sap Slowness", "forcebubble": "Sunlight Shield", "syphon": "Photosynthetic Leech",
+		"stunforce": "Thunderbloom", "disintegrate": "Mulch Wave", "corrosive": "Acidic Fog", "fugue": "Seedling Doubles", "multiarms": "Many Branches"},
 }
 
 func SkinFor(genre string) *Skin {
@@ -182,6 +210,9 @@ func SkinFor(genre string) *Skin {
 		s.PowerNames["beguile"], s.PowerNames["gills"], s.PowerNames["leech"] = "Kinship Pollen", "Algae Lung", "Photosynthetic Drain"
 		s.Bandits, s.Undead, s.WallColor, s.AccentColor = "Saboteurs", "the Blighted", CBrown, CGreen
 		s.Updraft, s.Dive, s.Ferry, s.Kinship = "kite-tether", "a reef-lock", "sail on a co-op ship", "Plant a seed"
+	}
+	for k, v := range genreNames2[genre] {
+		s.PowerNames[k] = v
 	}
 	return &s
 }

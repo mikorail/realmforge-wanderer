@@ -112,6 +112,7 @@ func (g *Game) Hostile(a *Actor) bool {
 			rep = fr
 		}
 	}
+	rep += g.attireAffinity(a)
 	if a.Role != "" && a.Role != "bandit" {
 		return rep <= -600
 	}
@@ -193,7 +194,7 @@ func (g *Game) cultureName(cu *CultureData, r *Rng) string {
 }
 
 var roleTitle = map[string]string{
-	"guard": "warden", "merchant": "merchant", "smith": "smith", "apothecary": "apothecary", "priest": "priest", "elder": "elder", "villager": "villager", "scholar": "scholar",
+	"guard": "warden", "merchant": "merchant", "smith": "smith", "apothecary": "apothecary", "priest": "priest", "elder": "elder", "villager": "villager", "scholar": "scholar", "tailor": "tailor",
 }
 
 func (g *Game) roleTitle(role string) string {
@@ -260,7 +261,7 @@ func (g *Game) roleTitle(role string) string {
 	return role
 }
 
-var roleColor = map[string]byte{"guard": CCyan, "merchant": CYellow, "smith": COrange, "apothecary": CGreen, "priest": CWhite, "elder": CMagenta, "villager": CGray, "ferry": CBlue, "notable": CMagenta}
+var roleColor = map[string]byte{"guard": CCyan, "merchant": CYellow, "smith": COrange, "apothecary": CGreen, "priest": CWhite, "elder": CMagenta, "villager": CGray, "ferry": CBlue, "notable": CMagenta, "bookseller": CCyan, "exotic": CMagenta, "trainer": COrange, "arena": CRed, "tailor": CMagenta}
 
 func (g *Game) speciesOf(cu *CultureData) *SpeciesData {
 	if cu != nil && cu.Species != "" {
@@ -318,7 +319,14 @@ func (g *Game) makeNPC(role string, bd *BurgData, cu *CultureData, r *Rng) *Acto
 			p.Item = g.MakeArmor("head", tier, r)
 		}
 		a.AI = "guard"
-	case "merchant", "smith", "apothecary":
+	case "tailor":
+		a.Gold = r.Int(120, 300) + lvl*20
+		g.stockTailor(a, bd, r)
+		a.AI = "still"
+	case "trainer", "arena":
+		a.AI = "still"
+		a.MaxHP += 10
+	case "merchant", "smith", "apothecary", "bookseller", "exotic":
 		a.Gold = r.Int(150, 400) + lvl*30
 		g.stockShop(a, role, tier, r)
 		a.AI = "still"
@@ -348,6 +356,21 @@ func (g *Game) stockShop(a *Actor, role string, tier int, r *Rng) {
 			}
 		case "apothecary":
 			it = g.MakeTonic(Pick(r, []string{"heal", "heal", "salve", "haste", "strength", "antidote"}), r.Int(1, 3))
+		case "bookseller":
+			if r.Chance(0.5) {
+				it = g.MakeManual(Pick(r, SkillIDs))
+			} else {
+				it = g.annalsBook(g.W.States[r.Int(0, len(g.W.States)-1)].ID)
+			}
+		case "exotic":
+			switch r.Int(0, 3) {
+			case 0, 1:
+				it = g.MakeOddity(r, tier+1)
+			case 2:
+				it = g.MakeGrenade(Pick(r, []string{"fire", "frost", "flash"}), r.Int(1, 3))
+			default:
+				it = g.MakeLight(r.Int(1, 2))
+			}
 		default:
 			it = g.Loot(r, tier)
 		}
