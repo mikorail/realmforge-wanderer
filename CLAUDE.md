@@ -10,6 +10,7 @@ Caves-of-Qud-style ASCII roguelike played across worlds made in Realmforge (`../
 - System node is too old: npm scripts go through `scripts/run-with-nvm.sh`. Dev: `scripts/dev.sh` (port **5195**), preview config "realmforge-wanderer" in `claude-projects/.claude/launch.json`.
 - `npm run wasm` rebuilds `public/wasm/qud.wasm` + `wasm_exec.js` after any Go change (reload the page; the engine is cached on `window.qud`). `npm run build` = wasm + vite build.
 - `public/worlds/` holds bundled sample worlds + `index.json` (regenerate from Realmforge: `npx tsx scripts/adventure-world.ts <years> <genre> <seed> <template>`).
+- Tests: `go test ./engine/` (scenario tests against the bundled worlds: combat, death, ritual, quests, trade, sky falls, breath, powers, stairs, travel, save/load, every species × calling).
 - Dev tools: `go run ./cmd/fuzz world.json [steps]` (random keys, zone warps, save/load round trips: run after engine changes); `go run ./cmd/peek world.json talk show key:c show down show` prints screens as text.
 
 ## Engine map (`engine/`)
