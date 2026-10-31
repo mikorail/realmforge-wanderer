@@ -1,0 +1,5 @@
+[
+	{ "file": "ember-crown.json", "name": "Qotusu", "genre": "High Fantasy", "year": 221, "blurb": "Continents of kingdoms and dwarf-holds, three underdark strata and sky isles. Two centuries of wars, plagues and fallen dynasties." },
+	{ "file": "neon-tide.json", "name": "Mangrar", "genre": "Cyberpunk", "year": 161, "blurb": "An archipelago of megacorps, arcologies and neon undercities. Gangers on the maglev, data vaults below." },
+	{ "file": "spore-mother.json", "name": "Misuchu", "genre": "Biopunk", "year": 181, "blurb": "One great continent of gene-clans and hive cities, mycelial warrens beneath, living airships above." }
+]

@@ -1,0 +1,29 @@
+:root {
+	color-scheme: dark;
+	--bg: #041312;
+	--ink: #b1c9c3;
+}
+html,
+body {
+	margin: 0;
+	height: 100%;
+	background: var(--bg);
+	color: var(--ink);
+	font-family: 'Share Tech Mono', Menlo, Consolas, monospace;
+}
+button {
+	font: inherit;
+	background: #0d2b29;
+	color: var(--ink);
+	border: 1px solid #155352;
+	padding: 6px 10px;
+	cursor: pointer;
+}
+button:hover {
+	background: #1b4d48;
+	color: #fff;
+}
+:focus-visible {
+	outline: 2px solid #cfc041;
+	outline-offset: 2px;
+}
