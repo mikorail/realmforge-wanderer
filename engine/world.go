@@ -132,6 +132,7 @@ type StateData struct {
 	Capital   int         `json:"capital"`
 	Founded   int         `json:"founded"`
 	Fell      int         `json:"fell"`
+	Feasts    []FeastData `json:"feasts,omitempty"` // the realm's own feast days (Realmforge realmFeasts)
 }
 
 type CultureData struct {
@@ -145,6 +146,21 @@ type CultureData struct {
 	Places  []string `json:"places"`
 	Food    string   `json:"food"`
 	Dress   string   `json:"dress"`
+	// calendar and customs (optional; older world files lack them, see calendar.go fallbacks)
+	Months       []string    `json:"months,omitempty"` // 12 names, month 0 = the dark of the year
+	Feasts       []FeastData `json:"feasts,omitempty"`
+	Festivals    []string    `json:"festivals,omitempty"` // sphere festival lore, {realm}/{town} placeholders
+	Music        string      `json:"music,omitempty"`
+	Architecture string      `json:"architecture,omitempty"`
+	Values       []string    `json:"values,omitempty"`
+}
+
+// FeastData is one feast day: Month is on Realmforge's 12-month scale (0 = midwinter); Text keeps {realm}/{town}.
+type FeastData struct {
+	Name  string `json:"name"`
+	Kind  string `json:"kind"` // spring harvest dead midwinter sea war learning sun
+	Month int    `json:"month"`
+	Text  string `json:"text,omitempty"`
 }
 
 type ReligionData struct {
