@@ -261,7 +261,7 @@ func (g *Game) roleTitle(role string) string {
 	return role
 }
 
-var roleColor = map[string]byte{"guard": CCyan, "merchant": CYellow, "smith": COrange, "apothecary": CGreen, "priest": CWhite, "elder": CMagenta, "villager": CGray, "ferry": CBlue, "notable": CMagenta, "bookseller": CCyan, "exotic": CMagenta, "trainer": COrange, "arena": CRed, "tailor": CMagenta}
+var roleColor = map[string]byte{"guard": CCyan, "merchant": CYellow, "smith": COrange, "apothecary": CGreen, "priest": CWhite, "elder": CMagenta, "villager": CGray, "ferry": CBlue, "notable": CMagenta, "bookseller": CCyan, "exotic": CMagenta, "trainer": COrange, "arena": CRed, "tailor": CMagenta, "augmenter": CCyan}
 
 func (g *Game) speciesOf(cu *CultureData) *SpeciesData {
 	if cu != nil && cu.Species != "" {

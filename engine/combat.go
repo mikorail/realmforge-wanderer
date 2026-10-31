@@ -179,6 +179,7 @@ func (g *Game) dismember(d *Actor) {
 	p := Pick(g.R, limbs)
 	p.Severed = true
 	g.Msg(fmt.Sprintf("{{R|%s %s is severed!}}", possessive(g, d), strings.ToLower(p.Name)))
+	g.augSevered(d, p)
 	limb := &Item{ID: g.newID(), Kind: "trophy", Name: strings.ToLower(possessive(g, d)) + " " + strings.ToLower(p.Name), Glyph: '~', F: CDarkRed, X: d.X, Y: d.Y, Value: 1}
 	g.Cur.Items = append(g.Cur.Items, limb)
 	if p.Item != nil {
@@ -213,6 +214,7 @@ func (g *Game) hurt(d *Actor, n int, src *Actor, cause string) {
 	if d.HP <= 0 || n <= 0 {
 		return
 	}
+	n = augResist(d, n, cause)
 	d.HP -= n
 	if src == g.P && d != g.P && !g.Hostile(d) {
 		g.provoke(d)

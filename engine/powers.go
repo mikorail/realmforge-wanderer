@@ -31,6 +31,7 @@ func (g *Game) Abilities() []Ability {
 		}
 		out = append(out, Ability{ID: id, Name: g.Sk.PowerName(id), Target: pd.Target, Cool: g.P.Cool[id]})
 	}
+	out = append(out, g.augAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
 	for _, bp := range g.P.Body {
 		if bp.Item != nil {
