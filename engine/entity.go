@@ -28,7 +28,8 @@ type BodyPart struct {
 	Item    *Item  `json:"i,omitempty"`
 	Natural *Item  `json:"nat,omitempty"`
 	Severed bool   `json:"sev,omitempty"`
-	Limb    bool   `json:"l,omitempty"` // can be severed
+	Limb    bool   `json:"l,omitempty"`   // can be severed
+	Aug     *Item  `json:"aug,omitempty"` // installed body augment (augments.go); silent while severed
 }
 
 type Item struct {
@@ -172,9 +173,9 @@ func (a *Actor) AddSt(s string, n int) {
 
 func (a *Actor) Pow(id string) int {
 	if a.Powers == nil {
-		return 0
+		return a.augPow(id)
 	}
-	return a.Powers[id]
+	return a.Powers[id] + a.augPow(id)
 }
 
 func (a *Actor) Score(i int) int {
@@ -182,6 +183,9 @@ func (a *Actor) Score(i int) int {
 	for _, p := range a.Body {
 		if p.Item != nil && p.Item.Bonus != nil && !p.Severed {
 			v += p.Item.Bonus[i]
+		}
+		if p.Aug != nil && p.Aug.Bonus != nil && !p.Severed {
+			v += p.Aug.Bonus[i]
 		}
 	}
 	if i == STR && a.St("mighty") > 0 {
@@ -204,6 +208,9 @@ func (a *Actor) AV() int {
 		if p.Item != nil && !p.Severed {
 			av += p.Item.AV
 		}
+		if p.Aug != nil && !p.Severed {
+			av += p.Aug.AV
+		}
 	}
 	if l := a.Pow("carapace"); l > 0 {
 		av += 2 + l/2
@@ -222,6 +229,9 @@ func (a *Actor) DV() int {
 		if p.Item != nil && !p.Severed {
 			dv += p.Item.DV
 		}
+		if p.Aug != nil && !p.Severed {
+			dv += p.Aug.DV
+		}
 	}
 	if a.St("stunned") > 0 || a.St("frozen") > 0 || a.St("prone") > 0 {
 		dv -= 6
@@ -232,7 +242,7 @@ func (a *Actor) DV() int {
 func (a *Actor) MA() int { return 4 + a.M(WIL) }
 
 func (a *Actor) Quick() int {
-	q := a.Speed
+	q := a.Speed + a.augQuick()
 	if a.St("hasted") > 0 {
 		q += 50
 	}
@@ -246,7 +256,7 @@ func (a *Actor) Quick() int {
 }
 
 func (a *Actor) LightRadius() int {
-	r := 0
+	r := a.augLight()
 	for _, p := range a.Body {
 		if p.Item != nil && p.Item.Light > r && !p.Severed {
 			r = p.Item.Light
@@ -270,6 +280,8 @@ func (a *Actor) Weapons() []*Item {
 		if p.Slot == "hand" {
 			if p.Item != nil && (p.Item.Kind == "weapon" || p.Item.Kind == "artifact" && p.Item.DN > 0) {
 				out = append(out, p.Item)
+			} else if p.Item == nil && p.Aug != nil && p.Aug.DN > 0 {
+				out = append(out, p.Aug)
 			} else if p.Item == nil && p.Natural != nil {
 				out = append(out, p.Natural)
 			}

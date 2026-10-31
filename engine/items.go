@@ -220,6 +220,12 @@ func (it *Item) Describe(g *Game) []string {
 		l = append(l, "Throw it (t) at a target.")
 	case "book":
 		l = append(l, "Read it (r).")
+	case "augment":
+		l = append(l, g.augDescribe(it)...)
+		if it.Lore != "" {
+			l = append(l, "", it.Lore)
+		}
+		return append(l, "", fmt.Sprintf("Value: %d %s", it.Value, g.Sk.Currency))
 	case "artifact":
 		if it.DN > 0 {
 			l = append(l, fmt.Sprintf("{{c|→}}%d  {{R|♥}}%dd%d", it.PV, it.DN, it.DS))

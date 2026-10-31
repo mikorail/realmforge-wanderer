@@ -600,7 +600,7 @@ func (g *Game) drawChar() {
 	s := g.sc
 	x, y, w, _ := g.panel("Character")
 	p := g.P
-	tabs := []string{"Attributes & Skills", g.Sk.PowersName}
+	tabs := []string{"Attributes & Skills", g.Sk.PowersName, titleCase(g.augSkin().Noun) + "s"}
 	tx := x
 	for i, t := range tabs {
 		c := "K"
@@ -639,6 +639,13 @@ func (g *Game) drawChar() {
 		s.TextB(x, y+1, "{{K|↑↓ select · Enter spend (attribute 1 AP, skill rank+1 SP) · Tab powers · Esc}}", CGray, CBgDark, x+w)
 		return
 	}
+	if g.Tab == 2 {
+		for _, ln := range g.augSheet() {
+			s.TextB(x, y, ln, CGray, CBgDark, x+w)
+			y++
+		}
+		return
+	}
 	s.TextB(x, y, fmt.Sprintf("{{W|%s points: %d}}  {{K|new: cost · upgrade: 1}}", g.Sk.PowersName, g.MP), CGray, CBgDark, x+w)
 	y += 2
 	row := 0
@@ -651,7 +658,7 @@ func (g *Game) drawChar() {
 			bg = CBgSel
 		}
 		s.Fill(x, y, w, 1, bg)
-		lv := p.Pow(pd.ID)
+		lv := p.Powers[pd.ID]
 		lvs := "{{K|—}}"
 		if lv > 0 {
 			lvs = fmt.Sprintf("{{M|lv %d}}", lv)

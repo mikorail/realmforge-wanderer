@@ -499,8 +499,12 @@ func (g *Game) keyItem(k string) {
 
 func (g *Game) keyChar(k string) {
 	switch k {
-	case "Tab", "ArrowRight", "ArrowLeft":
-		g.Tab = 1 - g.Tab
+	case "Tab", "ArrowRight":
+		g.Tab = (g.Tab + 1) % 3
+		g.Sel = 0
+		return
+	case "ArrowLeft":
+		g.Tab = (g.Tab + 2) % 3
 		g.Sel = 0
 		return
 	case "Escape", "c":
@@ -513,7 +517,7 @@ func (g *Game) keyChar(k string) {
 		g.Sel++
 		return
 	}
-	if k != "Enter" && k != "+" {
+	if k != "Enter" && k != "+" || g.Tab == 2 {
 		return
 	}
 	if g.Tab == 0 {
@@ -552,7 +556,7 @@ func (g *Game) keyChar(k string) {
 	}
 	if g.Sel < len(ps) {
 		pd := ps[g.Sel]
-		lv := g.P.Pow(pd.ID)
+		lv := g.P.Powers[pd.ID]
 		cost := pd.Cost
 		if lv > 0 {
 			cost = 1

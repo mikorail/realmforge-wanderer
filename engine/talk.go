@@ -54,6 +54,9 @@ func (g *Game) greeting(a *Actor) string {
 	if rm := g.attireRemark(a); rm != "" {
 		return rm
 	}
+	if rm := g.augRemark(a); rm != "" {
+		return rm
+	}
 	if cg := g.casteGreeting(a); cg != "" {
 		return cg
 	}
@@ -81,6 +84,9 @@ func (g *Game) talkMenu(text string) {
 	}
 	if a.Role == "tailor" {
 		add("{{O|Have a garment remade (transmog).}}", func() { g.tailorMenu(a) })
+	}
+	if a.Role == "augmenter" {
+		add(fmt.Sprintf("{{O|Install or remove a %s.}}", g.augSkin().Noun), func() { g.augMenu(a) })
 	}
 	if a.Teach != "" {
 		add("{{O|Teach me.}}", func() { g.trainMenu(a) })
@@ -658,14 +664,14 @@ func (g *Game) price(it *Item, buy bool) int {
 		if g.Talk.Has("markup") {
 			f += 0.15
 		}
-		f *= g.castePriceMod(g.Talk)
+		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk)
 		if f < 0.75 {
 			f = 0.75
 		}
 		return maxi(1, int(float64(v)*f))
 	}
 	f := 0.4 + ego + per + rep
-	f /= g.castePriceMod(g.Talk)
+	f /= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk)
 	if f > 0.8 {
 		f = 0.8
 	}
