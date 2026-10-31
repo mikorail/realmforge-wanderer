@@ -72,6 +72,9 @@ func (g *Game) talkMenu(text string) {
 	} else if !a.Talked && len(g.Secrets) > 0 {
 		add("{{c|Share a secret with them.}}", func() { g.shareSecret(a) })
 	}
+	if a.Kinship && !a.Has("recipes") && a.AI != "follower" {
+		add("{{y|Swap recipes.}}", func() { g.swapRecipes(a) })
+	}
 	if a.Role == "tailor" {
 		add("{{O|Have a garment remade (transmog).}}", func() { g.tailorMenu(a) })
 	}

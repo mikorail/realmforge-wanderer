@@ -86,7 +86,7 @@ func (it *Item) Display() string {
 
 func (it *Item) Stack() bool {
 	switch it.Kind {
-	case "ammo", "food", "tonic", "grenade", "scrap", "ingredient":
+	case "ammo", "food", "tonic", "grenade", "scrap", "ingredient", "dish":
 		return true
 	}
 	return false

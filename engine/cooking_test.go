@@ -165,3 +165,82 @@ func TestSimpleMealFromFood(t *testing.T) {
 		t.Fatalf("simple meal: hunger %d hp %d", g.Hunger, g.P.HP)
 	}
 }
+
+func TestFollowersShareMealAndDishesNeedNoFire(t *testing.T) {
+	g := newGame(t, nil)
+	clearAround(g)
+	var f *Actor
+	for _, a := range g.Cur.Actors {
+		if a.Role == "villager" || a.Role == "guard" {
+			f = a
+			break
+		}
+	}
+	if f == nil {
+		t.Skip("no villager to recruit")
+	}
+	f.AI, f.Faction = "follower", "player"
+	g.P.Inv = append(g.P.Inv, g.makeIngredient("wild garlic", "hearty", 1, CGreen), g.makeIngredient("ironbark tuber", "thick", 1, CGreen))
+	str := f.Score(STR)
+	g.openCook()
+	g.Key("a")
+	g.Key("b")
+	g.Key("Enter")
+	if f.mealLv("hearty") != 1 || f.Score(STR) != str+2 || f.St("fed") == 0 {
+		t.Fatalf("follower not fed: %v fed=%d", f.Meal, f.St("fed"))
+	}
+	f.Status["fed"] = 1
+	g.statusTick(f)
+	if f.Meal != nil {
+		t.Fatal("follower meal should end with fed status")
+	}
+	// a market dish works without a fire
+	var cu *CultureData
+	for _, c := range g.W.Cultures {
+		if len(staples(c.Food)) >= 2 {
+			c := c
+			cu = &c
+			break
+		}
+	}
+	d := g.makeDish(cu, 1)
+	if d == nil || len(tagsOf(d.Effect)) == 0 {
+		t.Fatalf("dish %+v", d)
+	}
+	g.P.Meal = nil
+	g.useItem(d)
+	if g.P.Meal == nil || g.MealName != d.Name {
+		t.Fatalf("dish not eaten: %v %q", g.P.Meal, g.MealName)
+	}
+}
+
+func TestSwapRecipesWithKin(t *testing.T) {
+	g := newGame(t, nil)
+	var a *Actor
+	for _, o := range g.Cur.Actors {
+		if o.Role != "" && o.AI != "hostile" {
+			a = o
+			break
+		}
+	}
+	if a == nil {
+		t.Skip("no townsfolk")
+	}
+	g.Talk = a
+	a.Kinship = true
+	g.Cookbook = append(g.Cookbook, Dish{Key: "deep+venom", Name: "far-off eel pot", Tags: []string{"deep", "venom"}, Where: "Elsewhere", Cooked: 2})
+	rep := g.Rep[a.Faction]
+	n := len(g.Cookbook)
+	g.swapRecipes(a)
+	if !a.Has("recipes") {
+		t.Fatal("swap not recorded")
+	}
+	if len(g.Cookbook) <= n && g.Rep[a.Faction] <= rep {
+		t.Fatalf("nothing learned or taught: cookbook %d rep %d→%d", len(g.Cookbook), rep, g.Rep[a.Faction])
+	}
+	for _, o := range g.Opts {
+		if strings.Contains(o.Text, "Swap recipes") {
+			t.Fatal("swap offered twice")
+		}
+	}
+}

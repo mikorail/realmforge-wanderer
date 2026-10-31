@@ -24,7 +24,7 @@ func invCat(it *Item) int {
 		return 1
 	case "armor":
 		return 2
-	case "food", "water", "tonic", "grenade", "ingredient":
+	case "food", "water", "tonic", "grenade", "ingredient", "dish":
 		return 3
 	case "artifact":
 		return 4

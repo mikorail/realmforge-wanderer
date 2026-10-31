@@ -514,6 +514,9 @@ func (g *Game) statusTick(a *Actor) {
 		a.Status[k] = v - 1
 		if a.Status[k] <= 0 {
 			delete(a.Status, k)
+			if k == "fed" {
+				a.Meal = nil
+			}
 			if a == g.P {
 				g.Msg("You are no longer " + k + ".")
 			}

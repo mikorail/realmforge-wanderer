@@ -191,6 +191,9 @@ func (g *Game) stockIngredients(a *Actor, cu *CultureData, r *Rng) {
 		}
 		a.Inv = append(a.Inv, g.makeIngredient(s, stapleTag(s), r.Int(2, 4), CYellow))
 	}
+	if d := g.makeDish(cu, r.Int(1, 3)); d != nil {
+		a.Inv = append(a.Inv, d)
+	}
 }
 
 // ---- meals ----
@@ -239,11 +242,12 @@ func (g *Game) slowHunger() bool {
 	return lv > 0 && g.Turn%(lv+1) != 0
 }
 
-func (g *Game) mealText() string {
-	p := g.P
+func (g *Game) mealText() string { return describeTags(g.P.Meal) }
+
+func describeTags(m map[string]int) string {
 	var parts []string
 	for _, t := range cookTagIDs {
-		if lv := p.mealLv(t); lv > 0 {
+		if lv := m[t]; lv > 0 {
 			parts = append(parts, "{{"+cookTags[t].Col+"|"+cookTags[t].Desc(lv)+"}}")
 		}
 	}
@@ -449,23 +453,149 @@ func (g *Game) cook(cands []*Item) {
 	for _, it := range ings {
 		g.useUp(it)
 	}
-	p.Meal = tags
 	dur := 1440 + 360*g.Skills["survival"]
 	if !isNew {
 		dur += dur / 4 // a dish you know comes out better
 	}
-	g.MealLeft, g.MealName = dur, dish.Name
-	g.Hunger = maxi(0, g.Hunger-500)
-	h := maxi(2, p.MaxHP/8)
-	p.HP = mini(p.MaxHP, p.HP+h)
 	g.Mode = "main"
 	g.Msg(fmt.Sprintf("You cook over %s and eat {{Y|%s}}.", place, dish.Name))
-	g.Msg("You feel: " + g.mealText() + ".")
+	g.applyMeal(dish.Name, tags, dur, true)
 	if isNew {
 		g.Msg("{{G|You write a new recipe into your cookbook.}}")
 		g.gainXP(15 + 5*len(ings))
 	}
 	g.spendTurns(15)
+}
+
+// applyMeal gives you (and, when shared, the companions in this zone) a meal's tags for dur minutes.
+func (g *Game) applyMeal(name string, tags map[string]int, dur int, share bool) {
+	p := g.P
+	p.Meal = tags
+	g.MealLeft, g.MealName = dur, name
+	g.Hunger = maxi(0, g.Hunger-500)
+	h := maxi(2, p.MaxHP/8)
+	p.HP = mini(p.MaxHP, p.HP+h)
+	g.Msg("You feel: " + g.mealText() + ".")
+	if !share {
+		return
+	}
+	var fed []string
+	for _, a := range g.Cur.Actors {
+		if a.HP > 0 && a.AI == "follower" {
+			a.Meal = map[string]int{}
+			for k, v := range tags {
+				a.Meal[k] = v
+			}
+			a.AddSt("fed", dur)
+			a.HP = mini(a.MaxHP, a.HP+maxi(2, a.MaxHP/8))
+			fed = append(fed, g.the(a))
+		}
+	}
+	if len(fed) > 0 {
+		g.Msg("You share the meal with " + joinAnd(fed) + ".")
+	}
+}
+
+func joinAnd(xs []string) string {
+	switch len(xs) {
+	case 0:
+		return ""
+	case 1:
+		return xs[0]
+	}
+	return strings.Join(xs[:len(xs)-1], ", ") + " and " + xs[len(xs)-1]
+}
+
+// tagsOf turns a dish key ("hearty+spry+spry") into tag levels.
+func tagsOf(key string) map[string]int {
+	m := map[string]int{}
+	for _, t := range strings.Split(key, "+") {
+		if _, ok := cookTags[t]; ok {
+			m[t] = mini(2, m[t]+1)
+		}
+	}
+	return m
+}
+
+// localDish is a culture's signature dish: two of its staples cooked together (deterministic per culture).
+func localDish(cu *CultureData) (name, key string) {
+	st := staples(cu.Food)
+	if len(st) < 2 {
+		return "", ""
+	}
+	h := HashStr(cu.Name + ":dish")
+	a := st[h%uint64(len(st))]
+	b := st[(h/7+1)%uint64(len(st))]
+	if a == b {
+		b = st[(h%uint64(len(st))+1)%uint64(len(st))]
+	}
+	tags := []string{stapleTag(a), stapleTag(b)}
+	sort.Strings(tags)
+	key = strings.Join(tags, "+")
+	word := dishWords[HashStr(key+cu.Name)%uint64(len(dishWords))]
+	return fmt.Sprintf("%s %s of %s and %s", cu.Name, word, a, b), key
+}
+
+// makeDish: a ready-cooked local dish, sold in markets; eating it gives the meal without a fire.
+func (g *Game) makeDish(cu *CultureData, n int) *Item {
+	name, key := localDish(cu)
+	if name == "" {
+		return nil
+	}
+	return &Item{ID: g.newID(), Kind: "dish", Name: name, Effect: key, Glyph: '%', F: CYellow, Count: n, Value: 18, Power: 500, Weight: 1}
+}
+
+func (g *Game) eatDish(it *Item) {
+	g.Msg("You eat the " + it.Name + ". It is still warm.")
+	g.applyMeal(it.Name, tagsOf(it.Effect), 1200, false)
+	g.consume(it)
+}
+
+// knowsRecipe: is this dish key in your cookbook?
+func (g *Game) knowsRecipe(key string) bool {
+	for _, d := range g.Cookbook {
+		if d.Key == key {
+			return true
+		}
+	}
+	return false
+}
+
+// swapRecipes: kin (after the ritual) teach you their culture's dish; you may teach one of yours for standing.
+func (g *Game) swapRecipes(a *Actor) {
+	a.Set("recipes")
+	cu := g.localCulture()
+	if bd := g.W.burgByID[g.Cur.Burg]; bd != nil && g.Cur.Kind == "town" {
+		if c := g.W.cultByID[bd.Culture]; c != nil {
+			cu = c
+		}
+	}
+	var text []string
+	if cu != nil {
+		if name, key := localDish(cu); name != "" {
+			if g.knowsRecipe(key) {
+				text = append(text, fmt.Sprintf("\"You already cook like one of us,\" %s laughs, tasting your notes on %s.", g.the(a), name))
+			} else {
+				g.Cookbook = append(g.Cookbook, Dish{Key: key, Name: name, Tags: strings.Split(key, "+"), Where: cu.Name, FirstAt: g.Turn / 1440})
+				text = append(text, fmt.Sprintf("%s teaches you to make {{Y|%s}}: %s.", g.The(a), name, cu.Food), "{{G|A recipe is added to your cookbook.}}")
+				g.gainXP(15)
+			}
+		}
+	}
+	// teach them the newest dish you have cooked that comes from another land
+	for i := len(g.Cookbook) - 1; i >= 0; i-- {
+		d := g.Cookbook[i]
+		if d.Cooked > 0 && (cu == nil || d.Where != cu.Name) {
+			gain := 25 + 15*g.Skills["persuasion"]
+			g.AddRep(a.Faction, gain, " for sharing a recipe")
+			text = append(text, fmt.Sprintf("In return you tell them how to make %s. They repeat it twice so as not to forget.", d.Name))
+			break
+		}
+	}
+	if len(text) == 0 {
+		text = append(text, "\"We eat what everyone eats here. Nothing worth writing down.\"")
+	}
+	g.talkMenu(strings.Join(text, "\n\n"))
 }
 
 // useUp consumes one of an ingredient, from the pack or from the floor.
