@@ -49,6 +49,10 @@ func (g *Game) Render() *Screen {
 		g.drawCursor()
 	case "dir":
 		s.TextB(1, 0, " Choose a direction (arrows / numpad), Esc to cancel ", CYellow, CBgDark, MW)
+	default:
+		if d, ok := modeDraws[g.Mode]; ok {
+			d(g)
+		}
 	}
 	return s
 }
@@ -57,6 +61,9 @@ func (g *Game) drawMap() {
 	s := g.sc
 	z := g.Cur
 	anim := g.Tick / 10
+	if !g.Pref("anim") {
+		anim = 0
+	}
 	for y := 0; y < MH; y++ {
 		for x := 0; x < MW; x++ {
 			i := y*MW + x
@@ -272,6 +279,13 @@ func (g *Game) drawSide() {
 				s.Put(SW-5+i, y, '▪', c, CBgDark)
 			}
 			y++
+		}
+	}
+	for _, h := range sideHooks {
+		for _, l := range h(g) {
+			if y < SH-3 {
+				line(l)
+			}
 		}
 	}
 	s.TextB(x0, SH-2, "{{K|? help  i inv  c char  j journal}}", CGray, CBgDark, SW)
@@ -619,7 +633,7 @@ func (g *Game) drawChar() {
 			}
 			s.Fill(x, y, w, 1, bg)
 			rk := g.Skills[id]
-			stars := strings.Repeat("■", rk) + strings.Repeat("·", 3-rk)
+			stars := strings.Repeat("■", mini(rk, 3)) + strings.Repeat("·", maxi(0, 3-rk))
 			s.TextB(x, y, fmt.Sprintf("%-12s {{G|%s}} {{K|%s}}", skillName(id), stars, skillDesc[id]), CGray, bg, x+w)
 			y++
 		}
@@ -662,7 +676,7 @@ func (g *Game) drawChar() {
 func (g *Game) drawJournal() {
 	s := g.sc
 	s.Box(0, 0, SW, SH, CDarkCyan, "Journal")
-	tabs := []string{"Quests", "Secrets & Places", "Chronicle of " + g.W.Name}
+	tabs := codexTabNames
 	tx := 2
 	for i, t := range tabs {
 		c := "K"
@@ -702,6 +716,8 @@ func (g *Game) drawJournal() {
 			e := g.W.Events[i]
 			lines = append(lines, Wrap(fmt.Sprintf("{{K|Y%d}} %s", e.Y, e.Text), SW-6)...)
 		}
+	default:
+		lines = g.codexLines(g.Tab, SW-8)
 	}
 	g.Sel = clampi(g.Sel, 0, maxi(0, len(lines)-(SH-5)))
 	for i := 0; i < SH-5 && g.Sel+i < len(lines); i++ {

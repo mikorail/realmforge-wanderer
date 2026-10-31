@@ -281,6 +281,9 @@ func (g *Game) genZone(wx, wy, zx, zy, z int) *Zone {
 	if zn.Kind != "town" && zn.Kind != "dungeon" && zn.Kind != "tower" {
 		g.populate(zn, r)
 	}
+	for _, h := range zoneHooks {
+		h(g, zn, r)
+	}
 	return zn
 }
 

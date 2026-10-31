@@ -90,6 +90,12 @@ func main() {
 		}
 		return game.Meta()
 	})
+	api["pref"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if game != nil {
+			game.SetPref(a[0].String(), a[1].Bool())
+		}
+		return nil
+	})
 	api["deeds"] = js.FuncOf(func(this js.Value, a []js.Value) any {
 		if game == nil {
 			return "[]"

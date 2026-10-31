@@ -2,11 +2,13 @@
 // Everything is generated from (mood, genre, biome, seed) with a deterministic PRNG;
 // danger / hp / day / depth adapt the playback continuously without restarting.
 import type { QudMusic } from './qud';
+import type { MusicStyle } from './settings';
 
 export interface MusicHandle {
 	setState(m: QudMusic): void;
 	setVolume(v: number): void;
 	setEnabled(on: boolean): void;
+	setStyle(s: MusicStyle): void;
 	dispose(): void;
 }
 
@@ -37,8 +39,8 @@ function hrand(a: number, b: number, c: number): number {
 }
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
-/** bitcrush-ish: quantise loudness to 16 levels */
-const q16 = (v: number) => Math.round(clamp(v, 0, 1) * 15) / 15;
+/** bitcrush-ish: quantise loudness to 32 levels (fine enough for quiet voices) */
+const q16 = (v: number) => Math.round(clamp(v, 0, 1) * 31) / 31;
 
 // ---------- music theory tables ----------
 const SCALES: Record<string, number[]> = {
@@ -61,17 +63,19 @@ interface MoodCfg {
 	hi: number; // bpm at danger 1
 	scales: string[];
 	minDanger: number; // floor for percussion/arps (world overture is always marching)
+	bright?: number; // filter cutoff multiplier (default 1)
+	sparse?: number; // 0..1: thins out lead, arps and hats
 }
 const MOODS: Record<Mood, MoodCfg> = {
-	town: { lo: 84, hi: 140, scales: ['ionian', 'mixolydian', 'majPent'], minDanger: 0 },
+	town: { lo: 88, hi: 140, scales: ['ionian', 'lydian', 'majPent'], minDanger: 0, bright: 1.3 },
 	wild: { lo: 78, hi: 148, scales: ['dorian', 'mixolydian', 'minPent', 'aeolian'], minDanger: 0 },
-	dungeon: { lo: 70, hi: 150, scales: ['phrygian', 'locrian', 'aeolian'], minDanger: 0 },
+	dungeon: { lo: 64, hi: 150, scales: ['phrygian', 'locrian', 'aeolian'], minDanger: 0, bright: 0.8, sparse: 0.5 },
 	tower: { lo: 74, hi: 144, scales: ['aeolian', 'dorian', 'harmonicMinor'], minDanger: 0 },
 	sky: { lo: 80, hi: 142, scales: ['lydian', 'majPent', 'ionian'], minDanger: 0 },
 	sea: { lo: 72, hi: 140, scales: ['dorian', 'mixolydian', 'aeolian'], minDanger: 0 },
 	underdark: { lo: 70, hi: 140, scales: ['wholetone', 'locrian', 'phrygDom'], minDanger: 0 },
 	crypt: { lo: 70, hi: 140, scales: ['phrygian', 'harmonicMinor', 'aeolian'], minDanger: 0 },
-	world: { lo: 96, hi: 140, scales: ['mixolydian', 'ionian', 'dorian'], minDanger: 0.35 },
+	world: { lo: 100, hi: 142, scales: ['mixolydian', 'ionian', 'lydian'], minDanger: 0.35, bright: 1.3 },
 	dead: { lo: 52, hi: 52, scales: ['aeolian'], minDanger: 0 },
 };
 
@@ -118,10 +122,11 @@ interface Piece {
 	cfg: MoodCfg;
 	gen: GenreCfg;
 	arpStyle: number;
+	style: MusicStyle;
 }
 
-function pieceKey(m: QudMusic): string {
-	return `${m.mood}|${m.genre}|${m.seed}|${m.biome | 0}`;
+function pieceKey(m: QudMusic, style: MusicStyle): string {
+	return `${style}|${m.mood}|${m.genre}|${m.seed}|${m.biome | 0}`;
 }
 
 function snap(d: number, c: number, n: number): number {
@@ -136,8 +141,8 @@ function snap(d: number, c: number, n: number): number {
 	return best;
 }
 
-function makePiece(m: QudMusic): Piece {
-	const key = pieceKey(m);
+function makePiece(m: QudMusic, style: MusicStyle): Piece {
+	const key = pieceKey(m, style);
 	const rng = mulberry32(hash(key));
 	const pick = <T,>(a: T[]): T => a[Math.floor(rng() * a.length)];
 	const gen = GENRES[m.genre] ?? GENRES.fantasy;
@@ -156,7 +161,7 @@ function makePiece(m: QudMusic): Piece {
 			b < 3
 				? [{ s: 0, d: ds[b * 2], l: 8 }, { s: 8, d: ds[b * 2 + 1], l: 8 }]
 				: [{ s: 0, d: ds[6], l: 6 }, { s: 6, d: ds[7], l: 10 }]);
-		return { key, dead, spb, scale, base, chords: [[0, 5, 3, 0]], mel: [mel], form: [0, 0, 0, 0], bars: 4, cfg, gen, arpStyle: 0 };
+		return { key, dead, spb, scale, base, chords: [[0, 5, 3, 0]], mel: [mel], form: [0, 0, 0, 0], bars: 4, cfg, gen, arpStyle: 0, style };
 	}
 
 	const progression = (start: number, end: number): number[] => {
@@ -220,6 +225,7 @@ function makePiece(m: QudMusic): Piece {
 		form: [0, 1, 2, 0],
 		bars: 16, cfg, gen,
 		arpStyle: Math.floor(rng() * ARPS.length),
+		style,
 	};
 }
 
@@ -245,6 +251,8 @@ export function createMusic(): MusicHandle {
 	let timer: ReturnType<typeof setInterval> | null = null;
 	let enabled = true;
 	let volume = 0.35;
+	let style: MusicStyle = 'chiptune';
+	let started = false;
 	let disposed = false;
 	let st: QudMusic | null = null;
 	let cur: Player | null = null;
@@ -254,6 +262,7 @@ export function createMusic(): MusicHandle {
 	let dNow = 0;
 	let lastCut = -1;
 	const fading = new Set<ReturnType<typeof setTimeout>>();
+	let suspendT: ReturnType<typeof setTimeout> | null = null;
 
 	function pulseWave(c: AudioContext, duty: number): PeriodicWave {
 		const N = 48;
@@ -292,11 +301,11 @@ export function createMusic(): MusicHandle {
 				master = c.createGain();
 				master.gain.value = 0;
 				const comp = c.createDynamicsCompressor();
-				comp.threshold.value = -16;
-				comp.knee.value = 12;
-				comp.ratio.value = 6;
-				comp.attack.value = 0.004;
-				comp.release.value = 0.2;
+				comp.threshold.value = -20;
+				comp.knee.value = 10;
+				comp.ratio.value = 8;
+				comp.attack.value = 0.003;
+				comp.release.value = 0.25;
 				tone = c.createBiquadFilter();
 				tone.type = 'lowpass';
 				tone.frequency.value = 6000;
@@ -319,7 +328,10 @@ export function createMusic(): MusicHandle {
 
 	function applyVolume() {
 		if (!ctx) return;
-		master.gain.setTargetAtTime(enabled ? volume * 0.8 : 0, ctx.currentTime, 0.06);
+		// the very first start fades in over a couple of seconds; later changes are quick
+		const tau = enabled && !started ? 0.7 : 0.06;
+		if (enabled) started = true;
+		master.gain.setTargetAtTime(enabled ? volume * 0.8 : 0, ctx.currentTime, tau);
 	}
 
 	// ----- voices -----
@@ -357,6 +369,23 @@ export function createMusic(): MusicHandle {
 		o.connect(g).connect(p.bus);
 		o.start(t);
 		o.stop(t + dur + 0.04);
+		o.onended = () => g.disconnect();
+	}
+	/** soft pad / bell voice for the ambient style */
+	function soft(p: Player, type: OscillatorType, midi: number, t: number, dur: number, vel: number, attack: number) {
+		const c = ctx!;
+		const o = c.createOscillator();
+		const g = c.createGain();
+		o.type = type;
+		o.frequency.value = mtof(midi);
+		o.detune.value = hrand(Math.round(midi), Math.round(t * 1000), 3) * 10 - 5;
+		g.gain.setValueAtTime(0, t);
+		g.gain.linearRampToValueAtTime(vel, t + attack);
+		g.gain.setValueAtTime(vel, t + Math.max(attack, dur * 0.5));
+		g.gain.linearRampToValueAtTime(0, t + dur + 0.3);
+		o.connect(g).connect(p.bus);
+		o.start(t);
+		o.stop(t + dur + 0.35);
 		o.onended = () => g.disconnect();
 	}
 	function noise(dest: AudioNode, short: boolean, t: number, dur: number, vel: number, rate: number) {
@@ -422,8 +451,9 @@ export function createMusic(): MusicHandle {
 
 	function targetBpm(p: Piece, d: number): number {
 		if (p.dead) return 52;
-		const x = Math.pow(clamp(d, 0, 1), 0.9);
-		return (p.cfg.lo + (p.cfg.hi - p.cfg.lo) * x) * p.gen.bpm * (st && !st.day ? 0.96 : 1);
+		const amb = p.style === 'ambient';
+		const x = Math.pow(clamp(d, 0, 1), 0.9) * (amb ? 0.4 : 1);
+		return (p.cfg.lo + (p.cfg.hi - p.cfg.lo) * x) * p.gen.bpm * (st && !st.day ? 0.96 : 1) * (amb ? 0.55 : 1);
 	}
 
 	function scheduleStep(p: Player): number {
@@ -454,27 +484,49 @@ export function createMusic(): MusicHandle {
 		const leadDuty = pc.dead ? 0.5 : day ? pc.gen.leadDay : 0.5;
 		const half = spb / 2;
 
+		const sparse = pc.cfg.sparse ?? 0;
+		const ambient = pc.style === 'ambient' && !pc.dead;
+
+		if (ambient) {
+			// slow, soft: one pad chord per bar, a sparse triangle lead on strong beats, long bass
+			if (step === 0) {
+				const pad = day ? 'triangle' : 'sine';
+				for (const o of [0, 2, 4]) soft(p, pad, pc.base + 12 + pitch(chord + o), t, spb * dur * 0.95, 0.045, 0.5);
+				tri(p, pc.base - 12 + pitch(chord), t, spb * dur * 0.9, 0.13);
+			}
+			for (const ev of pc.mel[sec][bi]) {
+				if (ev.s !== step || ev.s % half !== 0) continue;
+				if (hrand(bar, step, seed + 5) < 0.4 + sparse * 0.4) continue;
+				soft(p, 'triangle', leadBase + pitch(ev.d) - (day ? 0 : 12), t, ev.l * dur * 1.4, 0.075, 0.12);
+			}
+			p.nextT = t0 + dur;
+			p.step++;
+			if (p.step >= spb) { p.step = 0; p.bar++; if (p.bar >= pc.bars) p.bar = 0; }
+			return p.nextT;
+		}
+
 		// lead
 		for (const ev of pc.mel[sec][bi]) {
 			if (ev.s !== step) continue;
 			const strong = ev.s % half === 0;
-			if (!strong && !pc.dead && hrand(bar, step, seed) > 0.55 + 0.45 * d) continue;
+			if (!strong && !pc.dead && hrand(bar, step, seed) > 0.55 + 0.45 * d - sparse * 0.5) continue;
+			if (strong && !pc.dead && d < 0.6 && hrand(bar, step, seed + 9) < sparse * 0.35) continue;
 			const len = (ev.l + (pc.dead ? 0 : 0)) * dur * (pc.dead ? 1 : 0.92);
-			pulse(p, leadDuty, leadBase + pitch(ev.d) - (day ? 0 : 12), t, len, pc.dead ? 0.12 : 0.13 + 0.03 * d, hrand(bar, step, 7) * 8 - 4);
+			pulse(p, leadDuty, leadBase + pitch(ev.d) - (day ? 0 : 12), t, len, pc.dead ? 0.1 : 0.09 + 0.025 * d, hrand(bar, step, 7) * 8 - 4);
 		}
 
 		// harmony voice: pad when calm, arpeggio as danger rises
 		const arpAt = 0.35 - pc.gen.arpBias;
 		if (d < arpAt) {
-			if (step === 0) pulse(p, 0.25, pc.base + 12 + pitch(chord + 2), t, half * dur * 0.95, 0.07, 6);
-			if (step === half) pulse(p, 0.25, pc.base + 12 + pitch(chord + 4), t, half * dur * 0.95, 0.07, 6);
+			if (step === 0) pulse(p, 0.25, pc.base + 12 + pitch(chord + 2), t, half * dur * 0.95, 0.06, 6);
+			if (step === half) pulse(p, 0.25, pc.base + 12 + pitch(chord + 4), t, half * dur * 0.95, 0.06, 6);
 		} else {
 			const div = d < 0.7 ? 2 : 1;
-			if (step % div === 0) {
+			if (step % div === 0 && !(sparse && d < 0.7 && hrand(bar, step, seed + 4) < sparse * 0.5)) {
 				const pat = ARPS[pc.arpStyle];
 				const k = pat[(step / div) % pat.length];
 				const idx = k === 3 ? chord + n : chord + k * 2;
-				pulse(p, 0.125, pc.base + 12 + pitch(idx), t, dur * div * 0.8, 0.07 + 0.03 * d, 5);
+				pulse(p, 0.125, pc.base + 12 + pitch(idx), t, dur * div * 0.8, 0.06 + 0.02 * d, 5);
 			}
 		}
 
@@ -484,7 +536,7 @@ export function createMusic(): MusicHandle {
 			const k = step / bdiv;
 			const offs = [0, 0, 4, 0, 0, 0, 4, n];
 			const idx = chord + (bdiv === 2 ? (k % 2 ? n : 0) : offs[k % offs.length]);
-			tri(p, pc.base - 12 + pitch(idx), t, bdiv * dur * 0.9, 0.34);
+			tri(p, pc.base - 12 + pitch(idx), t, bdiv * dur * 0.9, 0.15);
 		}
 
 		// percussion
@@ -492,22 +544,23 @@ export function createMusic(): MusicHandle {
 			if (d > 0.12) {
 				const kicks = spb === 16 ? (d > 0.4 ? [0, 8] : [0]) : [0];
 				if (kicks.includes(step) || (d > 0.65 && spb === 16 && step % 2 === 0 && step !== 4 && step !== 12 && hrand(bar, step, seed + 1) < 0.25))
-					kick(p.bus, t, 0.55);
+					kick(p.bus, t, 0.3);
 			}
-			if (d > 0.3 && step === (spb === 16 ? 4 : 6 )) noise(p.snr, false, t, 0.12, 0.34, 1.3);
-			if (d > 0.3 && spb === 16 && step === 12) noise(p.snr, false, t, 0.12, 0.34, 1.3);
+			if (d > 0.3 && step === (spb === 16 ? 4 : 6)) noise(p.snr, false, t, 0.12, 0.08, 1.3);
+			if (d > 0.3 && spb === 16 && step === 12) noise(p.snr, false, t, 0.12, 0.08, 1.3);
 			if (d > 0.2) {
 				const hdiv = spb === 16 ? (d < 0.5 ? 4 : 2) : d < 0.5 ? 3 : 2;
 				const fill = d > 0.8 && step % hdiv !== 0 && hrand(bar, step, seed + 2) < 0.4;
-				if (step % hdiv === 0 || fill) noise(p.hat, true, t, step % (hdiv * 2) === hdiv ? 0.07 : 0.035, fill ? 0.09 : 0.14, 1);
+				const skip = sparse > 0 && d < 0.7 && hrand(bar, step, seed + 3) < sparse * 0.6;
+				if ((step % hdiv === 0 || fill) && !skip) noise(p.hat, true, t, step % (hdiv * 2) === hdiv ? 0.07 : 0.035, fill ? 0.035 : 0.05, 1);
 			}
 		}
 
 		// heartbeat at low hp (bypasses the piece bus so it never crossfades away)
 		if (!pc.dead && m.hp < 0.4 && step % half === 0) {
 			const sev = clamp((0.4 - m.hp) / 0.4, 0, 1);
-			kick(tone, t, 0.35 + 0.4 * sev, 0.2);
-			kick(tone, t + dur * 3, 0.2 + 0.3 * sev, 0.16);
+			kick(tone, t, 0.2 + 0.25 * sev, 0.2);
+			kick(tone, t + dur * 3, 0.12 + 0.2 * sev, 0.16);
 		}
 
 		// advance
@@ -532,7 +585,7 @@ export function createMusic(): MusicHandle {
 		const now = c.currentTime;
 
 		// brightness: day opens the filter, night and depth darken it
-		const cut = (st.day ? 7000 : 2600) * Math.max(0.4, 1 - Math.max(0, st.depth) * 0.04);
+		const cut = (st.day ? 7000 : 2600) * Math.max(0.4, 1 - Math.max(0, st.depth) * 0.04) * (MOODS[st.mood]?.bright ?? 1) * (style === 'ambient' ? 0.6 : 1);
 		if (Math.abs(cut - lastCut) > 1) {
 			tone.frequency.setTargetAtTime(cut, now, 0.4);
 			lastCut = cut;
@@ -540,7 +593,7 @@ export function createMusic(): MusicHandle {
 
 		if (!cur || cur.done) {
 			if (pendingKey !== null) {
-				cur = newPlayer(makePiece(st), now + 0.05);
+				cur = newPlayer(makePiece(st, style), now + 0.05);
 				activeKey = pendingKey;
 				pendingKey = null;
 				bpm = targetBpm(cur.piece, dNow);
@@ -553,7 +606,7 @@ export function createMusic(): MusicHandle {
 				// swap to the new piece exactly on the bar line
 				const at = cur.nextT;
 				retire(cur, at, 0.5);
-				cur = newPlayer(makePiece(st), at);
+				cur = newPlayer(makePiece(st, style), at);
 				activeKey = pendingKey;
 				pendingKey = null;
 			}
@@ -572,7 +625,7 @@ export function createMusic(): MusicHandle {
 		setState(m: QudMusic) {
 			if (disposed) return;
 			st = m;
-			const key = pieceKey(m);
+			const key = pieceKey(m, style);
 			if (key !== activeKey && key !== pendingKey) pendingKey = key;
 			else if (key === activeKey) pendingKey = null;
 			if (!enabled) return;
@@ -583,10 +636,19 @@ export function createMusic(): MusicHandle {
 			volume = clamp(Number.isFinite(v) ? v : 0.35, 0, 1);
 			applyVolume();
 		},
+		setStyle(sty: MusicStyle) {
+			if (disposed || sty === style) return;
+			style = sty;
+			if (!st) return;
+			const key = pieceKey(st, style);
+			pendingKey = key === activeKey ? null : key;
+			if (enabled && ensure()) startTimer();
+		},
 		setEnabled(on: boolean) {
 			if (disposed) return;
 			enabled = on;
 			if (on) {
+				if (suspendT !== null) { clearTimeout(suspendT); suspendT = null; }
 				if (!ensure()) return;
 				applyVolume();
 				if (cur) cur.nextT = Math.max(cur.nextT, ctx!.currentTime + 0.05);
@@ -595,7 +657,8 @@ export function createMusic(): MusicHandle {
 				stopTimer();
 				applyVolume();
 				const c = ctx;
-				if (c) setTimeout(() => { if (!enabled && c.state === 'running') c.suspend().catch(() => {}); }, 400);
+				if (suspendT !== null) clearTimeout(suspendT);
+				if (c) suspendT = setTimeout(() => { suspendT = null; if (!enabled && c.state === 'running') c.suspend().catch(() => {}); }, 400);
 			}
 		},
 		dispose() {
@@ -603,7 +666,9 @@ export function createMusic(): MusicHandle {
 			stopTimer();
 			fading.forEach(clearTimeout);
 			fading.clear();
+			if (suspendT !== null) { clearTimeout(suspendT); suspendT = null; }
 			cur = null;
+			pendingKey = null;
 			const c = ctx;
 			ctx = null;
 			if (c) c.close().catch(() => {});

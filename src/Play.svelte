@@ -3,9 +3,11 @@
 	import { onMount, onDestroy } from 'svelte';
 	import type { QudApi, QudFrame } from './qud';
 	import { saveRun, deleteRun } from './store';
+	import { recordDeeds } from './chronicle';
 	import { createMusic, type MusicHandle } from './music';
 	import { loadSettings, saveSettings, PALETTES, type Settings as Prefs, type PaletteName } from './settings';
 	import Settings from './Settings.svelte';
+	import Touch from './Touch.svelte';
 
 	let { api, first, world, onquit }: { api: QudApi; first: QudFrame; world: string | null; onquit: () => void } = $props();
 
@@ -22,6 +24,13 @@
 	let keys = 0;
 	let worldPending = world;
 	const music: MusicHandle = createMusic();
+	// touch layout: coarse pointer or a narrow window
+	let touch = $state(false);
+	let ctlH = $state(0);
+	const LONG_PRESS_MS = 500;
+	let pressTimer: ReturnType<typeof setTimeout> | null = null;
+	let pressAt: { x: number; y: number } | null = null;
+	let longFired = false;
 
 	function paletteFor(p: PaletteName): string[] {
 		return p === 'qud' ? enginePalette : PALETTES[p];
@@ -30,6 +39,13 @@
 	function applyAudio() {
 		music.setEnabled(prefs.music);
 		music.setVolume(prefs.musicVolume);
+		music.setStyle(prefs.musicStyle);
+	}
+
+	/** Host settings the engine reads (g.Pref). */
+	function applyEngine() {
+		api.pref('anim', prefs.animations);
+		api.pref('hints', prefs.showHints);
 	}
 
 	/** Called by the settings pane on every change: store it, then re-apply what it touches. */
@@ -38,17 +54,21 @@
 		saveSettings(next);
 		palette = paletteFor(next.palette);
 		applyAudio();
+		applyEngine();
 		resize();
 	}
 
 	async function persist() {
 		const meta = JSON.parse(api.meta());
 		if (frame.dead) {
+			await recordDeeds(api, meta.seed);
 			await deleteRun(meta.seed);
 			return;
 		}
 		await saveRun({ ...meta, saved: Date.now() }, api.save(), worldPending ?? undefined);
 		worldPending = null;
+		// deeds go to the chronicle store and, when opened from Realmforge, back to it live
+		void recordDeeds(api, meta.seed);
 	}
 
 	async function quit() {
@@ -81,10 +101,40 @@
 		if (f.save || keys % prefs.autosaveEvery === 0) void persist();
 		if (f.exit) void quit();
 	}
+	function cellAt(e: { clientX: number; clientY: number }): string {
+		const r = canvas!.getBoundingClientRect();
+		return `click:${Math.floor((e.clientX - r.left) / cw)},${Math.floor((e.clientY - r.top) / chh)}`;
+	}
+	function clearPress() {
+		if (pressTimer) clearTimeout(pressTimer);
+		pressTimer = null;
+		pressAt = null;
+	}
+	/** Long-press on the map = look at that spot: 'x' then a click on the target. */
+	function onpointerdown(e: PointerEvent) {
+		if (!canvas || e.pointerType === 'mouse') return;
+		longFired = false;
+		clearPress();
+		pressAt = { x: e.clientX, y: e.clientY };
+		const pt = { clientX: e.clientX, clientY: e.clientY };
+		pressTimer = setTimeout(() => {
+			pressTimer = null;
+			longFired = true;
+			send('x');
+			send(cellAt(pt));
+			navigator.vibrate?.(15);
+		}, LONG_PRESS_MS);
+	}
+	function onpointermove(e: PointerEvent) {
+		if (pressAt && Math.hypot(e.clientX - pressAt.x, e.clientY - pressAt.y) > 10) clearPress();
+	}
 	function onclick(e: MouseEvent) {
 		if (!canvas) return;
-		const r = canvas.getBoundingClientRect();
-		send(`click:${Math.floor((e.clientX - r.left) / cw)},${Math.floor((e.clientY - r.top) / chh)}`);
+		if (longFired) {
+			longFired = false;
+			return;
+		}
+		send(cellAt(e));
 	}
 
 	function resize() {
@@ -132,13 +182,32 @@
 		gear?.focus();
 	}
 
+	$effect(() => {
+		void ctlH;
+		void touch;
+		resize();
+	});
+	$effect(() => {
+		if (!touch) return;
+		const root = document.documentElement;
+		const prev = root.style.overscrollBehavior;
+		root.style.overscrollBehavior = 'none';
+		return () => (root.style.overscrollBehavior = prev);
+	});
+
 	onMount(() => {
+		const mq = window.matchMedia('(pointer: coarse), (max-width: 900px)');
+		touch = mq.matches;
+		const onmq = () => (touch = mq.matches);
+		mq.addEventListener('change', onmq);
 		applyAudio();
+		applyEngine();
 		music.setState(frame.music);
 		resize();
 		void persist();
 		// fonts load after first paint: redraw once they are in
 		void document.fonts?.ready.then(draw);
+		return () => mq.removeEventListener('change', onmq);
 	});
 	onDestroy(() => {
 		music.dispose();
@@ -149,9 +218,12 @@
 <svelte:window onkeydown={onkey} onresize={resize} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-<div class="screen" bind:this={wrap} onclick={onclick}>
+<div class="screen" bind:this={wrap} onclick={onclick} {onpointerdown} {onpointermove} onpointerup={clearPress} onpointercancel={clearPress} oncontextmenu={(e) => touch && e.preventDefault()} style:bottom={touch ? `${ctlH}px` : '0'}>
 	<canvas bind:this={canvas} aria-label="Game screen"></canvas>
 </div>
+{#if touch}
+	<Touch {send} bind:height={ctlH} />
+{/if}
 <div class="chrome">
 	<button class="gear" bind:this={gear} onclick={() => (settingsOpen = true)} title="Settings (`)" aria-label="Settings">⚙</button>
 	<button class="quit" onclick={quit} title="Save and return to the title screen">Save &amp; quit</button>
@@ -165,6 +237,9 @@
 		position: fixed;
 		inset: 0;
 		display: flex;
+		touch-action: manipulation;
+		-webkit-touch-callout: none;
+		user-select: none;
 		align-items: center;
 		justify-content: center;
 		overflow: hidden;

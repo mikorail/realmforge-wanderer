@@ -34,51 +34,54 @@ type Game struct {
 	Sk *Skin      `json:"-"`
 	sc *Screen
 
-	Genre     string           `json:"genre"`
-	Seed      string           `json:"seed"`
-	P         *Actor           `json:"p"`
-	Calling   string           `json:"calling"`
-	Zones     map[string]*Zone `json:"zones"`
-	CurKey    string           `json:"cur"`
-	Cur       *Zone            `json:"-"`
-	OnWorld   bool             `json:"onWorld"`
-	WX        int              `json:"wx"`
-	WY        int              `json:"wy"`
-	StartX    int              `json:"sx"`
-	StartY    int              `json:"sy"`
-	StartBurg int              `json:"sb"`
-	HomeState int              `json:"hs"`
-	HomeFaith int              `json:"hf"`
-	Turn      int              `json:"turn"`
-	Tick      int              `json:"tick"`
-	Msgs      []Msg            `json:"msgs"`
-	Rep       map[string]int   `json:"rep"`
-	Skills    map[string]int   `json:"skills"`
-	XP        int              `json:"xp"`
-	SP        int              `json:"sp"`
-	MP        int              `json:"mp"`
-	AP        int              `json:"ap"`
-	Hunger    int              `json:"hunger"`
-	Thirst    int              `json:"thirst"`
-	Breath    int              `json:"breath"`
-	Known     map[int]bool     `json:"known"`
-	Secrets   []Secret         `json:"secrets"`
-	SecretSet map[string]bool  `json:"secretSet"`
-	Quests    []*Quest         `json:"quests"`
-	Deeds     []Deed           `json:"deeds"`
-	Slain     map[int]bool     `json:"slain"`
-	Taken     map[int]bool     `json:"taken"`
-	NextID    int              `json:"nid"`
-	R         *Rng             `json:"rng"`
-	Dead      bool             `json:"dead"`
-	DeathText string           `json:"deathText"`
-	Kills     int              `json:"kills"`
-	Visited   map[string]bool  `json:"visited"`
-	Read      map[string]bool  `json:"read"`
-	DeedsSent int              `json:"deedsSent"`
-	ArenaWins int              `json:"arenaWins"`
-	ArenaFoes []int            `json:"arenaFoes"`
-	ArenaKey  string           `json:"arenaKey"`
+	Genre     string                     `json:"genre"`
+	Seed      string                     `json:"seed"`
+	P         *Actor                     `json:"p"`
+	Calling   string                     `json:"calling"`
+	Zones     map[string]*Zone           `json:"zones"`
+	CurKey    string                     `json:"cur"`
+	Cur       *Zone                      `json:"-"`
+	OnWorld   bool                       `json:"onWorld"`
+	WX        int                        `json:"wx"`
+	WY        int                        `json:"wy"`
+	StartX    int                        `json:"sx"`
+	StartY    int                        `json:"sy"`
+	StartBurg int                        `json:"sb"`
+	HomeState int                        `json:"hs"`
+	HomeFaith int                        `json:"hf"`
+	Turn      int                        `json:"turn"`
+	Tick      int                        `json:"tick"`
+	Msgs      []Msg                      `json:"msgs"`
+	Rep       map[string]int             `json:"rep"`
+	Skills    map[string]int             `json:"skills"`
+	XP        int                        `json:"xp"`
+	SP        int                        `json:"sp"`
+	MP        int                        `json:"mp"`
+	AP        int                        `json:"ap"`
+	Hunger    int                        `json:"hunger"`
+	Thirst    int                        `json:"thirst"`
+	Breath    int                        `json:"breath"`
+	Known     map[int]bool               `json:"known"`
+	Secrets   []Secret                   `json:"secrets"`
+	SecretSet map[string]bool            `json:"secretSet"`
+	Quests    []*Quest                   `json:"quests"`
+	Deeds     []Deed                     `json:"deeds"`
+	Slain     map[int]bool               `json:"slain"`
+	Taken     map[int]bool               `json:"taken"`
+	NextID    int                        `json:"nid"`
+	R         *Rng                       `json:"rng"`
+	Dead      bool                       `json:"dead"`
+	DeathText string                     `json:"deathText"`
+	Kills     int                        `json:"kills"`
+	Visited   map[string]bool            `json:"visited"`
+	Read      map[string]bool            `json:"read"`
+	DeedsSent int                        `json:"deedsSent"`
+	ArenaWins int                        `json:"arenaWins"`
+	ArenaFoes []int                      `json:"arenaFoes"`
+	ArenaKey  string                     `json:"arenaKey"`
+	Store     map[string]json.RawMessage `json:"store,omitempty"` // per-feature saved state (hooks.go ext)
+	Genotype  string                     `json:"genotype"`        // mutant | truekin
+	GameMode  string                     `json:"gameMode"`        // classic | roleplay | wander
 
 	// ui state (not saved)
 	Mode    string   `json:"-"`
@@ -97,6 +100,8 @@ type Game struct {
 	plans   map[int]*cityPlan
 	sites   map[string]*Site
 	wmInfo  []string
+	extLive map[string]any
+	Prefs   map[string]bool // host settings, not saved
 	sensed  []bool
 }
 
@@ -149,6 +154,13 @@ func NewGame(w *WorldData, spec CharSpec) *Game {
 		Body: MakeBody(plan), Species: spID, AI: "player", Powers: map[string]int{}, Cool: map[string]int{}}
 	g.NextID = 10
 	g.Calling = spec.Calling
+	g.Genotype, g.GameMode = spec.Genotype, spec.GameMode
+	if g.Genotype != "truekin" {
+		g.Genotype = "mutant"
+	}
+	if g.GameMode != "roleplay" && g.GameMode != "wander" {
+		g.GameMode = "classic"
+	}
 	var cd *CallingDef
 	for i := range callingDefs {
 		if callingDefs[i].ID == spec.Calling {
@@ -463,6 +475,9 @@ func (g *Game) turn() {
 		}
 	}
 	g.fireTick()
+	for _, h := range turnHooks {
+		h(g)
+	}
 }
 
 func (g *Game) statusTick(a *Actor) {
@@ -620,6 +635,9 @@ func (g *Game) enterZone(zn *Zone, x, y int, place bool) {
 	p := g.W.Idx(zn.WX, zn.WY)
 	g.Known[p] = true
 	g.Msg("{{C|" + zn.Name + "}}")
+	for _, h := range enterHooks {
+		h(g, zn)
+	}
 }
 
 func (g *Game) nudge(zn *Zone, a *Actor) {
@@ -1070,6 +1088,7 @@ func (g *Game) addSecret(text, kind string, p, year int) bool {
 // ---- save ----
 
 func (g *Game) Save() string {
+	g.flushExt()
 	b, err := json.Marshal(g)
 	if err != nil {
 		return ""

@@ -360,7 +360,7 @@ func (g *Game) stockShop(a *Actor, role string, tier int, r *Rng) {
 			if r.Chance(0.5) {
 				it = g.MakeManual(Pick(r, SkillIDs))
 			} else {
-				it = g.annalsBook(g.W.States[r.Int(0, len(g.W.States)-1)].ID)
+				it = g.RandomBook(r, g.W.Idx(g.WX, g.WY))
 			}
 		case "exotic":
 			switch r.Int(0, 3) {

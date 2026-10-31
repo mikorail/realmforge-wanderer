@@ -125,6 +125,9 @@ func (g *Game) talkMenu(text string) {
 		add("Travel with me.", func() { g.recruit(a) })
 	}
 	g.Opts = append(g.Opts, g.checkOptions(a)...)
+	for _, h := range talkHooks {
+		g.Opts = append(g.Opts, h(g, a)...)
+	}
 	add("Goodbye.", func() { g.Mode = "main"; g.Talk = nil })
 	g.Sel = 0
 }
@@ -607,7 +610,8 @@ func (g *Game) interact(x, y int) {
 		}
 		g.Read[k] = true
 		st := g.W.State[g.W.Idx(z.WX, z.WY)]
-		b := g.annalsBook(st)
+		_ = st
+		b := g.RandomBook(g.R, g.W.Idx(z.WX, z.WY))
 		g.give(b)
 		g.Msg("You find a " + g.Sk.Book + ": {{C|" + b.Name + "}}.")
 	}

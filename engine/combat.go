@@ -300,6 +300,9 @@ func (g *Game) kill(d, src *Actor) {
 		}
 		g.questKill(d)
 	}
+	for _, h := range killHooks {
+		h(g, d, src)
+	}
 }
 
 func (g *Game) gainRepAll(n int, why string) {

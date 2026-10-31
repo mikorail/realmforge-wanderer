@@ -541,6 +541,7 @@ func (g *Game) socialStanding() int {
 	case g.ArenaWins >= 1:
 		s++
 	}
+	s += g.warStanding()
 	return clampi(s, -8, 16)
 }
 

@@ -5,6 +5,8 @@
 	import { listRuns, loadRun, deleteRun, type RunMeta } from './store';
 	import CharGen from './CharGen.svelte';
 	import Play from './Play.svelte';
+	import { listChronicles, exportChronicle, type Chronicle } from './chronicle';
+	import { isLinked, waitForWorld } from './link';
 
 	interface Sample {
 		file: string;
@@ -23,9 +25,19 @@
 	let frame = $state<QudFrame | null>(null);
 	let worldText: string | null = null;
 	let busy = $state('');
+	let chronicles = $state<Chronicle[]>([]);
+	let linked = $state(false);
+	let stopLink: (() => void) | null = null;
 
 	onMount(async () => {
 		runs = await listRuns();
+		chronicles = await listChronicles();
+		if (isLinked()) {
+			linked = true;
+			phase = 'loading';
+			busy = 'Waiting for Realmforge to hand over the world…';
+			stopLink = waitForWorld((json) => void linkedWorld(json));
+		}
 		try {
 			samples = await (await fetch(import.meta.env.BASE_URL + 'worlds/index.json')).json();
 		} catch {
@@ -34,6 +46,35 @@
 		// warm the engine while the player reads the title
 		loadQud().then((a) => (api = a)).catch(() => {});
 	});
+
+	/** World snapshot pushed by Realmforge: continue this seed's run on it, or go to chargen. */
+	async function linkedWorld(json: string) {
+		if (phase === 'play' || phase === 'chargen') return; // never yank a running game
+		let seed = '';
+		try {
+			seed = String(JSON.parse(json).seed ?? '');
+		} catch {
+			return fail(new Error('Realmforge sent an unreadable world'));
+		}
+		const run = (await listRuns()).find((r) => r.seed === seed);
+		if (!run) return startWorld(json);
+		try {
+			phase = 'loading';
+			busy = `Waking ${run.name} in the changed world…`;
+			const a = await engine();
+			const saved = await loadRun(seed);
+			if (!saved) return startWorld(json);
+			const opts = a.init(json);
+			if (typeof opts !== 'string') throw new Error(opts.error);
+			const f = a.load(saved.save);
+			if ('error' in f) throw new Error(f.error);
+			worldText = json; // Play stores the newer snapshot with the next autosave
+			frame = f;
+			phase = 'play';
+		} catch (e) {
+			fail(e);
+		}
+	}
 
 	async function engine() {
 		api ??= await loadQud();
@@ -115,6 +156,7 @@
 		frame = null;
 		phase = 'title';
 		runs = await listRuns();
+		chronicles = await listChronicles();
 	}
 </script>
 
@@ -146,6 +188,20 @@
 								<span class="dim">— {r.place}, {r.world} ({r.genre}, year {r.year})</span>
 							</button>
 							<button class="x" onclick={() => forget(r)} aria-label="Abandon {r.name}">✕</button>
+						</div>
+					{/each}
+				</section>
+			{/if}
+
+			{#if chronicles.length}
+				<section>
+					<h2>Chronicles</h2>
+					{#each chronicles as c (c.seed)}
+						<div class="run">
+							<button class="main" onclick={() => exportChronicle(c)}>
+								Export chronicle: <b>{c.world}</b>
+								<span class="dim">— {String(c.hero.name ?? 'a wanderer')}, {c.deeds.length} deed{c.deeds.length === 1 ? '' : 's'}</span>
+							</button>
 						</div>
 					{/each}
 				</section>

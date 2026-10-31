@@ -140,7 +140,9 @@ func (g *Game) Key(k string) Out {
 		}
 	case "char":
 		g.keyChar(k)
-	case "journal", "factions", "log", "help":
+	case "journal":
+		g.keyJournal(k)
+	case "factions", "log", "help":
 		switch k {
 		case "Escape", "Enter":
 			g.Mode = "main"
@@ -159,6 +161,10 @@ func (g *Game) Key(k string) Out {
 			g.Sel += 1 + boolInt(k == "PageDown")*10
 		}
 	default:
+		if h, ok := modeKeys[g.Mode]; ok {
+			h(g, k)
+			return out
+		}
 		out = g.keyMain(k)
 	}
 	return out
@@ -263,6 +269,10 @@ func (g *Game) keyMain(k string) Out {
 	case "Escape":
 		out.Exit = true
 		out.Save = true
+	default:
+		if h, ok := mainKeys[k]; ok {
+			h(g)
+		}
 	}
 	return out
 }

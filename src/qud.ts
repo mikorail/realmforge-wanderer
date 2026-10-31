@@ -34,6 +34,8 @@ export interface QudApi {
 	frame(): QudFrame | null;
 	save(): string;
 	meta(): string;
+	/** host setting for the engine (anim, hints) */
+	pref(key: string, on: boolean): void;
 	deeds(): string;
 }
 

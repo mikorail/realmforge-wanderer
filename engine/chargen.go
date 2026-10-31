@@ -210,6 +210,10 @@ type CharSpec struct {
 	Attr    [6]int         `json:"attr"`
 	Powers  map[string]int `json:"powers"`
 	Start   int            `json:"start"`
+	// "mutant" (mutations) or "truekin" (no mutations; cybernetics, better attributes) — mutations.go / cyber.go
+	Genotype string `json:"genotype"`
+	// "classic" (permadeath), "roleplay" (checkpoints at towns), "wander" (no XP from kills, peaceful start) — modes.go
+	GameMode string `json:"gameMode"`
 }
 
 func validName(s string) string {
