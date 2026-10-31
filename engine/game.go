@@ -1250,6 +1250,9 @@ type Music struct {
 	Wx     string  `json:"wx"`
 	Season int     `json:"season"` // 0 spring … 3 winter
 	Bolt   int     `json:"bolt"`   // lightning strike counter: a rise means thunder now
+	Sphere string  `json:"sphere"` // culture sphere of the land (sinic, norse, mande…) for instruments and scales
+	Feast  bool    `json:"feast"`  // a feast day in this town
+	Combat bool    `json:"combat"` // a hostile is in sight
 }
 
 func (g *Game) MusicState() Music {
@@ -1297,5 +1300,13 @@ func (g *Game) MusicState() Music {
 		d = 1
 	}
 	m.Danger = d
+	if cu := g.W.cultByID[g.W.Culture[g.W.Idx(g.WX, g.WY)]]; cu != nil {
+		m.Sphere = cu.Sphere
+	}
+	if z.Kind == "town" {
+		_, fd := g.feastToday()
+		m.Feast = fd != nil
+	}
+	m.Combat = d >= 0.2
 	return m
 }

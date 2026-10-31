@@ -26,6 +26,9 @@ export interface QudMusic {
 	wx?: string; // weather kind id when outdoors (engine/weather.go)
 	season?: number; // 0 spring … 3 winter
 	bolt?: number; // lightning strike counter; a rise means thunder now
+	sphere?: string; // culture sphere of the land (instruments, scales)
+	feast?: boolean; // feast day in this town
+	combat?: boolean; // a hostile is in sight
 }
 type Err = { error: string };
 export interface QudApi {
