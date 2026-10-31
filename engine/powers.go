@@ -31,6 +31,7 @@ func (g *Game) Abilities() []Ability {
 		}
 		out = append(out, Ability{ID: id, Name: g.Sk.PowerName(id), Target: pd.Target, Cool: g.P.Cool[id]})
 	}
+	out = append(out, g.skAbilities()...)
 	out = append(out, g.augAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
 	for _, bp := range g.P.Body {
@@ -83,6 +84,10 @@ func (g *Game) powerLevel(id string, it *Item) int {
 
 // usePower resolves an active power at a target tile (or a direction for dir powers).
 func (g *Game) usePower(id string, it *Item, tx, ty int) {
+	if strings.HasPrefix(id, "sk_") { // skill maneuvers (maneuvers.go)
+		g.skUse(id, tx, ty)
+		return
+	}
 	p := g.P
 	lv := g.powerLevel(id, it)
 	name := g.Sk.PowerName(id)
@@ -211,7 +216,7 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 		used = g.usePower2(id, lv, tx, ty)
 	}
 	if used && it == nil && pd != nil {
-		p.Cool[id] = maxi(5, pd.Cool-lv*2)
+		p.Cool[id] = maxi(5, g.mutCool(pd.Cool)-lv*2)
 	}
 	if it != nil && it.Charges <= 0 {
 		g.Msg("The " + it.Name + " goes dark, spent.")
@@ -370,6 +375,9 @@ func (g *Game) useItem(it *Item) {
 		g.Msg("You eat the " + it.Name + " raw. It would be better cooked (C).")
 		g.consume(it)
 	case "water":
+		if g.lqDrinkItem(it) {
+			return
+		}
 		if it.Charges <= 0 {
 			g.Msg("Your " + it.Name + " is empty.")
 			return
@@ -443,20 +451,10 @@ func (g *Game) consume(it *Item) {
 // examine identifies oddities and relics (Tinkering for devices, Lore for relics, INT for both).
 func (g *Game) examine(it *Item) {
 	if it.Kind == "artifact" && !it.Ident {
-		skill := g.Skills["tinkering"]
-		if it.SimArt > 0 {
-			skill = g.Skills["lore"]
-		}
-		if g.R.Int(1, 20)+skill*4+g.P.M(INT) >= 12+it.Tier {
-			it.Ident = true
-			g.Msg("{{M|You figure it out: it is " + it.Name + "!}}")
-			g.gainXP(20 + it.Tier*10)
-			if it.SimArt > 0 {
-				g.Msg("{{W|A relic from the chronicles of this world.}}")
-			}
-		} else {
-			g.Msg("You turn it over and over but can't make sense of it.")
-			g.spend(1000)
+		// complexity-based identification in steps (examine.go)
+		ok, msg := g.exExamine(it)
+		g.Msg(msg)
+		if !ok || !it.Ident {
 			return
 		}
 	}

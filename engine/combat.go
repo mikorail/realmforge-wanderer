@@ -47,7 +47,7 @@ func (g *Game) skillLv(a *Actor, s string) int {
 func (g *Game) swing(a, d *Actor, w *Item) {
 	sk := g.skillLv(a, w.Skill)
 	roll := g.R.Int(1, 20)
-	hit := roll + a.M(AGI) + sk
+	hit := roll + a.M(AGI) + sk + skStatusToHit(a)
 	if a.St("confused") > 0 {
 		hit -= 4
 	}
@@ -58,7 +58,7 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 		}
 		return
 	}
-	pv := w.PV + mini(a.M(STR), w.MaxStr)
+	pv := w.PV + mini(a.M(STR), w.MaxStr) + skStatusPV(d)
 	if crit {
 		pv++
 	}
@@ -232,6 +232,7 @@ func (g *Game) hurt(d *Actor, n int, src *Actor, cause string) {
 		g.Cur.Liq[d.Y*MW+d.X] = 1
 	}
 	if d.HP > 0 {
+		skWake(g, d)
 		if d == g.P && d.HP < d.MaxHP/4 {
 			g.Msg("{{R|!!! Your health is critically low !!!}}")
 		}
@@ -289,7 +290,7 @@ func (g *Game) kill(d, src *Actor) {
 	}
 	if src == g.P || src != nil && src.AI == "follower" {
 		g.Kills++
-		g.gainXP(d.XP)
+		g.gainXP(g.qcKillXP(g.killXP(d, src)))
 		if strings.HasPrefix(d.Faction, "state:") {
 			g.AddRep(d.Faction, -100, " for murder")
 		} else if d.Faction != "" && d.Faction != "player" {
@@ -342,6 +343,7 @@ func (g *Game) die(cause string, src *Actor) {
 	g.Msg("{{R|" + g.DeathText + "}}")
 	g.deed("death", fmt.Sprintf("The wanderer %s, %s, perished in %s, killed by %s.", g.P.Name, g.Sk.Calling(g.Calling), g.Cur.Name, who), 0, 0)
 	g.Mode = "dead"
+	g.qcOnDeath() // roleplay mode offers the last town checkpoint (modes.go)
 }
 
 // ---- ranged ----

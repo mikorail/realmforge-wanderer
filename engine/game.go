@@ -261,6 +261,7 @@ func NewGame(w *WorldData, spec CharSpec) *Game {
 	}
 	g.StartX, g.StartY = g.WX, g.WY
 	g.initRep()
+	g.muNewGame(spec) // morphotype + genotype rules (mutations.go); after initRep so defects can shift reputation
 	for _, bb := range w.Burgs {
 		if bb.State == g.HomeState && bb.Alive && bb.Capital {
 			g.Known[bb.P] = true
@@ -431,9 +432,6 @@ func (g *Game) turn() {
 	if g.Hunger > 2400 && g.Turn%20 == 0 {
 		g.hurt(p, 1, nil, "starvation")
 	}
-	if g.Thirst > 1800 && g.Turn%15 == 0 {
-		g.hurt(p, 1, nil, "thirst")
-	}
 	if g.Hunger == 1200 {
 		g.Msg("{{W|You are getting hungry.}}")
 	}
@@ -503,6 +501,10 @@ func (g *Game) statusTick(a *Actor) {
 		if v <= 0 {
 			delete(a.Status, k)
 			continue
+		}
+		skStatusEffect(g, a, k)
+		if a.HP <= 0 {
+			return
 		}
 		switch k {
 		case "bleeding":
@@ -1079,9 +1081,10 @@ func (g *Game) EnterFromWorld() {
 
 // ---- xp ----
 
-func XPFor(level int) int { return level*level*60 + 40 }
+func XPFor(level int) int { return XPForLevel(level) }
 
 func (g *Game) gainXP(n int) {
+	n = g.qcXP(n) // wander mode (modes.go)
 	g.XP += n
 	for g.XP >= XPFor(g.P.Level) {
 		g.XP -= XPFor(g.P.Level)
@@ -1089,15 +1092,8 @@ func (g *Game) gainXP(n int) {
 		hp := maxi(1, 3+g.P.M(TOU)) + g.Skills["endurance"]*3
 		g.P.MaxHP += hp
 		g.P.HP += hp
-		g.SP++
-		if g.P.Score(INT) >= 18 {
-			g.SP++
-		}
-		g.MP++
-		if g.P.Level%3 == 0 {
-			g.AP++
-		}
-		g.Msg(fmt.Sprintf("{{W|You reach level %d!}} +%d HP. Spend points on the character screen (c).", g.P.Level, hp))
+		g.skOnLevel() // SP, MP, AP and attribute gains (leveling.go)
+		g.Msg(fmt.Sprintf("{{W|You reach level %d!}} +%d HP. Spend points on the character screen (c) and skill trees (K).", g.P.Level, hp))
 	}
 }
 

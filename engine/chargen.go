@@ -16,6 +16,7 @@ type PowerDef struct {
 	Desc   string `json:"desc"`
 	Defect bool   `json:"defect"`
 	Name   string `json:"name"`
+	Mental bool   `json:"mental,omitempty"`
 }
 
 var PowerDefs = []PowerDef{
@@ -62,6 +63,9 @@ var PowerDefs = []PowerDef{
 	{ID: "nearsight", Cost: -2, Defect: true, Desc: "You can't see far: sight radius 8."},
 	{ID: "glutton", Cost: -2, Defect: true, Desc: "You hunger twice as fast."},
 	{ID: "albino", Cost: -2, Defect: true, Desc: "Sunlight wears you down: -1 regen by day on the surface."},
+	{ID: "narcolepsy", Cost: -3, Defect: true, Desc: "With enemies near, you may suddenly fall asleep."},
+	{ID: "doppelganger", Cost: -3, Defect: true, Desc: "At level 5 a rival wearing your name and face hunts you."},
+	{ID: "repugnant", Cost: -2, Defect: true, Desc: "Socially repugnant: -50 reputation with everyone at the start."},
 }
 
 var powerByID = func() map[string]*PowerDef {
@@ -78,6 +82,8 @@ type CallingDef struct {
 	Desc   string         `json:"desc"`
 	Attr   map[int]int    `json:"attr"`
 	Skills map[string]int `json:"skills"`
+	Caste  bool           `json:"caste,omitempty"` // True Kin caste (mutations.go)
+	Arc    string         `json:"arc,omitempty"`
 }
 
 var callingDefs = []CallingDef{
@@ -134,13 +140,20 @@ func CharOptions(w *WorldData) string {
 	}
 	sort.SliceStable(sps, func(i, j int) bool { return sps[i].Common > sps[j].Common })
 	var cs []CallingDef
+	var castes []CallingDef
 	for _, c := range callingDefs {
+		if c.Caste {
+			c.Name = muCasteName(w.Genre, c.ID)
+			castes = append(castes, c)
+			continue
+		}
 		c.Name = sk.Calling(c.ID)
 		cs = append(cs, c)
 	}
 	var ps []PowerDef
 	for _, p := range PowerDefs {
 		p.Name = sk.PowerName(p.ID)
+		p.Mental = muMental(p.ID)
 		if p.Defect {
 			p.Name = titleCase(p.ID)
 		}
@@ -183,6 +196,7 @@ func CharOptions(w *WorldData) string {
 		"genre": w.Genre, "world": w.Name, "year": w.Year, "powersName": sk.PowersName, "currency": sk.Currency,
 		"species": sps, "callings": cs, "powers": ps, "starts": starts, "attrNames": AttrNames, "skillDesc": skillDesc,
 		"attrPoints": 30, "powerPoints": 12,
+		"genotypes": muGenotypes(sk), "morphotypes": muMorphs, "castes": castes, "modes": muModes,
 	}
 	b, _ := json.Marshal(out)
 	return string(b)
@@ -214,6 +228,8 @@ type CharSpec struct {
 	Genotype string `json:"genotype"`
 	// "classic" (permadeath), "roleplay" (checkpoints at towns), "wander" (no XP from kills, peaceful start) — modes.go
 	GameMode string `json:"gameMode"`
+	// "chimera" | "esper" | "" (mutants only), applied by Game.muNewGame — mutations.go
+	Morph string `json:"morph,omitempty"`
 }
 
 func validName(s string) string {

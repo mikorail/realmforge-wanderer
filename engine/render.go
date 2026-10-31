@@ -97,6 +97,13 @@ func (g *Game) drawMap() {
 				b = CBrown
 			case 3:
 				f = CGreen
+			default:
+				if f2, b2, ok := lqTint(z.Liq[i]); ok { // liquids.go pools
+					f = f2
+					if b2 != 0 {
+						b = b2
+					}
+				}
 			}
 			if z.Fire[i] > 0 {
 				gl = '^'

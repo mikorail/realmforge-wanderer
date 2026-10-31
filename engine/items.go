@@ -192,7 +192,7 @@ func (g *Game) RelicItem(a *ArtifactData) *Item {
 func (it *Item) Describe(g *Game) []string {
 	var l []string
 	if it.Kind == "artifact" && !it.Ident {
-		return []string{"An object of unknown make: {{M|" + it.Unid + "}}.", "Examine it closely to learn more (Tinkering or Lore help)."}
+		return exDescribe(it)
 	}
 	l = append(l, "{{Y|"+it.ShownName()+"}}", it.RarityTagG(g))
 	switch it.Kind {

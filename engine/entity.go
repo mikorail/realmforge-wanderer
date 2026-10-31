@@ -220,6 +220,7 @@ func (a *Actor) AV() int {
 	}
 	av += shieldAV(a)
 	av += a.mealLv("thick")
+	av += skStatusAV(a)
 	return av
 }
 
@@ -236,6 +237,7 @@ func (a *Actor) DV() int {
 	if a.St("stunned") > 0 || a.St("frozen") > 0 || a.St("prone") > 0 {
 		dv -= 6
 	}
+	dv += skStatusDV(a)
 	return dv
 }
 
@@ -252,6 +254,7 @@ func (a *Actor) Quick() int {
 	if a.St("slowed") > 0 || a.St("frozen") > 0 {
 		q -= 40
 	}
+	q += skStatusSpeed(a)
 	return maxi(q, 20)
 }
 

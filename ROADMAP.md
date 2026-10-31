@@ -30,13 +30,7 @@
 - Realmforge link: chronicle export/import, live "Play in Wanderer", time passes in the sim, outlaw cap.
 - Qud design study: `docs/QUD_REFERENCE.md`.
 
-## In progress (local swarm, 2026-10-31; prompts in docs/AGENT_PROMPTS.md)
-- WP1 mutation levels, genotypes (True Kin / Mutant), morphotypes, glimmer.
-- WP2 artifact complexity and examination.
-- WP3 liquids, survival clocks, water as currency.
-- WP4 skill trees, maneuvers, status table, leveling curve.
-- WP5 legendary creatures, full water ritual.
-- WP6 main quest spine, village quests, tiers, biome hazards, game modes.
+- Qud parity (wave 2): mutation levels, genotypes True Kin / Mutant, morphotypes, glimmer and hunters (`mutations.go`, `glimmer.go`, `V`); artifact complexity and stepwise examination (`examine.go`); liquids, pools, pour/fill/mix, water drams as currency, survival clocks (`liquids.go`, `survival.go`, `trade2.go`, `P`); 19 skill trees with 27 maneuvers, Qud status table, XP curve (`skilltrees.go`, `maneuvers.go`, `statuses.go`, `leveling.go`, `K`); legendary creatures, ritual v2 with reputation bands, oathbreaking (`legendary.go`, `ritual2.go`); main quest spine from real history, 5 village quest kinds, zone tiers, special biomes and terrain hazards, classic/roleplay/wander modes (`questchain.go`, `tiers.go`, `biomes.go`, `modes.go`, `Q`).
 
 ## Planned / ideas
 - Export social orders, genre forces and persecution from Realmforge and use them in towns and talk.

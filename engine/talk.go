@@ -639,6 +639,9 @@ func (g *Game) showPopup(title, text string) {
 }
 
 func (g *Game) drinkHere() {
+	if g.lqDrinkHere() {
+		return
+	}
 	g.Thirst = 0
 	filled := false
 	for _, it := range g.P.Inv {
@@ -682,14 +685,14 @@ func (g *Game) price(it *Item, buy bool) int {
 		if f < 0.75 {
 			f = 0.75
 		}
-		return maxi(1, int(float64(v)*f))
+		return maxi(1, int(float64(v)*f*g.lqPriceFactor(true)))
 	}
 	f := 0.4 + ego + per + rep
 	f /= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk)
 	if f > 0.8 {
 		f = 0.8
 	}
-	return maxi(1, int(float64(v)*f))
+	return maxi(1, int(float64(v)*f*g.lqPriceFactor(false)))
 }
 
 func (g *Game) openTrade(a *Actor) {

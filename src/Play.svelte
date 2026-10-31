@@ -204,10 +204,16 @@
 		applyEngine();
 		music.setState(frame.music);
 		resize();
+		// the play area shrinks when touch controls appear: refit the grid whenever it changes size
+		const ro = new ResizeObserver(() => resize());
+		if (wrap) ro.observe(wrap);
 		void persist();
 		// fonts load after first paint: redraw once they are in
 		void document.fonts?.ready.then(draw);
-		return () => mq.removeEventListener('change', onmq);
+		return () => {
+			mq.removeEventListener('change', onmq);
+			ro.disconnect();
+		};
 	});
 	onDestroy(() => {
 		music.dispose();
@@ -240,9 +246,10 @@
 		touch-action: manipulation;
 		-webkit-touch-callout: none;
 		user-select: none;
-		align-items: center;
-		justify-content: center;
-		overflow: hidden;
+		/* safe: when the grid is wider than a small screen, scroll instead of clipping its left edge */
+		align-items: safe center;
+		justify-content: safe center;
+		overflow: auto;
 	}
 	canvas {
 		display: block;

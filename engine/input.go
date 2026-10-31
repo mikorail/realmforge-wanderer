@@ -567,7 +567,7 @@ func (g *Game) keyChar(k string) {
 		if lv > 0 {
 			cost = 1
 		}
-		if lv < 10 && g.MP >= cost {
+		if g.Genotype != "truekin" && lv < g.mutCap() && g.MP >= cost {
 			g.MP -= cost
 			g.P.Powers[pd.ID] = lv + 1
 			if pd.ID == "wings" && lv == 0 && g.P.PartFor("wings") == nil {

@@ -2,8 +2,14 @@
 	/** Qud-style character creation: species → calling → attributes → powers → origin. Rules mirror engine/chargen.go. */
 	let { options, onbegin, oncancel }: { options: any; onbegin: (spec: object) => void; oncancel: () => void } = $props();
 
-	const steps = ['Species', 'Calling', 'Attributes', options.powersName, 'Origin'];
 	let step = $state(0);
+	let genotype = $state<string>('mutant');
+	let morph = $state<string>('');
+	let gameMode = $state<string>('classic');
+	const truekin = $derived(genotype === 'truekin');
+	const steps = $derived(truekin ? ['Genotype', 'Species', 'Caste', 'Attributes', 'Origin'] : ['Genotype', 'Species', 'Calling', 'Attributes', options.powersName, 'Origin']);
+	const cur = $derived(steps[step]);
+	const callingList = $derived(truekin ? options.castes : options.callings);
 	let species = $state<any>(options.species[0]);
 	let calling = $state<any>(options.callings[0]);
 	let attr = $state([12, 12, 12, 12, 12, 12]);
@@ -17,7 +23,8 @@
 		return c;
 	};
 	const attrSpent = $derived(attr.reduce((t, v) => t + cost(v), 0));
-	const attrLeft = $derived(options.attrPoints - attrSpent);
+	const attrTotal = $derived(options.attrPoints + (truekin ? 2 : 0));
+	const attrLeft = $derived(attrTotal - attrSpent);
 	const bonus = (i: number) => (species?.Attr?.[i] ?? 0) + (calling?.attr?.[i] ?? 0);
 	const mod = (v: number) => (v >= 16 ? Math.floor((v - 16) / 2) : -Math.floor((17 - v) / 2));
 	const powerCost = (id: string, lv: number) => {
@@ -34,7 +41,7 @@
 		if (nv < 8 || nv > 24) return;
 		const next = attr.slice();
 		next[i] = nv;
-		if (options.attrPoints - next.reduce((t, v) => t + cost(v), 0) < 0) return;
+		if (attrTotal - next.reduce((t, v) => t + cost(v), 0) < 0) return;
 		attr = next;
 	}
 	function setPower(id: string, lv: number) {
@@ -44,13 +51,29 @@
 		if (options.powerPoints - spent < 0) return;
 		powers = next;
 	}
+	const allowed = (p: any) => p.defect || !morph || (morph === 'chimera' ? !p.mental : p.mental);
+	const shownPowers = $derived(options.powers.filter(allowed));
+	function pickGenotype(id: string) {
+		genotype = id;
+		calling = (id === 'truekin' ? options.castes : options.callings)[0];
+		if (id === 'truekin') {
+			powers = {};
+			morph = '';
+		}
+	}
+	function pickMorph(id: string) {
+		morph = id;
+		const next: Record<string, number> = {};
+		for (const [k, v] of Object.entries(powers)) if (allowed(options.powers.find((x: any) => x.id === k))) next[k] = v;
+		powers = next;
+	}
 	function pickSpecies(s: any) {
 		species = s;
 		const firstHome = options.starts.find((b: any) => b.Species === s.ID);
 		if (firstHome) start = firstHome.ID;
 	}
 	function begin() {
-		onbegin({ name: name || 'Wanderer', species: species.ID, calling: calling.id, attr, powers, start });
+		onbegin({ name: name || 'Wanderer', species: species.ID, calling: calling.id, attr, powers: truekin ? {} : powers, start, genotype, morph: truekin ? '' : morph, gameMode });
 	}
 	function onkey(e: KeyboardEvent) {
 		if (e.target instanceof HTMLInputElement) return;
@@ -73,7 +96,28 @@
 	</header>
 
 	<main>
-		{#if step === 0}
+		{#if cur === 'Genotype'}
+			<p class="hint">What are you? True Kin are pure-strain: no mutations, 2 more attribute points, a caste, and body augments instead.</p>
+			<div class="grid">
+				{#each options.genotypes as g (g.ID)}
+					<button class="card" class:on={genotype === g.ID} onclick={() => pickGenotype(g.ID)}>
+						<b>{g.Name}</b>
+						<small>{g.Desc}</small>
+					</button>
+				{/each}
+			</div>
+			{#if !truekin}
+				<p class="hint" style="margin-top:12px">Morphotype</p>
+				<div class="grid">
+					{#each options.morphotypes as m (m.ID)}
+						<button class="card" class:on={morph === m.ID} onclick={() => pickMorph(m.ID)}>
+							<b>{m.Name}</b>
+							<small>{m.Desc}</small>
+						</button>
+					{/each}
+				</div>
+			{/if}
+		{:else if cur === 'Species'}
 			<p class="hint">Peoples of this world. Common ones have homelands you can start from.</p>
 			<div class="grid">
 				{#each options.species as s (s.ID)}
@@ -88,9 +132,9 @@
 					</button>
 				{/each}
 			</div>
-		{:else if step === 1}
+		{:else if cur === 'Calling' || cur === 'Caste'}
 			<div class="grid">
-				{#each options.callings as c (c.id)}
+				{#each callingList as c (c.id)}
 					<button class="card" class:on={calling?.id === c.id} onclick={() => (calling = c)}>
 						<b>{c.name}</b>
 						<small>{c.desc}</small>
@@ -101,7 +145,7 @@
 					</button>
 				{/each}
 			</div>
-		{:else if step === 2}
+		{:else if cur === 'Attributes'}
 			<p class="hint">Points left: <b class:neg={attrLeft < 0}>{attrLeft}</b> · above 18 costs 2 per point · modifier = (score − 16) / 2</p>
 			<table>
 				<tbody>
@@ -118,10 +162,10 @@
 					{/each}
 				</tbody>
 			</table>
-		{:else if step === 3}
+		{:else if cur === options.powersName}
 			<p class="hint">{options.powersName} points left: <b class:neg={powerLeft < 0}>{powerLeft}</b> · levels up to 3 at creation (+1 each) · defects give points back</p>
 			<div class="grid">
-				{#each options.powers as p (p.id)}
+				{#each shownPowers as p (p.id)}
 					{@const lv = powers[p.id] ?? 0}
 					<div class="card" class:on={lv > 0} class:defect={p.defect}>
 						<b>{p.name}</b>
@@ -142,6 +186,11 @@
 		{:else}
 			<label class="name">Name <input bind:value={name} maxlength="24" placeholder="Wanderer" /></label>
 			<p class="hint">Where do you set out from? Your home realm starts friendly; its enemies don't.</p>
+			<label class="name">Mode
+				<select bind:value={gameMode}>
+					{#each options.modes as m (m.ID)}<option value={m.ID}>{m.Name}: {m.Desc}</option>{/each}
+				</select>
+			</label>
 			<div class="list">
 				{#each starts as b (b.ID)}
 					<button class:on={start === b.ID} onclick={() => (start = b.ID)}>
@@ -154,7 +203,7 @@
 
 	<footer>
 		<button onclick={oncancel}>Cancel</button>
-		<span class="sum">{species?.Name} {calling?.name} · {Object.keys(powers).length} {options.powersName.toLowerCase()}</span>
+		<span class="sum">{species?.Name} {calling?.name}{truekin ? '' : ` · ${Object.keys(powers).length} ${options.powersName.toLowerCase()}`}</span>
 		{#if step < steps.length - 1}
 			<button class="go" onclick={() => step++}>Next →</button>
 		{:else}
@@ -287,6 +336,14 @@
 		gap: 8px;
 		align-items: center;
 		margin-bottom: 12px;
+	}
+	select {
+		font: inherit;
+		background: #020a09;
+		color: #fff;
+		border: 1px solid #40a4b9;
+		padding: 6px 8px;
+		max-width: 100%;
 	}
 	input {
 		font: inherit;
