@@ -24,8 +24,19 @@
 - Adaptive chiptune soundtrack: mood, genre, biome, danger, hp, day/night, depth.
 - Soundtrack follows weather and seasons: rain patter, thunder on lightning strikes, sparse high snow, fog drones, sand/ash noise wash, slower heat; seasons shift key and mode.
 
-## In progress
 - Local calendars and feasts from Realmforge (month names, town festivals).
+- Plug-in hook registry (`engine/hooks.go`), first-time tips, touch controls, ambient music style.
+- Sandbox mode (F2), player homes and stash (H, F3), joinable wars with ranks (W), workbench crafting with bits, schematics, mods and infusions (T), cults/orders/guilds (O), codex journal (bestiary, atlas, library, people).
+- Realmforge link: chronicle export/import, live "Play in Wanderer", time passes in the sim, outlaw cap.
+- Qud design study: `docs/QUD_REFERENCE.md`.
+
+## In progress (local swarm, 2026-10-31; prompts in docs/AGENT_PROMPTS.md)
+- WP1 mutation levels, genotypes (True Kin / Mutant), morphotypes, glimmer.
+- WP2 artifact complexity and examination.
+- WP3 liquids, survival clocks, water as currency.
+- WP4 skill trees, maneuvers, status table, leveling curve.
+- WP5 legendary creatures, full water ritual.
+- WP6 main quest spine, village quests, tiers, biome hazards, game modes.
 
 ## Planned / ideas
 - Export social orders, genre forces and persecution from Realmforge and use them in towns and talk.
