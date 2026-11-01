@@ -51,6 +51,9 @@ func (g *Game) greeting(a *Actor) string {
 	case rep <= -250:
 		return "\"...What do you want?\" They eye you warily."
 	}
+	if sg := g.swGreeting(a); sg != "" {
+		return sg
+	}
 	if fg := g.feastGreeting(a); fg != "" {
 		return fg
 	}
@@ -189,6 +192,9 @@ func (g *Game) gossip(a *Actor) string {
 		return s
 	}
 	if s := g.feastGossip(a); s != "" {
+		return s
+	}
+	if s := g.swGossip(a); s != "" {
 		return s
 	}
 	r := NewRng(fmt.Sprintf("%d:%d", a.ID, g.Turn/600))
@@ -700,7 +706,7 @@ func (g *Game) price(it *Item, buy bool) int {
 		if g.Talk.Has("markup") {
 			f += 0.15
 		}
-		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk)
+		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk) * g.swPriceMod(g.Talk, it, true)
 		if f < 0.75 {
 			f = 0.75
 		}
@@ -709,6 +715,7 @@ func (g *Game) price(it *Item, buy bool) int {
 	f := 0.4 + ego + per + rep
 	f *= g.uwStolenFactor(it, buy) // honest merchants pay half for stolen goods (crime.go)
 	f /= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk)
+	f *= g.swPriceMod(g.Talk, it, false)
 	if f > 0.8 {
 		f = 0.8
 	}

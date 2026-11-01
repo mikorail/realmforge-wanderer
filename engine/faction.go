@@ -31,6 +31,9 @@ func (g *Game) FactionName(f string) string {
 			return r.Name
 		}
 	}
+	if strings.HasPrefix(f, "sw:mv:") {
+		return g.swFactionName(f)
+	}
 	if strings.HasPrefix(f, "legend:") {
 		return "A legendary creature's regard" // legendary.go keeps one faction per legend
 	}
