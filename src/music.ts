@@ -459,6 +459,32 @@ export function createMusic(): MusicHandle {
 				waves = { '0.125': pulseWave(c, 0.125), '0.25': pulseWave(c, 0.25), '0.5': pulseWave(c, 0.5) };
 				noiseLong = lfsrBuffer(c, 15, 32768, 2);
 				noiseShort = lfsrBuffer(c, 7, 8192, 1);
+				// effect sends: every player bus feeds fxIn; applyFx sets how much of each return is heard
+				fxIn = c.createGain();
+				roomPre = c.createBiquadFilter();
+				roomPre.type = 'lowpass';
+				roomPre.frequency.value = 5200;
+				fxIn.connect(roomPre);
+				const room = c.createConvolver();
+				room.buffer = impulse(c, 2.6, 2.2, 0);
+				roomOut = c.createGain();
+				roomOut.gain.value = 0;
+				roomPre.connect(room).connect(roomOut).connect(tone);
+				const dl = c.createDelay(1);
+				dl.delayTime.value = 0.375;
+				const fb = c.createGain();
+				fb.gain.value = 0.35;
+				dl.connect(fb).connect(dl);
+				delayOut = c.createGain();
+				delayOut.gain.value = 0;
+				fxIn.connect(dl);
+				dl.connect(delayOut).connect(tone);
+				const spring = c.createConvolver();
+				spring.buffer = impulse(c, 1.4, 1.1, 0.031);
+				springOut = c.createGain();
+				springOut.gain.value = 0;
+				fxIn.connect(spring).connect(springOut).connect(tone);
+				kit = createKit(c);
 			} catch {
 				ctx = null;
 				return false;
