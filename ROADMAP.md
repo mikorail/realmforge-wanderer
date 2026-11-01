@@ -25,6 +25,9 @@
 - Soundtrack follows weather and seasons: rain patter, thunder on lightning strikes, sparse high snow, fog drones, sand/ash noise wash, slower heat; seasons shift key and mode.
 
 - Local calendars and feasts from Realmforge (month names, town festivals).
+- Seasonal wild herbs (spring greens, summer berries, autumn mushrooms/nuts, winter roots/lichen), merchants' seasonal specials, named festival dishes sold from 3 days before a feast; cookbook marks seasonal and festival dishes (`seasons2.go`).
+- Weather-aware NPC schedules: townsfolk shelter under roofs in storms, blizzards, sandstorms, acid/fallout rain and walk home after; outdoor stalls close, guards keep their posts, birds and pack beasts make for cover.
+- Ambient weather sound effects separate from the music bus (`src/weathersfx.ts`, own volume): rain and droplets, storm rumbles and thunder, wind, sand, ash crackle, birds, crickets, surf.
 - Plug-in hook registry (`engine/hooks.go`), first-time tips, touch controls, ambient music style.
 - Garden soundtrack (`src/garden.ts`): drift (Eno / C418 phasing loops, sparse piano, silences), pastoral (Stardew fingerpicking and motif melodies by season), desert (Qud modal drones, synth phrases, analog arp, hand drum); "Adaptive" picks by place and is the new default.
 - Sandbox mode (F2), player homes and stash (H, F3), joinable wars with ranks (W), workbench crafting with bits, schematics, mods and infusions (T), cults/orders/guilds (O), codex journal (bestiary, atlas, library, people).
@@ -39,7 +42,4 @@
 - Export social orders, genre forces and persecution from Realmforge and use them in towns and talk.
 - Companion banter and personal quests drawn from their kin and home town.
 - Companions using granted active augment powers (heal, flames, phase) in combat.
-- Seasonal ingredients and festival dishes tied to the calendar.
-- Weather-aware NPC schedules (shelter indoors during storms).
-- Ambient weather sound effects separate from the music bus, with their own volume setting.
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
