@@ -1270,6 +1270,10 @@ func (g *Game) MusicState() Music {
 	}
 	z := g.Cur
 	m.Biome, m.Depth, m.Seed = z.Biome, z.Z, uint32(HashStr(z.Key))
+	if z.Kind != "town" && z.Kind != "tower" {
+		// one theme per region and depth: crossing screens of the same wilds shouldn't change the tune
+		m.Seed = uint32(HashStr(fmt.Sprintf("%d,%d,%d,%s", g.WX, g.WY, z.Z, z.Kind)))
+	}
 	if w := g.activeWeather(); w != nil {
 		m.Wx = w.Kind.ID // weather.go kind id when outdoors
 	}

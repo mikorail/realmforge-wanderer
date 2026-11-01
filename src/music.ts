@@ -179,9 +179,20 @@ interface Piece {
 	tempo: number;
 }
 
-function pieceKey(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour): string {
-	return `${style}|${flavour}|${m.mood}|${m.genre}|${m.seed}|${m.biome | 0}|${(m.season ?? 0) | 0}|${m.sphere ?? ''}|${m.feast ? 1 : 0}`;
+function pieceKey(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour, fight = false, variant = 0): string {
+	return `${style}|${flavour}|${m.mood}|${m.genre}|${m.seed}|${m.biome | 0}|${(m.season ?? 0) | 0}|${m.sphere ?? ''}|${m.feast ? 1 : 0}|${fight ? 1 : 0}|${variant}`;
 }
+
+// exotic / microtonal scales sound broken on these synths: fold them onto a close tonal relative
+const TAME: Record<string, string> = {
+	wholetone: 'aeolian', octatonic: 'harmonicMinor', uncanny: 'phrygian', locrian: 'phrygian', marwa: 'harmonicMinor', todi: 'harmonicMinor',
+	slendro: 'majPent', rast: 'mixolydian', bayati: 'phrygian', homayun: 'hijaz', ukrDorian: 'dorian', bhairav: 'hijaz', pelog: 'hirajoshi',
+};
+const ODD_FEELS = new Set(['seven8', 'five8', 'nine8']);
+// tried-and-true progressions over 7-note scale degrees (0 = tonic), 4 bars each
+const PROG_MAJ = [[0, 4, 5, 3], [0, 5, 3, 4], [0, 3, 4, 0], [0, 3, 0, 4], [5, 3, 0, 4], [0, 1, 4, 0]];
+const PROG_MIN = [[0, 5, 2, 6], [0, 3, 4, 0], [0, 6, 5, 4], [0, 5, 3, 4], [0, 3, 6, 2], [0, 2, 3, 4]];
+const PROG_FIGHT = [[0, 5, 6, 4], [0, 0, 5, 6], [0, 6, 5, 6], [0, 3, 5, 4]];
 
 function snap(d: number, c: number, n: number): number {
 	let best = c, bd = 1e9;
@@ -207,8 +218,8 @@ function layout(groups: number[]) {
 	return { gIdx, gOf, half, spb: pos };
 }
 
-function makePiece(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour): Piece {
-	const key = pieceKey(m, style, flavour);
+function makePiece(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour, fight = false, variant = 0): Piece {
+	const key = pieceKey(m, style, flavour, fight, variant);
 	const rng = mulberry32(hash(key));
 	const pick = <T,>(a: T[]): T => a[Math.floor(rng() * a.length)];
 	const gen = GENRES[m.genre] ?? GENRES.fantasy;
@@ -224,9 +235,11 @@ function makePiece(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour): 
 	// scale: the land's own modes first, then a genre / mood flavour
 	let scaleName: string;
 	if (dead) scaleName = 'aeolian';
-	else if (sph && rng() < (dark ? 0.5 : 0.8)) scaleName = pick(sph.scales);
+	else if (fight) scaleName = pick(['aeolian', 'harmonicMinor', 'dorian', 'phrygian']);
+	else if (sph && rng() < (dark ? 0.3 : 0.5)) scaleName = pick(sph.scales);
 	else if (col.scales && rng() < (col.scaleW ?? 0)) scaleName = pick(col.scales);
 	else scaleName = rng() < gen.w ? pick(gen.scales) : pick(cfg.scales);
+	scaleName = TAME[scaleName] ?? scaleName;
 	const scale = dead ? SCALES[scaleName] : seasonScale(SCALES[scaleName] ?? SCALES.aeolian, (m.season ?? 0) | 0, rng());
 	const n = scale.length;
 
@@ -235,6 +248,8 @@ function makePiece(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour): 
 	if (!dead) {
 		feelId = feast && prof.feastFeel ? prof.feastFeel : pick(prof.feels);
 		if (col.feels && rng() < (col.feelW ?? 0)) feelId = pick(col.feels);
+		if (ODD_FEELS.has(feelId) && rng() < 0.8) feelId = 'four';
+		if (fight) feelId = rng() < 0.75 ? 'four' : 'six8';
 	}
 	const feel = FEELS[feelId] ?? FEELS.four;
 	let groups = feel.groups.slice();
@@ -258,7 +273,7 @@ function makePiece(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour): 
 	let kit = feast && prof.feastKit ? prof.feastKit : prof.kit;
 	if (col.kit && rng() < (col.kitW ?? 0)) kit = col.kit;
 	const v: Voices = { lead, harm, bass, pad, kit, drone: dark && prof.drone === 'none' ? 'tonic' : prof.drone, tex: col.texture ?? '' };
-	const common = { key, dead, spb, groups, gIdx, gOf, half, swing: feel.swing, scale, base, cfg, gen, style, cult: flavour === 'cultural', v, tower, feast, under: dark, tempo: prof.tempo * (feast ? 1.1 : 1) };
+	const common = { key, dead, spb, groups, gIdx, gOf, half, swing: feel.swing, scale, base, cfg, gen, style, cult: flavour === 'cultural', v, tower, feast, under: dark, tempo: prof.tempo * (feast ? 1.1 : 1) * (fight ? 1.15 : 1) };
 
 	if (dead) {
 		const ds = [n + 4, n + 3, n + 2, n + 1, n, n - 1, n - 2, n - 3];
@@ -331,9 +346,18 @@ function makePiece(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour): 
 		];
 	};
 
-	const chA = progression(0, 4);
+	let chA: number[], chB: number[];
+	if (n === 7) {
+		const minor = scale[2] === 3;
+		const pool = fight ? PROG_FIGHT : minor ? PROG_MIN : PROG_MAJ;
+		chA = pick(pool);
+		chB = pick(pool.filter((p) => p !== chA));
+		if (chB[0] === 0) chB = [chB[1], chB[2], chB[3], chB[0] === 0 ? 4 : chB[0]];
+	} else {
+		chA = progression(0, 4);
+		chB = progression(pick([3, 5]) % n, 4);
+	}
 	const chA2 = chA.slice(0, 3).concat([0]);
-	const chB = progression(pick([3, 5]) % n, 4);
 	const melA = section(chA);
 	const melA2 = melA.slice(0, 3).concat([cadence(0)]); // A' = A with a resolving ending
 	const melB = section(chB);
@@ -391,6 +415,23 @@ export function createMusic(): MusicHandle {
 	let cur: Player | null = null;
 	let activeKey = '';
 	let pendingKey: string | null = null;
+	// combat gets its own theme, held a few seconds so it doesn't flap as foes step in and out of view
+	let fight = false;
+	let fightUntil = 0;
+	// a place's theme is re-composed after a couple of passes so a long stay doesn't loop one tune
+	let variant = 0;
+	let loops = 0;
+	let baseKey = '';
+	function keyNow(): string {
+		const b = pieceKey(st!, style, flavour, fight, 0);
+		if (b !== baseKey) { baseKey = b; variant = 0; }
+		return pieceKey(st!, style, flavour, fight, variant);
+	}
+	function updateFight(on: boolean) {
+		const now = performance.now();
+		if (on) { fight = true; fightUntil = now + 8000; }
+		else if (fight && now > fightUntil) fight = false;
+	}
 	let bpm = 80;
 	let dNow = 0;
 	let lastCut = -1;
@@ -677,6 +718,7 @@ export function createMusic(): MusicHandle {
 		snr.frequency.value = 1800;
 		snr.Q.value = 0.8;
 		snr.connect(bus);
+		loops = 0;
 		return { piece, bus, hat, snr, bar: 0, step: 0, nextT: t, done: false };
 	}
 	function retire(p: Player, t: number, fade: number) {
@@ -934,7 +976,13 @@ export function createMusic(): MusicHandle {
 					p.done = true;
 					retire(p, p.nextT - dur * spb * 0.5, dur * spb * 0.5);
 				}
-			} else if (p.bar >= pc.bars) p.bar = 0;
+			} else if (p.bar >= pc.bars) {
+				p.bar = 0;
+				if (++loops >= 2 && pendingKey === null && st && !fight) {
+					variant++;
+					pendingKey = keyNow();
+				}
+			}
 		}
 		return p.nextT;
 	}
@@ -970,11 +1018,19 @@ export function createMusic(): MusicHandle {
 			tone.frequency.setTargetAtTime(cut, now, 0.4);
 			lastCut = cut;
 		}
-		if (now - fxT > 0.5) { fxT = now; applyFx(now); }
+		if (now - fxT > 0.5) {
+			fxT = now;
+			applyFx(now);
+			if (fight && !st.combat && performance.now() > fightUntil) {
+				fight = false;
+				const k = keyNow();
+				pendingKey = k === activeKey ? null : k;
+			}
+		}
 
 		if (!cur || cur.done) {
 			if (pendingKey !== null) {
-				cur = newPlayer(makePiece(st, style, flavour), now + 0.05);
+				cur = newPlayer(makePiece(st, style, flavour, fight, variant), now + 0.05);
 				activeKey = pendingKey;
 				pendingKey = null;
 				bpm = targetBpm(cur.piece, dNow);
@@ -987,7 +1043,7 @@ export function createMusic(): MusicHandle {
 				// swap to the new piece exactly on the bar line
 				const at = cur.nextT;
 				retire(cur, at, 0.5);
-				cur = newPlayer(makePiece(st, style, flavour), at);
+				cur = newPlayer(makePiece(st, style, flavour, fight, variant), at);
 				activeKey = pendingKey;
 				pendingKey = null;
 			}
@@ -1003,7 +1059,7 @@ export function createMusic(): MusicHandle {
 	}
 	function requeue() {
 		if (!st) return;
-		const key = pieceKey(st, style, flavour);
+		const key = keyNow();
 		pendingKey = key === activeKey ? null : key;
 		if (enabled && ensure()) startTimer();
 	}
@@ -1025,7 +1081,8 @@ export function createMusic(): MusicHandle {
 			const bolt = m.bolt ?? 0;
 			if (lastBolt >= 0 && bolt > lastBolt && enabled && ensure()) thunder();
 			lastBolt = bolt;
-			const key = pieceKey(m, style, flavour);
+			updateFight(m.combat ?? false);
+			const key = keyNow();
 			if (key !== activeKey && key !== pendingKey) pendingKey = key;
 			else if (key === activeKey) pendingKey = null;
 			if (!enabled) return;
