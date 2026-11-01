@@ -41,12 +41,15 @@ func main() {
 			}
 			g.Warp(r.Int(0, w.W-1), r.Int(0, w.H-1), r.Int(0, 2), r.Int(0, 2), z)
 		}
+		if i%700 == 350 && g.UniversePlanets() > 1 {
+			g.FuzzRift(r.Int(0, 99)) // rift travel between planets
+		}
 		if i%1000 == 0 {
 			s := g.Save()
 			if _, err := engine.LoadGame(w, s); err != nil {
 				panic(err)
 			}
-			fmt.Printf("step %d mode=%s zone=%s turn=%d save=%dKB zones=%d\n", i, g.Mode, g.CurKey, g.Turn, len(s)/1024, len(g.Zones))
+			fmt.Printf("step %d mode=%s zone=%s turn=%d save=%dKB zones=%d planet=%d\n", i, g.Mode, g.CurKey, g.Turn, len(s)/1024, len(g.Zones), g.PlanetIndex())
 		}
 		if g.Dead {
 			fmt.Println("died:", g.DeathText)

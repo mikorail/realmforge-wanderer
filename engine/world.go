@@ -63,6 +63,8 @@ type WorldData struct {
 	peopleByBrg map[int][]int
 	outlawByBrg map[int]*OutlawData
 	cityTier    map[int]int // burg id → 0 town, 1 mid city, 2 great city (ranked by size score)
+	uni         *Universe   // the universe this planet belongs to (a lone world file = universe of 1, planets.go)
+	uniIdx      int         // this planet's index in uni.Planets
 }
 
 // OutlawData is a Realmforge bandit camp or pirate haven harassing a living town.
@@ -219,6 +221,10 @@ type MonsterData struct {
 	Depth    int     `json:"depth"`
 	Lair     string  `json:"lair"`
 	Immortal bool    `json:"immortal"`
+	// slain in the sim before the export: its lair holds remains, sometimes a brood (slain.go)
+	Slain     bool   `json:"slain,omitempty"`
+	SlainYear int    `json:"slainYear,omitempty"`
+	SlainBy   string `json:"slainBy,omitempty"`
 }
 
 type ArtifactData struct {
@@ -266,12 +272,22 @@ type SpeciesData struct {
 	Common   int      `json:"common"` // how many cultures in this world are of this species
 }
 
+// ParseWorld reads a Realmforge world file: a single world, or a "wanderer-universe" of several
+// planets joined by rifts (planets.go). It returns the start planet; the others hang off w.uni.
 func ParseWorld(s string) (*WorldData, error) {
+	var probe struct {
+		Kind string `json:"kind"`
+	}
+	_ = json.Unmarshal([]byte(s), &probe)
+	if probe.Kind == "wanderer-universe" {
+		return unParse(s)
+	}
 	w := &WorldData{}
 	if err := json.Unmarshal([]byte(s), w); err != nil {
 		return nil, err
 	}
 	w.index()
+	w.uni = &Universe{Kind: "single", Planets: []*WorldData{w}}
 	return w, nil
 }
 

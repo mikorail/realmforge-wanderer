@@ -711,6 +711,10 @@ func (g *Game) genFeature(zn *Zone, r *Rng, p int) {
 }
 
 func (g *Game) placeSimMonster(zn *Zone, r *Rng, m *MonsterData) {
+	if m.Slain { // slain in the sim: remains and maybe a brood (slain.go)
+		g.slPlaceRemains(zn, r, m)
+		return
+	}
 	x, y, ok := zn.FreeSpot(r, func(x, y int) bool { return abs(x-40) < 20 && abs(y-12) < 8 })
 	if !ok {
 		return

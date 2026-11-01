@@ -13,6 +13,11 @@ var creatureFactions = map[string]string{
 }
 
 func (g *Game) FactionName(f string) string {
+	if strings.HasPrefix(f, "mr:") {
+		if s := g.SectByID(f[3:]); s != nil {
+			return s.Name
+		}
+	}
 	if strings.HasPrefix(f, "state:") {
 		id, _ := strconv.Atoi(f[6:])
 		if s := g.W.stateByID[id]; s != nil && id > 0 {
@@ -152,7 +157,7 @@ func (g *Game) Enemies(a, b *Actor) bool {
 		if civ(a) {
 			wild = b
 		}
-		return wild.Faction == "outlaws" || wild.Faction == "undead" || wild.Faction == "eldritch" || wild.Faction == "legends"
+		return wild.Faction == "outlaws" || wild.Faction == "undead" || wild.Faction == "eldritch" || wild.Faction == "legends" || strings.HasPrefix(wild.Faction, "mr:") && g.Hostile(wild)
 	}
 	return false
 }

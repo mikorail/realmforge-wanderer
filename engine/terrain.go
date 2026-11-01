@@ -64,6 +64,7 @@ const (
 	TSeat
 	TCobble
 	TTrap
+	TPortal // a rift to another planet (planets.go)
 	NTerrain
 )
 
@@ -141,6 +142,7 @@ var TDefs = [NTerrain]TDef{
 	TSeat:         {"stands", '≡', CDarkGray, CBg, false, false, 0, false, "Tiered seating for spectators.", false},
 	TCobble:       {"cobbles", '·', CGray, CBg, true, false, 0, false, "", false},
 	TTrap:         {"trap", '^', CMagenta, CBg, true, false, 0, false, "A trap you spotted. Step around it.", false},
+	TPortal:       {"rift gate", 'Ø', CMagenta, CDarkMagenta, false, false, 0, false, "A shimmering tear onto another world. Bump to step through.", true},
 }
 
 func (t Terrain) D() *TDef { return &TDefs[t] }

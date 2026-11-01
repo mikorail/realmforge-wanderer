@@ -27,6 +27,7 @@ type Deed struct {
 	Artifact int    `json:"artifact,omitempty"`
 	Cell     int    `json:"cell"`
 	Year     int    `json:"year"`
+	Planet   int    `json:"planet,omitempty"` // planet index in a universe file (planets.go)
 }
 
 type Game struct {
@@ -1127,7 +1128,7 @@ func LoadGame(w *WorldData, s string) (*Game, error) {
 	if err := json.Unmarshal([]byte(s), g); err != nil {
 		return nil, err
 	}
-	g.W = w
+	g.W = g.unResolve(w) // the planet the save stands on (planets.go)
 	g.Sk = SkinFor(g.Genre)
 	g.sc = NewScreen()
 	for _, z := range g.Zones {
@@ -1174,7 +1175,7 @@ func (g *Game) deed(kind, text string, mon, art int) {
 	if p >= 0 && p < len(g.W.Cell) {
 		cell = g.W.Cell[p]
 	}
-	g.Deeds = append(g.Deeds, Deed{Kind: kind, Text: text, Monster: mon, Artifact: art, Cell: cell, Year: g.W.Year})
+	g.Deeds = append(g.Deeds, Deed{Kind: kind, Text: text, Monster: mon, Artifact: art, Cell: cell, Year: g.W.Year, Planet: g.W.uniIdx})
 }
 
 func sortedKeys(m map[string]int) []string {
@@ -1234,7 +1235,7 @@ func (g *Game) DebugGotoStairs() {
 // Meta is the small summary a save list shows.
 func (g *Game) Meta() string {
 	b, _ := json.Marshal(map[string]any{"name": g.P.Name, "level": g.P.Level, "calling": g.Sk.Calling(g.Calling), "species": g.P.Species,
-		"world": g.W.Name, "genre": g.Genre, "year": g.W.Year, "place": g.Cur.Name, "dead": g.Dead, "seed": g.Seed})
+		"world": g.W.Name, "genre": g.Genre, "year": g.W.Year, "place": g.Cur.Name, "dead": g.Dead, "seed": g.unHome(), "planet": g.unPlanetName()})
 	return string(b)
 }
 
@@ -1254,10 +1255,11 @@ type Music struct {
 	Sphere string  `json:"sphere"` // culture sphere of the land (sinic, norse, mande…) for instruments and scales
 	Feast  bool    `json:"feast"`  // a feast day in this town
 	Combat bool    `json:"combat"` // a hostile is in sight
+	Planet string  `json:"planet"` // planet kind (Realmforge planetKind), "" for an old world file
 }
 
 func (g *Game) MusicState() Music {
-	m := Music{Genre: g.Genre, Day: g.daylight(), HP: float64(g.P.HP) / float64(maxi(g.P.MaxHP, 1)), Season: g.Season(), Bolt: g.boltN}
+	m := Music{Genre: g.Genre, Day: g.daylight(), HP: float64(g.P.HP) / float64(maxi(g.P.MaxHP, 1)), Season: g.Season(), Bolt: g.boltN, Planet: g.W.PlanetKind}
 	if g.Dead {
 		m.Mood = "dead"
 		return m

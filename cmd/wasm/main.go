@@ -32,7 +32,7 @@ func frame(out engine.Out) any {
 
 func musicJS(m engine.Music) any {
 	return map[string]any{"mood": m.Mood, "danger": m.Danger, "genre": m.Genre, "biome": m.Biome, "depth": m.Depth, "day": m.Day, "hp": m.HP, "seed": m.Seed,
-		"wx": m.Wx, "season": m.Season, "bolt": m.Bolt, "sphere": m.Sphere, "feast": m.Feast, "combat": m.Combat}
+		"wx": m.Wx, "season": m.Season, "bolt": m.Bolt, "sphere": m.Sphere, "feast": m.Feast, "combat": m.Combat, "planet": m.Planet}
 }
 
 func errObj(err error) any { return map[string]any{"error": err.Error()} }

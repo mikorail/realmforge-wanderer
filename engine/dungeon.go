@@ -88,6 +88,9 @@ func (g *Game) findSite(wx, wy, zx, zy int) *Site {
 		}
 	}
 	if bd := w.burgByID[w.Burg[p]]; bd != nil && bd.Alive {
+		if s := g.vlSite(bd, zx, zy); s != nil { // a living villain's hideout (villains.go)
+			return s
+		}
 		if ol := w.outlawByBrg[bd.ID]; ol != nil && g.outlawZone(bd) == [2]int{zx, zy} {
 			return &Site{Kind: "dungeon", Theme: "hideout", Name: ol.Name, Depth: 2, Gold: ol.Gold, Outlaw: ol}
 		}

@@ -452,9 +452,14 @@ func (g *Game) drawWorld() {
 					}
 				}
 				for _, mi := range w.monstersAt[p] {
-					if !g.Slain[w.Monsters[mi].ID] {
+					if w.Monsters[mi].Slain {
+						gl, f = '¤', CDarkGray // remains (slain.go)
+					} else if !g.Slain[w.Monsters[mi].ID] {
 						gl, f = '¤', CRed
 					}
+				}
+				if unRiftBurgAt(w, p) {
+					gl, f = 'Ø', CMagenta // rift to another planet (planets.go)
 				}
 				if len(w.wondersAt[p]) > 0 {
 					gl, f = '☼', CMagenta
@@ -516,6 +521,7 @@ func (g *Game) drawWorld() {
 			}
 			info = append(info, st)
 		}
+		info = append(info, g.unRiftInfo(p)...) // planets.go
 	}
 	g.Popup = nil
 	g.wmInfo = info

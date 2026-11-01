@@ -185,6 +185,9 @@ func (g *Game) aboutNPC(a *Actor) string {
 
 // gossip pulls real events from the simulation near this place.
 func (g *Game) gossip(a *Actor) string {
+	if s := g.mrGossip(a); s != "" {
+		return s
+	}
 	if s := g.feastGossip(a); s != "" {
 		return s
 	}
@@ -262,7 +265,9 @@ func (g *Game) revealSecret(a *Actor) string {
 	cx, cy := g.Cur.WX, g.Cur.WY
 	near := func(p int) bool { return abs(p%w.W-cx) <= 14 && abs(p/w.W-cy) <= 10 }
 	for _, m := range w.Monsters {
-		if near(m.P) && !g.Slain[m.ID] {
+		if near(m.P) && m.Slain {
+			cs = append(cs, cand{g.slSecret(&m), "lair", m.P, w.Year})
+		} else if near(m.P) && !g.Slain[m.ID] {
 			cs = append(cs, cand{fmt.Sprintf("%s, a %s, lairs at %s.", m.Name, strings.ToLower(m.Species), nonEmpty(m.Lair, w.RegionName(m.P))), "lair", m.P, w.Year})
 		}
 	}
@@ -401,7 +406,7 @@ func (g *Game) offerQuest(a *Actor) {
 	cx, cy := g.Cur.WX, g.Cur.WY
 	// 1. a real monster from the simulation nearby
 	for _, m := range w.Monsters {
-		if !g.Slain[m.ID] && abs(m.P%w.W-cx) <= 10 && abs(m.P/w.W-cy) <= 8 && m.Layer == "surface" && r.Chance(0.7) {
+		if !g.Slain[m.ID] && !m.Slain && abs(m.P%w.W-cx) <= 10 && abs(m.P/w.W-cy) <= 8 && m.Layer == "surface" && r.Chance(0.7) {
 			q.Kind, q.SimMon, q.TP = "slay", m.ID, m.P
 			q.Title = "Slay " + m.Name
 			q.Text = fmt.Sprintf("\"%s has plagued us for years. It lairs at %s. Bring us proof of its death.\"", m.Name, nonEmpty(m.Lair, w.RegionName(m.P)))
@@ -589,6 +594,8 @@ func (g *Game) interact(x, y int) {
 	i := y*MW + x
 	note := z.Notes[i]
 	switch t {
+	case TPortal:
+		g.unBump(x, y) // planets.go
 	case TInscription, TSarcophagus, TStatue:
 		if note == "" {
 			note = "Worn smooth; you can't read it."

@@ -579,10 +579,11 @@ func bhGenMonster(g *Game, r *Rng, bd *BurgData, bx, by int) *bhBounty {
 	for i := range g.W.Monsters {
 		m := &g.W.Monsters[i]
 		mx, my := bhPxy(g, m.P)
-		if m.P < 0 || m.P >= len(g.W.State) || (m.Layer != "surface" && m.Layer != "sea") || g.Slain[m.ID] || maxi(abs(mx-bx), abs(my-by)) > 25 {
+		brood := m.Slain && slBroodSpawns(g.W, m) // slain beasts may leave a brood to hunt (slain.go)
+		if m.P < 0 || m.P >= len(g.W.State) || (m.Layer != "surface" && m.Layer != "sea") || g.Slain[m.ID] || m.Slain && !brood || maxi(abs(mx-bx), abs(my-by)) > 25 {
 			continue
 		}
-		if bhHeld(st, func(b *bhBounty) bool { return b.Kind == "monster" && b.Mon == m.ID }) {
+		if bhHeld(st, func(b *bhBounty) bool { return (b.Kind == "monster" || b.Kind == "brood") && b.Mon == m.ID }) {
 			continue
 		}
 		c = append(c, m)
@@ -592,6 +593,12 @@ func bhGenMonster(g *Game, r *Rng, bd *BurgData, bx, by int) *bhBounty {
 	}
 	m := c[r.Int(0, len(c)-1)]
 	mx, my := bhPxy(g, m.P)
+	if m.Slain {
+		b := &bhBounty{Kind: "brood", Name: "Brood of " + m.Name, Mon: m.ID, WX: mx, WY: my, ZX: 1, ZY: 1, Reward: 90 + m.Power*5, Placed: true,
+			Where: nonEmpty(m.Lair, g.W.RegionName(m.P))}
+		b.Poster = fmt.Sprintf("WANTED, DEAD: the brood of %s, which was %s. The spawn nests at %s and grows bolder. Proof: its token.", m.Name, slDeath(m), b.Where)
+		return b
+	}
 	b := &bhBounty{Kind: "monster", Name: m.Name, Mon: m.ID, WX: mx, WY: my, ZX: 1, ZY: 1, Reward: 150 + m.Power*8, Placed: true,
 		Where: nonEmpty(m.Lair, g.W.RegionName(m.P))}
 	b.Poster = fmt.Sprintf("WANTED, DEAD: %s, a %s of the %s tier. %s Last seen at %s. Proof: %s.", m.Name, strings.ToLower(m.Species), m.Tier, m.Lore, b.Where, nonEmpty(m.Trophy, "its head"))
@@ -679,7 +686,7 @@ func bhGenOutlaw(g *Game, r *Rng, bd *BurgData, bx, by int) *bhBounty {
 
 func bhCriminal(p *PersonData) bool {
 	if p.Role == "villain" || p.Role == "criminal" || p.Role == "traitor" {
-		return true
+		return p.Alive
 	}
 	cruel, bad := false, false
 	for _, t := range p.Traits {
@@ -718,7 +725,7 @@ func bhGenPerson(g *Game, r *Rng, bd *BurgData, bx, by int) *bhBounty {
 	var c []*PersonData
 	for i := range g.W.People {
 		p := &g.W.People[i]
-		if bhCriminal(p) && !bhHeld(st, func(b *bhBounty) bool { return b.Person == p.ID }) {
+		if (bhCriminal(p) || g.vlOf(p.ID) != nil) && !vlDead(g, p.ID) && !bhHeld(st, func(b *bhBounty) bool { return b.Person == p.ID }) {
 			c = append(c, p)
 		}
 	}
@@ -727,6 +734,9 @@ func bhGenPerson(g *Game, r *Rng, bd *BurgData, bx, by int) *bhBounty {
 		return nil
 	}
 	p := c[r.Int(0, len(c)-1)]
+	if b := g.vlBounty(p); b != nil { // villains wait in their hideout (villains.go)
+		return b
+	}
 	where := g.W.RegionName(g.W.Idx(px, py))
 	b := &bhBounty{Kind: "person", Name: p.Name, Person: p.ID, WX: px, WY: py, ZX: r.Int(0, 2), ZY: r.Int(0, 2), Lvl: maxi(4, g.zoneLevel(px, py, 0)+3),
 		Reward: 180 + p.Renown*3 + p.Martial*10, Where: where, Live: true}
@@ -776,6 +786,11 @@ func bhPlaceTarget(g *Game, zn *Zone, b *bhBounty) {
 		a.F = CRed
 		a.Desc = "A beast the whole district fears."
 	case "person", "deserter":
+		if v := g.vlEnsure(zn, b.Person); v != nil { // the villain already holds this hideout (villains.go)
+			v.Set("bhT")
+			b.ActorID, b.Placed = v.ID, true
+			return
+		}
 		bd := g.W.burgByID[b.Burg]
 		if bd == nil || zn.Kind == "town" || zn.Kind == "sea" {
 			return
@@ -826,6 +841,9 @@ func bhAccept(g *Game, b *bhBounty) {
 func bhMatch(b *bhBounty, d *Actor) bool {
 	if b.Kind == "monster" {
 		return d.SimMon == b.Mon
+	}
+	if b.Kind == "brood" {
+		return d.Has("brood") && d.Name == b.Name
 	}
 	return b.ActorID != 0 && d.ID == b.ActorID
 }

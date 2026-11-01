@@ -227,7 +227,9 @@ func (g *Game) lgSecret(a *Actor, salt int) (string, bool) {
 	cx, cy := g.Cur.WX, g.Cur.WY
 	near := func(p int) bool { return abs(p%w.W-cx) <= 22 && abs(p/w.W-cy) <= 16 }
 	for _, m := range w.Monsters {
-		if near(m.P) && !g.Slain[m.ID] {
+		if near(m.P) && m.Slain {
+			cs = append(cs, cand{g.slSecret(&m), "lair", m.P, w.Year})
+		} else if near(m.P) && !g.Slain[m.ID] {
 			cs = append(cs, cand{fmt.Sprintf("%s, a %s, lairs at %s.", m.Name, strings.ToLower(m.Species), nonEmpty(m.Lair, w.RegionName(m.P))), "lair", m.P, w.Year})
 		}
 	}

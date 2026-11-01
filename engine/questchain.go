@@ -371,7 +371,7 @@ func (g *Game) qcBuildSpine() []qcChap {
 	var mon *MonsterData
 	for i := range w.Monsters {
 		m := &w.Monsters[i]
-		if m.Immortal || g.Slain[m.ID] {
+		if m.Immortal || g.Slain[m.ID] || m.Slain {
 			continue
 		}
 		if mon == nil || m.Power > mon.Power {

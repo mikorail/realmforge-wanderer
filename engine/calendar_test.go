@@ -232,6 +232,9 @@ func TestOldWorldWithoutCalendarLoads(t *testing.T) {
 	if err := json.Unmarshal(raw, &m); err != nil {
 		t.Fatal(err)
 	}
+	if m["kind"] == "wanderer-universe" { // test the start planet as a lone world file
+		m = m["planets"].([]any)[0].(map[string]any)
+	}
 	for _, c := range m["cultures"].([]any) {
 		for _, k := range []string{"months", "feasts", "festivals", "music", "architecture", "values"} {
 			delete(c.(map[string]any), k)

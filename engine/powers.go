@@ -33,6 +33,7 @@ func (g *Game) Abilities() []Ability {
 	}
 	out = append(out, g.skAbilities()...)
 	out = append(out, g.augAbilities()...)
+	out = append(out, g.mrAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
 	for _, bp := range g.P.Body {
 		if bp.Item != nil {
@@ -84,6 +85,10 @@ func (g *Game) powerLevel(id string, it *Item) int {
 
 // usePower resolves an active power at a target tile (or a direction for dir powers).
 func (g *Game) usePower(id string, it *Item, tx, ty int) {
+	if strings.HasPrefix(id, "mr_") { // sect techniques (murim.go)
+		g.mrUse(id, tx, ty)
+		return
+	}
 	if strings.HasPrefix(id, "sk_") { // skill maneuvers (maneuvers.go)
 		g.skUse(id, tx, ty)
 		return
@@ -435,6 +440,9 @@ func (g *Game) useItem(it *Item) {
 	case "letter":
 		g.showPopup(it.Name, "It is sealed. You shouldn't open it.")
 		return
+	case "mrpill", "mrmanual":
+		g.mrUseItem(it)
+		return
 	default:
 		g.Msg("You can't use that.")
 		return
@@ -626,5 +634,6 @@ func (g *Game) rest(until bool) {
 		g.give(g.MakeFood(g.R, 1))
 		g.Msg("You forage something to eat.")
 	}
+	g.mrOnRest(n)
 	g.Msg(fmt.Sprintf("You rest for %d turns.", n))
 }

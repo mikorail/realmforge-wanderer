@@ -14,6 +14,17 @@
 		genre: string;
 		year: number;
 		blurb: string;
+		planets?: number;
+	}
+
+	/** Seed a world file is filed under: a single world's own, or the start planet's in a "wanderer-universe". */
+	function worldSeed(json: string): string {
+		const j = JSON.parse(json);
+		if (j?.kind === 'wanderer-universe') {
+			const pl = Array.isArray(j.planets) ? j.planets[j.start ?? 0] ?? j.planets[0] : null;
+			return String(pl?.seed ?? '');
+		}
+		return String(j?.seed ?? '');
 	}
 
 	let phase = $state<'title' | 'loading' | 'chargen' | 'play' | 'error'>('title');
@@ -52,7 +63,7 @@
 		if (phase === 'play' || phase === 'chargen') return; // never yank a running game
 		let seed = '';
 		try {
-			seed = String(JSON.parse(json).seed ?? '');
+			seed = worldSeed(json);
 		} catch {
 			return fail(new Error('Realmforge sent an unreadable world'));
 		}
@@ -213,7 +224,7 @@
 					{#each samples as s (s.file)}
 						<button class="card" onclick={() => pickSample(s)}>
 							<b>{s.name}</b>
-							<em>{s.genre} · year {s.year}</em>
+							<em>{s.genre} · year {s.year}{s.planets && s.planets > 1 ? ` · ${s.planets} planets` : ''}</em>
 							<small>{s.blurb}</small>
 						</button>
 					{/each}
