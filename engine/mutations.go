@@ -484,6 +484,8 @@ var muCasteNames = map[string][]string{
 	"atompunk":   {"Greenhouse Tech", "Sunlamp Pastor", "Moonbase Pastor", "Eclipse Trooper", "Reactor Engineer", "Ambassador", "Vault Marshal", "Concierge", "Commons Child", "Turbine Child", "Coolant Child", "Reactor-Born"},
 	"cyberpunk":  {"Grow-Op Tech", "Sunrise Preacher", "Nightcycle Preacher", "Eclipse Runner", "Fixer-Engineer", "Corp Liaison", "Enforcer", "Handler", "Block Child", "Datacore Child", "Sublevel Child", "Furnace Child"},
 	"biopunk":    {"Cultivator", "Light-Tender", "Dark-Tender", "Symbiont Knight", "Gene-Wright", "Broker", "Hive Guard", "Drone-Attendant", "Nest-Born", "Root-Born", "Pool-Born", "Spore-Born"},
+	"wasteland":  {"Mushroom Farmer", "Sun-Chaser", "Night-Chaser", "Eclipse Marauder", "Scrapwright", "Caravan Envoy", "Gate Warden", "Quartermaster", "Bunker-Born", "Road-Born", "Tunnel-Born", "Furnace-Born"},
+	"twilight":   {"Grave-Gardener", "Priest of the Pale Sun", "Priest of the Red Moon", "Eclipse Knight", "Reliquarist", "Court Envoy", "Vigil Guard", "Steward of Ash", "Hearth-Born", "Bell-Born", "Drowned-Born", "Hollow-Born"},
 	"solarpunk":  {"Permaculturist", "Sun-Singer", "Moon-Singer", "Eclipse Weaver", "Maker", "Delegate", "Commons Guard", "Steward", "Hearth-Kin", "Windmill-Kin", "Tide-Kin", "Kiln-Kin"},
 }
 

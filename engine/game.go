@@ -1030,6 +1030,7 @@ func (g *Game) WorldMove(dx, dy int) {
 			g.P.HP++
 		}
 	}
+	wsOnMove(g) // travellers, armies and events along the way (worldsim.go)
 	g.Known[np] = true
 	for _, d := range dirs8 {
 		if g.W.In(nx+d[0], ny+d[1]) {

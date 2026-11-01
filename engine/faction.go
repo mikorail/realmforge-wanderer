@@ -106,7 +106,7 @@ func (g *Game) Hostile(a *Actor) bool {
 	if a.AI == "follower" {
 		return false
 	}
-	if a.Angry {
+	if a.Angry || g.uwWanted(a) { // wanted by the law (crime.go)
 		return true
 	}
 	rep := g.Rep[a.Faction]
@@ -246,6 +246,32 @@ func (g *Game) roleTitle(role string) string {
 			return "gene-brewer"
 		case "elder":
 			return "brood-elder"
+		}
+	case "wasteland":
+		switch role {
+		case "guard":
+			return "gate warden"
+		case "smith":
+			return "scrapwright"
+		case "apothecary":
+			return "stim-brewer"
+		case "elder":
+			return "overseer"
+		case "priest":
+			return "ash preacher"
+		}
+	case "twilight":
+		switch role {
+		case "guard":
+			return "vigil watchman"
+		case "smith":
+			return "relic-smith"
+		case "apothecary":
+			return "blood-mender"
+		case "elder":
+			return "lamp-keeper"
+		case "priest":
+			return "wardenpriest"
 		}
 	case "solarpunk":
 		switch role {

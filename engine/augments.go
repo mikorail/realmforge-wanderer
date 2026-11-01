@@ -132,6 +132,20 @@ var augSkins = map[string]AugSkin{
 			"lung": "Algae Lung Lattice", "ward": "Succulent Skin Lattice", "medic": "Aloe Mending Lattice", "blade": "Thorn-Vine Lattice", "servo": "Bamboo-Fiber Arm Lattice",
 			"grip": "Tendril Grip Lattice", "flamer": "Solar Lens Palm", "stride": "Spring-Reed Lattice", "sprinter": "Wind-Turbine Leg Lattice",
 			"cloak": "Chameleon Leaf Lattice", "bulwark": "Sun-Shield Leaf Array", "wings": "Seed-Kite Wing Lattice"}},
+	"wasteland": {Noun: "scrap graft", Installer: "scrap surgeon", Lore: "Pre-fall parts and boiled wire, bolted in a back room by someone who has done it before.",
+		Install: "The scrap surgeon swabs you with spirits and wedges the %s into place.", Purist: "\"More junk than man. The vault-born will not share a fire with you.\"",
+		Names: map[string]string{"nighteye": "Salvaged Night Lens", "hawkeye": "Scope-Eye Graft", "lumen": "Flare-Bulb Graft", "cortex": "Archive Chip Graft",
+			"reflex": "Wired Nerve Splice", "mindward": "Lead-Lined Skullcap", "dermal": "Scrap-Plate Skin", "heart": "Battery Heart Graft",
+			"lung": "Filter Lung Graft", "ward": "Rad-Shield Liner", "medic": "Stim-Drip Graft", "blade": "Spring-Blade Forearm", "servo": "Pump-Piston Arm",
+			"grip": "Hook-Claw Hand", "flamer": "Fuel-Jet Palm", "stride": "Coil-Spring Shins", "sprinter": "Piston Leg Graft",
+			"cloak": "Dust-Cloth Rig", "bulwark": "Door-Plate Back Graft", "wings": "Scrap Glider Frame"}},
+	"twilight": {Noun: "relic graft", Installer: "reliquary surgeon", Lore: "A saint's finger, a hunter's bone, a sliver of something that never fully died.",
+		Install: "The reliquary surgeon murmurs a prayer and sets the %s beneath your skin.", Purist: "\"You carry the dead in you. The vigil keepers will not bless you.\"",
+		Names: map[string]string{"nighteye": "Owl-Eye Relic", "hawkeye": "Hunter's Eye Relic", "lumen": "Candle-Heart Relic", "cortex": "Third-Eye Relic",
+			"reflex": "Quickening Blood Relic", "mindward": "Silent Bell Relic", "dermal": "Ash-Bone Plating", "heart": "Saint's Heart Relic",
+			"lung": "Drowned Lung Relic", "ward": "Plague-Ward Relic", "medic": "Blood Vial Relic", "blade": "Bone-Scythe Relic", "servo": "Giant's Arm Relic",
+			"grip": "Gargoyle Claw Relic", "flamer": "Pyre Palm Relic", "stride": "Stag Sinew Relic", "sprinter": "Hound Sinew Relic",
+			"cloak": "Mist Shroud Relic", "bulwark": "Gilded Shell Relic", "wings": "Gargoyle Wing Relic"}},
 }
 
 // augInstallerDistricts: where each genre's installers keep shop (first district the city has).
@@ -140,6 +154,7 @@ var augInstallerDistricts = map[string][]string{
 	"steampunk": {"forge", "academy", "artisans", "market"}, "dieselpunk": {"forge", "barracks", "market"},
 	"atompunk": {"forge", "academy", "market"}, "cyberpunk": {"slums", "forge", "market"},
 	"biopunk": {"academy", "farms", "market"}, "solarpunk": {"academy", "farms", "artisans", "market"},
+	"wasteland": {"slums", "forge", "market"}, "twilight": {"temple", "academy", "slums", "market"},
 }
 
 func (g *Game) augSkin() AugSkin {

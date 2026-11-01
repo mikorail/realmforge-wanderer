@@ -1,6 +1,7 @@
 /** Player preferences, persisted in localStorage. Plain module: the UI holds the value in $state and passes it around. */
 
 export type MusicStyle = 'chiptune' | 'ambient';
+export type InstrumentFlavour = 'cultural' | 'chiptune';
 export type PaletteName = 'qud' | 'classic' | 'contrast';
 
 export interface Settings {
@@ -8,6 +9,8 @@ export interface Settings {
 	/** 0..1 */
 	musicVolume: number;
 	musicStyle: MusicStyle;
+	/** cultural: per-land synthesised instruments; chiptune: pulse/triangle/noise only */
+	instrumentFlavour: InstrumentFlavour;
 	/** 'auto' fits the grid to the window; a number multiplies the fitted cell height */
 	scale: 'auto' | number;
 	/** 'qud' uses the engine palette unchanged */
@@ -22,6 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	music: true,
 	musicVolume: 0.35,
 	musicStyle: 'chiptune',
+	instrumentFlavour: 'cultural',
 	scale: 'auto',
 	palette: 'qud',
 	animations: true,
@@ -41,6 +45,7 @@ function clean(raw: unknown): Settings {
 	const vol = r.musicVolume;
 	if (typeof vol === 'number' && Number.isFinite(vol)) s.musicVolume = Math.min(1, Math.max(0, vol));
 	if (r.musicStyle === 'chiptune' || r.musicStyle === 'ambient') s.musicStyle = r.musicStyle;
+	if (r.instrumentFlavour === 'cultural' || r.instrumentFlavour === 'chiptune') s.instrumentFlavour = r.instrumentFlavour;
 	const sc = r.scale;
 	if (sc === 'auto') s.scale = 'auto';
 	else if (typeof sc === 'number' && (SCALE_OPTIONS as readonly number[]).includes(sc)) s.scale = sc;

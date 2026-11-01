@@ -82,6 +82,7 @@ var attireSlots = []string{"body", "head", "back", "feet", "face"}
 var attireOverlay = map[string]string{
 	"mythic": "ambrosial", "steampunk": "brass-buttoned", "dieselpunk": "oilcloth", "atompunk": "chrome-flecked",
 	"cyberpunk": "neon-threaded", "biopunk": "spore-silk", "solarpunk": "sun-woven",
+	"wasteland": "scrap-patched", "twilight": "ash-stained",
 }
 
 func attireSpheres() []string {

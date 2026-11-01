@@ -1,5 +1,37 @@
 [
-	{ "file": "ember-crown.json", "name": "Qotusu", "genre": "High Fantasy", "year": 221, "blurb": "Continents of kingdoms and dwarf-holds, three underdark strata and sky isles. Two centuries of wars, plagues and fallen dynasties." },
-	{ "file": "neon-tide.json", "name": "Mangrar", "genre": "Cyberpunk", "year": 161, "blurb": "An archipelago of megacorps, arcologies and neon undercities. Gangers on the maglev, data vaults below." },
-	{ "file": "spore-mother.json", "name": "Misuchu", "genre": "Biopunk", "year": 181, "blurb": "One great continent of gene-clans and hive cities, mycelial warrens beneath, living airships above." }
+ {
+  "file": "ember-crown.json",
+  "name": "Qotusu",
+  "genre": "High Fantasy",
+  "year": 221,
+  "blurb": "Continents of kingdoms and dwarf-holds, three underdark strata and sky isles. Two centuries of wars, plagues and fallen dynasties."
+ },
+ {
+  "file": "neon-tide.json",
+  "name": "Mangrar",
+  "genre": "Cyberpunk",
+  "year": 161,
+  "blurb": "An archipelago of megacorps, arcologies and neon undercities. Gangers on the maglev, data vaults below."
+ },
+ {
+  "file": "spore-mother.json",
+  "name": "Misuchu",
+  "genre": "Biopunk",
+  "year": 181,
+  "blurb": "One great continent of gene-clans and hive cities, mycelial warrens beneath, living airships above."
+ },
+ {
+  "file": "ashen-vaults.json",
+  "name": "Zotbozdiv",
+  "genre": "Wasteland",
+  "year": 181,
+  "blurb": "Scavenger towns and raider clans over irradiated ruins, with vault-bunkers and metro lines below and wrecks fallen from the sky."
+ },
+ {
+  "file": "hollow-crown.json",
+  "name": "Sirati",
+  "genre": "Twilight Realm",
+  "year": 201,
+  "blurb": "A golden age long collapsed: demigod lords, plague wards and hunters, catacombs below and a drowned gilded city under the sea."
+ }
 ]

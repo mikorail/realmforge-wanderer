@@ -117,6 +117,12 @@ func (g *Game) lmTowerWord(sphere string) (word string, mech bool) {
 	case "steampunk", "dieselpunk", "atompunk", "cyberpunk":
 		return "Clock Tower", true
 	}
+	switch g.Genre {
+	case "wasteland":
+		return "Radio Mast", true
+	case "twilight":
+		return "Bell Tower", false
+	}
 	switch sphere {
 	case "sinic", "japonic", "sea":
 		return "Pagoda", false

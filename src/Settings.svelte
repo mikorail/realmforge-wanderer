@@ -1,7 +1,7 @@
 <script lang="ts">
 	/** Modal settings pane. Every change is passed up through onchange and applied live by the game screen. */
 	import { onMount } from 'svelte';
-	import { AUTOSAVE_OPTIONS, SCALE_OPTIONS, type MusicStyle, type PaletteName, type Settings } from './settings';
+	import { AUTOSAVE_OPTIONS, SCALE_OPTIONS, type InstrumentFlavour, type MusicStyle, type PaletteName, type Settings } from './settings';
 
 	let { settings, onchange, onclose }: { settings: Settings; onchange: (s: Settings) => void; onclose: () => void } = $props();
 
@@ -116,6 +116,18 @@
 			>
 				<option value="chiptune">Chiptune</option>
 				<option value="ambient">Ambient</option>
+			</select>
+		</label>
+
+		<label class="row" class:off={!settings.music}>
+			<span>Instruments</span>
+			<select
+				value={settings.instrumentFlavour}
+				disabled={!settings.music}
+				onchange={(e) => set('instrumentFlavour', e.currentTarget.value as InstrumentFlavour)}
+			>
+				<option value="cultural">Cultural</option>
+				<option value="chiptune">Pure chiptune</option>
 			</select>
 		</label>
 

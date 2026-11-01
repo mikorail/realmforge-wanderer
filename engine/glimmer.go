@@ -16,7 +16,7 @@ func init() {
 
 // muGlimmer: mental mutation levels (Ego bonus is already inside Actor.Powers); Espers add a quarter.
 func muGlimmer(g *Game) int {
-	if g.P == nil {
+	if g.P == nil || g.plGlimmerPurged() { // a mutation house purge hides you (parlors.go)
 		return 0
 	}
 	sum := 0
@@ -45,6 +45,8 @@ var muHunterNames = map[string][]string{
 	"cyberpunk":  {"Sniffer", "Tracer", "Owl ICE", "Black ICE", "Strix Daemon", "Eagle Eye", "Rukh Overmind"},
 	"biopunk":    {"Osprey Cluster", "Harrier Swarm", "Owl Mycelium", "Condor Bloom", "Strix Vector", "Eagle Chimera", "Rukh Colony"},
 	"solarpunk":  {"Osprey Warden", "Harrier Warden", "Owl Warden", "Condor Warden", "Strix Warden", "Eagle Warden", "Rukh Warden"},
+	"wasteland":  {"Carrion Scout", "Dust Harrier", "Bunker Owl", "Wire Condor", "Static Strix", "Rad Eagle", "Rukh of the Deep"},
+	"twilight":   {"Pale Osprey", "Gaunt Harrier", "Vigil Owl", "Bone Condor", "Hollow Strix", "Gilded Eagle", "Rukh of the Veil"},
 }
 
 func muHunterTierOf(glim int) int {

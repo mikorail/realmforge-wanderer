@@ -80,6 +80,8 @@ func (g *Game) MakeBackpack(tier int) *Item {
 		"cyberpunk":  {"mesh sling bag", "cyberdeck harness pack", "smart-fibre cargo rig"},
 		"biopunk":    {"hide pouch", "brood-sac", "symbiote carapace-pack"},
 		"solarpunk":  {"woven reed satchel", "bamboo-frame pack", "living-vine rucksack"},
+		"wasteland":  {"feed-sack satchel", "scav frame pack", "vault-cloth caravan pack"},
+		"twilight":   {"worn satchel", "hunter's haversack", "reliquary pack"},
 	}
 	n, ok := names[g.Genre]
 	if !ok {

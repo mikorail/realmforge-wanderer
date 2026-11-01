@@ -581,6 +581,9 @@ func (g *Game) annalsBook(state int) *Item {
 }
 
 func (g *Game) interact(x, y int) {
+	if inBump(g, x, y) { // stat gates, shrines, glyphs (gates.go / insight.go)
+		return
+	}
 	z := g.Cur
 	t := z.At(x, y)
 	i := y*MW + x
@@ -667,6 +670,15 @@ func (g *Game) dig(x, y int) {
 
 func (g *Game) price(it *Item, buy bool) int {
 	v := maxi(it.Value, 1)
+	v = maxi(1, int(float64(v)*g.wsItemMul(it))) // regional market (worldsim.go)
+	if g.Talk != nil {
+		tr := thTraitRep(g, g.Talk) // how your traits sit with them (traits.go)
+		if buy {
+			v = maxi(1, v*(100-3*tr)/100)
+		} else {
+			v = maxi(1, v*(100+3*tr)/100)
+		}
+	}
 	if it.Count > 1 && it.Stack() {
 		v = maxi(it.Value, 1)
 	}
@@ -688,6 +700,7 @@ func (g *Game) price(it *Item, buy bool) int {
 		return maxi(1, int(float64(v)*f*g.lqPriceFactor(true)))
 	}
 	f := 0.4 + ego + per + rep
+	f *= g.uwStolenFactor(it, buy) // honest merchants pay half for stolen goods (crime.go)
 	f /= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk)
 	if f > 0.8 {
 		f = 0.8
@@ -712,11 +725,13 @@ func (g *Game) tradeAct() {
 		it := a.Inv[g.Sel]
 		one := it
 		pr := g.price(it, true)
-		if g.P.Gold < pr {
+		if !g.cuCanSpend(pr) { // currency.go: local money first, foreign coin only where accepted
 			g.Msg("You can't afford " + it.Display() + ".")
 			return
 		}
-		g.P.Gold -= pr
+		if !g.cuSpend(pr) {
+			return
+		}
 		a.Gold += pr
 		if it.Stack() && it.Count > 1 {
 			it.Count--
@@ -728,12 +743,15 @@ func (g *Game) tradeAct() {
 			a.Inv = append(a.Inv[:g.Sel], a.Inv[g.Sel+1:]...)
 		}
 		g.give(one)
-		g.Msg(fmt.Sprintf("You buy %s for %d %s.", one.Display(), pr, g.Sk.Currency))
+		g.Msg(fmt.Sprintf("You buy %s for %s.", one.Display(), g.cuFormat(pr)))
 	} else {
 		if g.Sel >= len(g.P.Inv) {
 			return
 		}
 		it := g.P.Inv[g.Sel]
+		if g.uwNoSale(it, a) { // honest merchants refuse stolen or banned goods
+			return
+		}
 		if it.Quest > 0 {
 			g.Msg("You can't sell that.")
 			return
@@ -744,7 +762,7 @@ func (g *Game) tradeAct() {
 			return
 		}
 		a.Gold -= pr
-		g.P.Gold += pr
+		g.cuEarn(pr)
 		one := it
 		if it.Stack() && it.Count > 1 {
 			it.Count--
@@ -758,7 +776,7 @@ func (g *Game) tradeAct() {
 		if one.SimArt > 0 {
 			g.deed("relic", fmt.Sprintf("The relic %s was sold by the wanderer %s to %s.", one.Name, g.P.Name, a.Name), 0, one.SimArt)
 		}
-		g.Msg(fmt.Sprintf("You sell %s for %d %s.", one.Display(), pr, g.Sk.Currency))
+		g.Msg(fmt.Sprintf("You sell %s for %s.", one.Display(), g.cuFormat(pr)))
 	}
 }
 

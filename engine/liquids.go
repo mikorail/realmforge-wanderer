@@ -69,13 +69,17 @@ func (g *Game) lqGenreName() string {
 		return "ichor"
 	case "solarpunk":
 		return "sap-nectar"
+	case "wasteland":
+		return "murky runoff"
+	case "twilight":
+		return "black wine"
 	}
 	return "nectar"
 }
 
 func (g *Game) lqGenreGood() bool {
 	switch g.Genre {
-	case "steampunk", "dieselpunk", "atompunk", "cyberpunk":
+	case "steampunk", "dieselpunk", "atompunk", "cyberpunk", "wasteland":
 		return false
 	}
 	return true

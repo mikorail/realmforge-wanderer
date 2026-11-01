@@ -52,6 +52,10 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 		hit -= 4
 	}
 	crit := roll == 20
+	if a == g.P {
+		hit += thToHitBonus(g) // thoughts and traits (traits.go)
+		crit = crit || g.R.Int(1, 100) <= thCritBonus(g)
+	}
 	if !crit && (roll == 1 || hit < d.DV()) || d.St("phased") > 0 && a.St("phased") == 0 {
 		if a == g.P || d == g.P {
 			g.Msg(fmt.Sprintf("%s %s %s.", g.The(a), verb(a == g.P, "miss", "misses"), g.the(d)))
@@ -251,6 +255,7 @@ func (g *Game) provoke(d *Actor) {
 	}
 	d.Angry = true
 	if strings.HasPrefix(d.Faction, "state:") {
+		g.uwAssault(d) // bounty for striking townsfolk (crime.go)
 		g.AddRep(d.Faction, -50, " for attacking "+g.the(d))
 		for _, o := range g.Cur.Actors {
 			if o.Faction == d.Faction && o.AI == "guard" {

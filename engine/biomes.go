@@ -19,6 +19,8 @@ var qcBiomeNames = map[string][4]string{
 	"steampunk":  {"Slime fens", "Pitch flats", "Rust moor", "Mycelial fen"},
 	"dieselpunk": {"Sludge pans", "Tar flats", "Rust moor", "Mould fields"},
 	"solarpunk":  {"Algal fen", "Resin flats", "Rust garden", "Mycelial grove"},
+	"wasteland":  {"Toxic sump", "Tar pits", "Rust flats", "Glowing mould"},
+	"twilight":   {"Bile marsh", "Black pitch", "Corroded gilt", "Pale blight"},
 }
 
 func init() {

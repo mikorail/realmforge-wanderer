@@ -92,6 +92,12 @@ var genreNames2 = map[string]map[string]string{
 	"solarpunk": {"swimming": "Otter Strokes", "diving": "Kelp Lungs", "climbing": "Vine Grip", "clipping": "Rootslip", "arcanebolt": "Sunbeam", "slumber": "Lullaby Pollen",
 		"glimmer": "Solar Flare", "forcepush": "Gale Burst", "clairvoyance": "Canopy Sight", "timedilation": "Sap Slowness", "forcebubble": "Sunlight Shield", "syphon": "Photosynthetic Leech",
 		"stunforce": "Thunderbloom", "disintegrate": "Mulch Wave", "corrosive": "Acidic Fog", "fugue": "Seedling Doubles", "multiarms": "Many Branches"},
+	"wasteland": {"swimming": "Sludge Paddling", "diving": "Scrubber Lungs", "climbing": "Rebar Scrambling", "clipping": "Rubble Slip", "arcanebolt": "Spark Round", "slumber": "Sedative Fumes",
+		"glimmer": "Flare Burst", "forcepush": "Blast Shove", "clairvoyance": "Dead-Radio Sight", "timedilation": "Adrenal Crawl", "forcebubble": "Scrap Plate Bubble", "syphon": "Rad-Leech",
+		"stunforce": "Concussive Slam", "disintegrate": "Melt Beam", "corrosive": "Acid Mist", "fugue": "Mirage Doubles", "multiarms": "Spare Arms"},
+	"twilight": {"swimming": "Drowned Stroke", "diving": "Held-Breath Vigil", "climbing": "Gargoyle Grip", "clipping": "Mist Slip", "arcanebolt": "Dusk Dart", "slumber": "Lullaby of Ash",
+		"glimmer": "Pale Flare", "forcepush": "Hollow Gale", "clairvoyance": "Inner Eye", "timedilation": "Stilled Hour", "forcebubble": "Ward of Vigil", "syphon": "Blood Tithe",
+		"stunforce": "Tolling Shock", "disintegrate": "Unmaking Word", "corrosive": "Plague Breath", "fugue": "Wraith Doubles", "multiarms": "Eldritch Limbs"},
 }
 
 func SkinFor(genre string) *Skin {
@@ -210,6 +216,40 @@ func SkinFor(genre string) *Skin {
 		s.PowerNames["beguile"], s.PowerNames["gills"], s.PowerNames["leech"] = "Kinship Pollen", "Algae Lung", "Photosynthetic Drain"
 		s.Bandits, s.Undead, s.WallColor, s.AccentColor = "Saboteurs", "the Blighted", CBrown, CGreen
 		s.Updraft, s.Dive, s.Ferry, s.Kinship = "kite-tether", "a reef-lock", "sail on a co-op ship", "Plant a seed"
+	case "wasteland":
+		s.PowersName, s.PowerVerb, s.Ritual, s.RitualDesc, s.Currency, s.Book = "Mutations", "manifest", "Shared Ration", "You split a ration tin and swap names by the fire", "chits", "salvaged log"
+		s.Light = [3]string{"road flare", "hand lamp", "sodium floodlight"}
+		s.Mats = [6]string{"scrap", "rebar", "road-steel", "reclaimed alloy", "vault-grade", "pre-fall"}
+		s.Nouns = map[string][]string{"longblade": {"sheet-metal cleaver", "road machete"}, "shortblade": {"shiv", "box-cutter"}, "axe": {"fire axe", "hatchet"}, "cudgel": {"pipe club", "rail-spike maul"}}
+		s.Ranged, s.Ammo = []string{"pipe pistol", "scrap rifle", "pump shotgun"}, "shells"
+		s.Armor = map[string][]string{"body": {"leather duster", "tire-tread vest", "vault plate"}, "head": {"hard hat", "welder's helm", "riot helm"}, "feet": {"work boots", "shin-greaves"}, "hands": {"work gloves", "scrap gauntlets"}, "back": {"scav pack", "tarp cloak"}, "face": {"dust goggles", "gas mask"}}
+		s.Heal, s.Salve, s.Haste, s.Strength, s.Antidote = "stim-shot", "purge paste", "runner's fizz", "bruiser's draught", "snake serum"
+		s.GrenFire, s.GrenFrost, s.GrenFlash = "fuel-can bomb", "coolant bomb", "flare charge"
+		s.Food = []string{"canned beans", "mole-rat jerky", "dust-corn cake"}
+		s.Water, s.Scrap = "jerrycan", "scrap"
+		s.Callings = map[string]string{"warrior": "Road Warrior", "scout": "Pathfinder", "scholar": "Archivist", "tinker": "Scrapwright", "mystic": "Ash Preacher", "merchant": "Caravaneer", "rogue": "Tunnel Thief"}
+		s.PowerNames["flames"], s.PowerNames["regen"], s.PowerNames["sense"], s.PowerNames["carapace"] = "Burning Touch", "Rad-Fed Flesh", "Static Sense", "Hide Plates"
+		s.PowerNames["phase"], s.PowerNames["teleport"], s.PowerNames["lightning"], s.PowerNames["wings"] = "Dust Step", "Rift Hop", "Arc Surge", "Scrap Wings"
+		s.PowerNames["beguile"], s.PowerNames["psiblast"], s.PowerNames["gills"], s.PowerNames["burrow"] = "Hollow Voice", "Skull Ringer", "Filter Gills", "Tunnel Claws"
+		s.Bandits, s.Undead, s.WallColor, s.AccentColor = "Raiders", "the Glowing Dead", CBrown, CGreen
+		s.Updraft, s.Dive, s.Ferry, s.Kinship = "cable lift", "a flooded hatch", "hitch a ride on a caravan rig", "Split a ration"
+	case "twilight":
+		s.PowersName, s.PowerVerb, s.Ritual, s.RitualDesc, s.Currency, s.Book = "Insights", "awaken", "Vigil Oath", "You light a candle together and swear to keep the vigil", "echoes", "codex"
+		s.Light = [3]string{"tallow torch", "oil lantern", "pale censer"}
+		s.Mats = [6]string{"bone", "iron", "silvered steel", "blackened", "moonlit", "godbone"}
+		s.Nouns = map[string][]string{"longblade": {"greatsword", "hunter's blade"}, "shortblade": {"misericorde", "stiletto"}, "axe": {"cleaver", "hewing axe"}, "cudgel": {"flail", "censer-mace"}}
+		s.Ranged, s.Ammo = []string{"hand crossbow", "blunderbuss", "reliquary caster"}, "quicksilver shot"
+		s.Armor = map[string][]string{"body": {"tattered coat", "hunter's garb", "gilded plate"}, "head": {"tricorn hat", "plague hood", "crowned helm"}, "feet": {"worn boots", "greaves"}, "hands": {"leather gloves", "gauntlets"}, "back": {"threadbare cloak", "ash mantle"}, "face": {"beaked mask", "gilded visor"}}
+		s.Heal, s.Salve, s.Haste, s.Strength, s.Antidote = "blood vial", "pale ointment", "quickening draught", "ember tonic", "bitter tincture"
+		s.GrenFire, s.GrenFrost, s.GrenFlash = "pyre jar", "grave-frost jar", "lantern flash"
+		s.Food = []string{"hard biscuit", "salted eel", "grave honey"}
+		s.Water, s.Scrap = "flask", "relics"
+		s.Callings = map[string]string{"warrior": "Vigil Knight", "scout": "Wayfinder", "scholar": "Seer", "tinker": "Reliquarist", "mystic": "Wardenpriest", "merchant": "Ash Trader", "rogue": "Gutter Cutpurse"}
+		s.PowerNames["flames"], s.PowerNames["freeze"], s.PowerNames["lightning"], s.PowerNames["regen"] = "Pyre Rite", "Grave Chill", "Sundered Bolt", "Blood Mending"
+		s.PowerNames["sense"], s.PowerNames["phase"], s.PowerNames["beguile"], s.PowerNames["psiblast"] = "Inner Eye", "Mist Walk", "Whispered Lure", "Mind Rend"
+		s.PowerNames["heal"], s.PowerNames["wings"], s.PowerNames["leech"] = "Last Mercy", "Gargoyle Wings", "Blood Tithe"
+		s.Bandits, s.Undead, s.WallColor, s.AccentColor = "Cutthroats", "the Hollowed", CDarkGray, CMagenta
+		s.Updraft, s.Dive, s.Ferry, s.Kinship = "bell-rope lift", "a drowned stair", "pay a ferryman", "Light a candle"
 	}
 	for k, v := range genreNames2[genre] {
 		s.PowerNames[k] = v

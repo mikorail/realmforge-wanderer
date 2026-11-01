@@ -99,6 +99,8 @@ var catSkin = map[string]map[string]string{
 	"cyberpunk":  {"biblical": "Neo-Gospel", "occult": "Black-ICE", "techno": "Netrunner"},
 	"biopunk":    {"biblical": "Pure-Strain", "occult": "Heretic-Splice", "techno": "Gene-Wright"},
 	"solarpunk":  {"biblical": "Sunlit", "occult": "Night-Root", "techno": "Photonic"},
+	"wasteland":  {"biblical": "Vault-Blessed", "occult": "Glow-Cult", "techno": "Pre-Fall"},
+	"twilight":   {"biblical": "Vigil-Blessed", "occult": "Hollow-Touched", "techno": "Reliquary"},
 }
 
 // CatLabel is the genre-flavoured display name of a category ("" for none).
@@ -157,6 +159,8 @@ var genrePrefix = map[string][]string{
 	"cyberpunk":  {"Overclocked", "Chromed"},
 	"biopunk":    {"Grafted", "Living"},
 	"solarpunk":  {"Sun-tempered", "Verdant"},
+	"wasteland":  {"Scrap-forged", "Rad-scarred"},
+	"twilight":   {"Moonlit", "Blood-worn"},
 }
 
 func isGear(it *Item) bool {

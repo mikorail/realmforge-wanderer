@@ -147,6 +147,12 @@ func (g *Game) siteName(theme string, p int, r *Rng) string {
 	if theme == "vault" && g.Genre == "cyberpunk" {
 		noun = Pick(r, []string{"Data Vault", "Dead Arcology", "Black Site"})
 	}
+	if theme == "vault" && g.Genre == "wasteland" {
+		noun = Pick(r, []string{"Sealed Bunker", "Dead Metro Station", "Shelter Complex"})
+	}
+	if theme == "vault" && g.Genre == "twilight" {
+		noun = Pick(r, []string{"Drowned Reliquary", "Gilded Undercroft", "Sunken Archive"})
+	}
 	return fmt.Sprintf("%s of %s", noun, place)
 }
 

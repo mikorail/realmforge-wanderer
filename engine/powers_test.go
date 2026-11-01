@@ -128,7 +128,7 @@ func TestPowerPassivesAndBody(t *testing.T) {
 }
 
 func TestPowerNamesInEveryGenre(t *testing.T) {
-	for _, genre := range []string{"", "mythic", "steampunk", "dieselpunk", "atompunk", "cyberpunk", "biopunk", "solarpunk"} {
+	for _, genre := range []string{"", "mythic", "steampunk", "dieselpunk", "atompunk", "cyberpunk", "biopunk", "solarpunk", "wasteland", "twilight"} {
 		sk := SkinFor(genre)
 		for _, pd := range PowerDefs {
 			if sk.PowerName(pd.ID) == "" {

@@ -86,6 +86,14 @@ var (
 		list: []string{"gene-elite", "splices", "brood-kin", "vat-born", "culls"},
 		slot: map[string]int{"ruler": 0, "noble": 0, "scholar": 1, "clergy": 1, "merchant": 1, "artisan": 1, "warrior": 1, "common": 2, "low": 3, "outcast": 4},
 	}
+	defWaste = &strataDef{
+		list: []string{"vault lords", "overseers", "caravan guilds", "settlers", "scavs", "outlanders"},
+		slot: map[string]int{"ruler": 0, "noble": 0, "scholar": 1, "clergy": 1, "warrior": 1, "merchant": 2, "artisan": 2, "common": 3, "low": 4, "outcast": 5},
+	}
+	defTwilight = &strataDef{
+		list: []string{"demigod lords", "the gilded remnant", "vigil clergy", "hunters", "townsfolk", "the afflicted", "the cast-out"},
+		slot: map[string]int{"ruler": 0, "noble": 1, "clergy": 2, "scholar": 2, "warrior": 3, "merchant": 4, "artisan": 4, "common": 4, "low": 5, "outcast": 6},
+	}
 	defSolar = &strataDef{
 		list: []string{"stewards", "members", "guests", "drifters"},
 		slot: map[string]int{"ruler": 0, "noble": 0, "scholar": 0, "clergy": 1, "merchant": 1, "artisan": 1, "warrior": 1, "common": 1, "low": 2, "outcast": 3},
@@ -100,6 +108,10 @@ func (g *Game) strataDefFor(bd *BurgData) *strataDef {
 		return defBio
 	case "solarpunk":
 		return defSolar
+	case "wasteland":
+		return defWaste
+	case "twilight":
+		return defTwilight
 	}
 	var cu *CultureData
 	var st *StateData

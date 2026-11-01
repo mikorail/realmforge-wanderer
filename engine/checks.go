@@ -82,7 +82,7 @@ func (g *Game) checkMod(kind string) int {
 	if k.skill != "" {
 		best += 2 * g.Skills[k.skill]
 	}
-	return best
+	return best + thCheckBonus(g, kind)
 }
 
 // checkSpec is one contextual check: what it tests, how hard it is, and what happens.

@@ -66,6 +66,8 @@ var orderRanks = map[string][5]string{
 	"secret:cyberpunk":  {"Script", "Runner", "Daemon", "Architect", "Root"},
 	"secret:biopunk":    {"Graft", "Splicer", "Chimera", "Progenitor", "Prime Strain"},
 	"secret:solarpunk":  {"Sprout", "Gardener", "Keeper", "Elder Keeper", "Heartwood"},
+	"secret:wasteland":  {"Stray", "Scrounger", "Warden", "Overseer", "Deep Elder"},
+	"secret:twilight":   {"Mourner", "Whisperer", "Hollow Keeper", "Pale Elder", "Eye-Bearer"},
 }
 
 var orderPowers = map[string][]string{
@@ -305,6 +307,8 @@ func (g *Game) genOrders() []*Order {
 			"cyberpunk":  {"The Ghost Collective", "Netrunners who live between the grid's cracks and sell what they find there."},
 			"biopunk":    {"The Chimera Covenant", "A splice cult that believes flesh is a draft to be rewritten."},
 			"solarpunk":  {"The Seed-Keepers", "Gardeners of forbidden seeds who plan the green overthrow of the old order."},
+			"wasteland":  {"The Deep Listeners", "Bunker-born archivists who hoard sealed vaults, dead frequencies and the last working maps."},
+			"twilight":   {"The Pale Choir", "Mourners who have seen past the veil and sing for the gods the lords buried."},
 		}
 		s, ok := secs[w.Genre]
 		if !ok {
@@ -328,6 +332,10 @@ func (g *Game) genOrders() []*Order {
 			nm, cr = bd.Name+" Underworld Syndicate", "Pickpockets, safecrackers and fences with a union card."
 		case "biopunk", "solarpunk":
 			nm, cr = bd.Name+" Black Market Ring", "Smugglers of seeds, organs and secrets."
+		case "wasteland":
+			nm, cr = bd.Name+" Tunnel Gang", "Scavengers, tollmen and knife-fighters who rule the dark passages."
+		case "twilight":
+			nm, cr = bd.Name+" Gutter Brotherhood", "Grave-robbers, relic-fences and cutthroats of the plague streets."
 		default:
 			nm, cr = bd.Name+" Thieves' Guild", "Cutpurses, burglars and fences bound by an oath of silence."
 		}

@@ -269,6 +269,18 @@ var genreSigs = map[string][]sigSpec{
 		{Name: "power-fist", Kind: "armor", Sub: "hands", Bonus: map[int]int{STR: 3}},
 		{Name: "geiger-lantern", Kind: "light"},
 	},
+	"wasteland": {
+		{Name: "scrap-plate duster", Kind: "armor", Sub: "body", AV: 3},
+		{Name: "rail-spike maul", Kind: "weapon", Sub: "cudgel", PV: 2},
+		{Name: "pipe-rifle", Kind: "ranged", Elem: "fire", PV: 1},
+		{Name: "dust goggles", Kind: "armor", Sub: "face", Bonus: map[int]int{AGI: 1, INT: 1}},
+	},
+	"twilight": {
+		{Name: "hunter's greatblade", Kind: "weapon", Sub: "longblade", PV: 2},
+		{Name: "plague-beak mask", Kind: "armor", Sub: "face", Bonus: map[int]int{TOU: 2}},
+		{Name: "gilded lord's plate", Kind: "armor", Sub: "body", Bonus: map[int]int{WIL: 1}, AV: 3},
+		{Name: "pale censer", Kind: "light"},
+	},
 }
 
 func (g *Game) sigTier() int { return clampi(2+g.P.Level/4, 2, 4) }

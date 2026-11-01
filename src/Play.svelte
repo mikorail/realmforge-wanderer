@@ -40,6 +40,7 @@
 		music.setEnabled(prefs.music);
 		music.setVolume(prefs.musicVolume);
 		music.setStyle(prefs.musicStyle);
+		music.setFlavour(prefs.instrumentFlavour);
 	}
 
 	/** Host settings the engine reads (g.Pref). */

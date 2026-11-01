@@ -26,7 +26,7 @@ func main() {
 	_ = engine.CharOptions(w)
 	r := engine.NewRng("fuzz")
 	keys := []string{"ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown", "ArrowUp", "ArrowRight", "ArrowRight",
-		">", "<", ">", "s", "g", "i", "a", "b", "c", "Enter", "Escape", "f", "t", "x", "j", "r", "m", "?", "e", "d", "z", "w", "Tab", "u", "k", "click:40,12", "y", "n", "T", "+", "F2", "~", "H", "F3", "C", "W", "O", "Tab", "s", "1", "2", " ", "o", "K", "V", "P", "Q", "Y"}
+		">", "<", ">", "s", "g", "i", "a", "b", "c", "Enter", "Escape", "f", "t", "x", "j", "r", "m", "?", "e", "d", "z", "w", "Tab", "u", "k", "click:40,12", "y", "n", "T", "+", "F2", "~", "H", "F3", "C", "W", "O", "Tab", "s", "1", "2", " ", "o", "K", "V", "P", "Q", "Y", "X", "U", "D", "B", "N", "J"}
 	g := engine.NewGame(w, engine.CharSpec{Name: "Fuzz", Species: "human", Calling: "warrior", Attr: [6]int{16, 16, 16, 16, 16, 16},
 		Powers: map[string]int{"flames": 1, "teleport": 1, "wings": 1}, Start: 0})
 	g.P.MaxHP, g.P.HP = 100000, 100000

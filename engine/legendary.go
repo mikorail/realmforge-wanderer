@@ -63,6 +63,8 @@ var lgGenreEpithets = map[string][]string{
 	"biopunk":    {"the Grafted", "the Overgrown", "the Spliced"},
 	"mythic":     {"Godsbane", "the Hundred-Eyed", "the Sun-Touched"},
 	"solarpunk":  {"the Sunbitten", "Rootmother", "the Verdant"},
+	"wasteland":  {"the Rust-Eater", "Dustmaw", "the Glow-Marked"},
+	"twilight":   {"the Veil-Touched", "Pale Hunger", "the Hollow Crowned"},
 }
 
 // lgOpinion rolls how a legendary feels about the player and returns the word and a starting reputation.

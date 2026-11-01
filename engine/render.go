@@ -141,6 +141,9 @@ func (g *Game) drawMap() {
 		if a.HP <= 0 || !z.In(a.X, a.Y) {
 			continue
 		}
+		if a.Has("in_veil") && !inSeesHidden(a) { // veiled horrors need insight (insight.go)
+			continue
+		}
 		i := a.Y*MW + a.X
 		if g.visible(a.X, a.Y) {
 			bg := g.sc.B[a.Y*SW+a.X]
@@ -862,8 +865,8 @@ func (g *Game) drawTrade() {
 	a := g.Talk
 	x, y, w, _ := g.panel("Trade with " + a.Name)
 	half := w / 2
-	s.TextB(x, y, fmt.Sprintf("{{Y|%s}} {{W|%d %s}}", a.Name, a.Gold, g.Sk.Currency), CGray, CBgDark, x+half)
-	s.TextB(x+half+1, y, fmt.Sprintf("{{Y|You}} {{W|%d %s}}", g.P.Gold, g.Sk.Currency), CGray, CBgDark, x+w)
+	s.TextB(x, y, fmt.Sprintf("{{Y|%s}} {{W|%s}}", a.Name, g.cuFormat(a.Gold)), CGray, CBgDark, x+half)
+	s.TextB(x+half+1, y, "{{Y|You}} {{W|"+g.cuWallet()+"}}", CGray, CBgDark, x+w)
 	y += 2
 	for col, list := range [][]*Item{a.Inv, g.P.Inv} {
 		cx := x + col*(half+1)

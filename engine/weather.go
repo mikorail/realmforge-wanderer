@@ -63,6 +63,10 @@ var weatherKinds = []WeatherKind{
 	{ID: "sporerain", Name: "Spore rain", Start: "{{m|Sticky spore-laden rain patters down.}}", Color: CMagenta, Sight: 18, Wet: 2, Missile: 1, Overlay: "rain", Glyph: '\'', GlyphF: CMagenta},
 	{ID: "pollen", Name: "Pollen drift", Start: "{{W|Golden pollen drifts on a warm breeze.}}", Color: CYellow, Overlay: "spore", Glyph: '·', GlyphF: CYellow},
 	{ID: "tempest", Name: "Tempest of the Sky-Father", Start: "{{B|The Sky-Father's tempest breaks: thunder answers thunder.}}", Color: CBlue, Sight: 13, Wet: 3, Missile: 4, Slow: 10, Bolt: true, Overlay: "storm", Glyph: '/', GlyphF: CBlue},
+	{ID: "radstorm", Name: "Rad storm", Start: "{{G|A rad storm rolls in, the sky crawling green and the air tasting of metal.}}", Color: CGreen, Sight: 10, Wet: 1, Missile: 3, Slow: 10, Hurt: 1, Overlay: "dust", Glyph: '∙', GlyphF: CGreen},
+	{ID: "ashrain", Name: "Ash rain", Start: "{{K|Grey rain falls thick with ash and drags soot down the walls.}}", Color: CDarkGray, Sight: 14, Wet: 2, Missile: 1, Overlay: "ash", Glyph: '\'', GlyphF: CGray},
+	{ID: "bloodmoon", Name: "Blood moon", Start: "{{r|The moon swells and bleeds red. Something far off howls.}}", Color: CRed, Sight: 14, Missile: 1, Overlay: "spore", Glyph: '·', GlyphF: CDarkRed},
+	{ID: "miasma", Name: "Miasma", Start: "{{y|A sweet, rotten miasma seeps up from the drains.}}", Color: CDarkGreen, Sight: 7, Hurt: 1, Overlay: "fog"},
 	{ID: "steamfog", Name: "Coal fog", Start: "{{K|A yellow coal fog settles over everything.}}", Color: CBrown, Sight: 8, Missile: 1, Overlay: "fog"},
 }
 
@@ -78,6 +82,8 @@ var genreWeather = map[string][]struct {
 	"biopunk":    {{"rain", "sporerain", 0.5}, {"fog", "spores", 0.4}},
 	"solarpunk":  {{"clear", "pollen", 0.25}},
 	"mythic":     {{"storm", "tempest", 0.5}},
+	"wasteland":  {{"storm", "radstorm", 0.7}, {"rain", "fallout", 0.3}, {"sandstorm", "radstorm", 0.3}, {"overcast", "ashrain", 0.12}},
+	"twilight":   {{"fog", "miasma", 0.5}, {"clear", "bloodmoon", 0.15}, {"overcast", "ashrain", 0.3}, {"rain", "ashrain", 0.3}},
 }
 
 var wxByID = func() map[string]*WeatherKind {

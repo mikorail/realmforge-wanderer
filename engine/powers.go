@@ -407,6 +407,9 @@ func (g *Game) useItem(it *Item) {
 			g.Msg("The poison leaves you.")
 		}
 		g.consume(it)
+	case "map": // treasure maps (hunts.go)
+		bhRead(g, it)
+		return
 	case "book":
 		k := fmt.Sprintf("book:%s", it.Name)
 		if !g.Read[k] {
@@ -555,6 +558,7 @@ func (g *Game) take(it *Item) {
 		return
 	}
 	g.give(it)
+	g.uwPickup(it) // property in town buildings is theft (crime.go)
 	g.Msg("You pick up " + it.Display() + ".")
 	if it.SimArt > 0 && !g.Taken[it.SimArt] {
 		g.Taken[it.SimArt] = true
