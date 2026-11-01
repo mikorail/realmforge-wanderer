@@ -11,6 +11,10 @@ export interface Settings {
 	/** 0..1 */
 	musicVolume: number;
 	musicStyle: MusicStyle;
+	/** ambient weather sound effects (src/weathersfx.ts), separate from the music */
+	sfx: boolean;
+	/** 0..1 */
+	sfxVolume: number;
 	/** settings revision for one-time migrations (2 = garden styles exist) */
 	musicRev?: number;
 	/** cultural: per-land synthesised instruments; chiptune: pulse/triangle/noise only */
@@ -29,6 +33,8 @@ export const DEFAULT_SETTINGS: Settings = {
 	music: true,
 	musicVolume: 0.35,
 	musicStyle: 'auto',
+	sfx: true,
+	sfxVolume: 0.5,
 	musicRev: 2,
 	instrumentFlavour: 'cultural',
 	scale: 'auto',
@@ -49,6 +55,9 @@ function clean(raw: unknown): Settings {
 	if (typeof r.music === 'boolean') s.music = r.music;
 	const vol = r.musicVolume;
 	if (typeof vol === 'number' && Number.isFinite(vol)) s.musicVolume = Math.min(1, Math.max(0, vol));
+	if (typeof r.sfx === 'boolean') s.sfx = r.sfx;
+	const sv = r.sfxVolume;
+	if (typeof sv === 'number' && Number.isFinite(sv)) s.sfxVolume = Math.min(1, Math.max(0, sv));
 	if (MUSIC_STYLES.includes(r.musicStyle as MusicStyle)) s.musicStyle = r.musicStyle as MusicStyle;
 	// before the garden styles every saved settings object said 'chiptune' (the old default): move it to auto once
 	if (r.musicRev !== 2 && s.musicStyle === 'chiptune') s.musicStyle = 'auto';

@@ -23,6 +23,7 @@ func (g *Game) recompute() {
 		radius = 8
 	}
 	radius = g.weatherSight(radius)
+	radius = g.swSight(radius)
 	los[p.Y*MW+p.X] = true
 	for oct := 0; oct < 8; oct++ {
 		g.castLight(los, p.X, p.Y, 1, 1.0, 0.0, radius, oct)
@@ -246,6 +247,9 @@ func (g *Game) aiAct(a *Actor) {
 		return
 	}
 	if g.companionAct(a) {
+		return
+	}
+	if g.snShelterAct(a) { // seasons2.go: shelter from storms
 		return
 	}
 	p := g.P

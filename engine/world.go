@@ -44,6 +44,7 @@ type WorldData struct {
 	SectorNames []string          `json:"sectorNames"`
 	Terms       map[string]string `json:"terms"`
 	LayerNames  map[string]string `json:"layerNames"`
+	Forces      *WorldForces      `json:"forces,omitempty"` // genre forces on the map (socialworld.go)
 
 	burgByID    map[int]*BurgData
 	stateByID   map[int]*StateData
@@ -135,6 +136,138 @@ type StateData struct {
 	Founded   int         `json:"founded"`
 	Fell      int         `json:"fell"`
 	Feasts    []FeastData `json:"feasts,omitempty"` // the realm's own feast days (Realmforge realmFeasts)
+	// social systems (socialworld.go; all optional, older world files lack them)
+	SocialOrder  *SocialOrderData  `json:"socialOrder,omitempty"`
+	Forces       []ForceData       `json:"forces,omitempty"`
+	Reforms      *ReformsData      `json:"reforms,omitempty"`
+	Persecutions []PersecutionData `json:"persecutions,omitempty"`
+	Famine       *FamineData       `json:"famine,omitempty"`
+	Mixing       []MixData         `json:"mixing,omitempty"`
+}
+
+// SocialOrderData is how a realm's labour is organised (Realmforge society/socialorders.ts orderInfo).
+type SocialOrderData struct {
+	Kind      string `json:"kind"` // free caste feudal slave egalitarian
+	Name      string `json:"name"`
+	Form      string `json:"form"`
+	FormID    string `json:"formId,omitempty"` // thralls golems automata company corpfief greencommons ...
+	Workers   string `json:"workers"`
+	Construct bool   `json:"construct,omitempty"` // golems, bound spirits, automata, drones
+	Since     int    `json:"since"`
+	Pressure  int    `json:"pressure"`
+	Movement  bool   `json:"movement,omitempty"` // a reform / abolition movement is abroad
+	Prev      string `json:"prev,omitempty"`
+}
+
+// ForceData is one genre force touching a realm (smog strikes wareconomy armsrace fallout megacorps commons leylines genevats).
+type ForceData struct {
+	Kind string  `json:"kind"`
+	Name string  `json:"name"`
+	N    float64 `json:"n,omitempty"`
+	Note string  `json:"note,omitempty"`
+}
+
+type ReformsData struct {
+	Enacted   []string         `json:"enacted,omitempty"` // legal temperance franchise land tolerance
+	Movements []ReformMovement `json:"movements,omitempty"`
+}
+
+type ReformMovement struct {
+	Kind    string `json:"kind"`
+	Name    string `json:"name"`
+	Reform  string `json:"reform"`
+	Leader  string `json:"leader"`
+	Support int    `json:"support"`
+	Since   int    `json:"since"`
+}
+
+type PersecutionData struct {
+	Axis       string `json:"axis"` // culture faith
+	Target     int    `json:"target"`
+	TargetName string `json:"targetName"`
+	Kind       string `json:"kind"` // pogrom expulsion conversion
+	Name       string `json:"name"`
+	Since      int    `json:"since"`
+	Ended      int    `json:"ended,omitempty"`
+	Haven      int    `json:"haven"` // realm that took the refugees in (0 = none)
+}
+
+type FamineData struct {
+	Year   int    `json:"year"`
+	Choice string `json:"choice"` // relief hoard requisition scapegoat
+	Text   string `json:"text"`
+	Ruler  string `json:"ruler"`
+}
+
+// MixData: two peoples of a realm who intermarry.
+type MixData struct {
+	A      int    `json:"a"`
+	B      int    `json:"b"`
+	Unions int    `json:"unions"`
+	Since  int    `json:"since"`
+	House  string `json:"house,omitempty"`
+}
+
+type PrestigeData struct {
+	Score int     `json:"score"`
+	Rank  int     `json:"rank"`
+	Of    int     `json:"of"`
+	Mult  float64 `json:"mult"`
+}
+
+// OriginData: a people born of two others.
+type OriginData struct {
+	A     int `json:"a"`
+	B     int `json:"b"`
+	Year  int `json:"year"`
+	Realm int `json:"realm"`
+}
+
+type MixedData struct {
+	Culture int    `json:"culture"`
+	Species string `json:"species,omitempty"`
+}
+
+// WorldForces places the genre forces on the map (parasang indices).
+type WorldForces struct {
+	Active  []string           `json:"active,omitempty"`
+	Smog    []int              `json:"smog,omitempty"` // burg ids
+	Fallout []FalloutData      `json:"fallout,omitempty"`
+	Corps   []CorpData         `json:"corps,omitempty"`
+	Leys    []LeyData          `json:"leys,omitempty"`
+	Vats    map[string]float64 `json:"vats,omitempty"` // realm id → strain
+}
+
+type FalloutData struct {
+	P     []int  `json:"p"`
+	Core  []int  `json:"core"`
+	State int    `json:"state"`
+	By    int    `json:"by"`
+	From  int    `json:"from"`
+	Until int    `json:"until"`
+	Town  string `json:"town"`
+}
+
+type CorpData struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	HQ        int    `json:"hq"` // burg id
+	Host      int    `json:"host"`
+	Captured  int    `json:"captured"`
+	Influence int    `json:"influence"`
+	Founded   int    `json:"founded"`
+}
+
+type LeyData struct {
+	A    int     `json:"a"`
+	LA   string  `json:"la"`
+	B    int     `json:"b"`
+	LB   string  `json:"lb"`
+	AN   string  `json:"an"`
+	BN   string  `json:"bn"`
+	SA   int     `json:"sa"`
+	SB   int     `json:"sb"`
+	Draw float64 `json:"draw"`
 }
 
 type CultureData struct {
@@ -149,12 +282,14 @@ type CultureData struct {
 	Food    string   `json:"food"`
 	Dress   string   `json:"dress"`
 	// calendar and customs (optional; older world files lack them, see calendar.go fallbacks)
-	Months       []string    `json:"months,omitempty"` // 12 names, month 0 = the dark of the year
-	Feasts       []FeastData `json:"feasts,omitempty"`
-	Festivals    []string    `json:"festivals,omitempty"` // sphere festival lore, {realm}/{town} placeholders
-	Music        string      `json:"music,omitempty"`
-	Architecture string      `json:"architecture,omitempty"`
-	Values       []string    `json:"values,omitempty"`
+	Months       []string      `json:"months,omitempty"` // 12 names, month 0 = the dark of the year
+	Feasts       []FeastData   `json:"feasts,omitempty"`
+	Festivals    []string      `json:"festivals,omitempty"` // sphere festival lore, {realm}/{town} placeholders
+	Music        string        `json:"music,omitempty"`
+	Architecture string        `json:"architecture,omitempty"`
+	Values       []string      `json:"values,omitempty"`
+	Prestige     *PrestigeData `json:"prestige,omitempty"` // socialworld.go
+	Origin       *OriginData   `json:"origin,omitempty"`   // a mixed people
 }
 
 // FeastData is one feast day: Month is on Realmforge's 12-month scale (0 = midwinter); Text keeps {realm}/{town}.
@@ -175,26 +310,27 @@ type ReligionData struct {
 }
 
 type PersonData struct {
-	ID       int      `json:"id"`
-	Name     string   `json:"name"`
-	Role     string   `json:"role"`
-	Burg     int      `json:"burg"`
-	State    int      `json:"state"`
-	Culture  int      `json:"culture"`
-	Religion int      `json:"religion"`
-	Species  string   `json:"species"`
-	Martial  int      `json:"martial"`
-	Diplo    int      `json:"diplomacy"`
-	Steward  int      `json:"stewardship"`
-	Intrigue int      `json:"intrigue"`
-	Born     int      `json:"born"`
-	Died     int      `json:"died"`
-	Cause    string   `json:"cause"`
-	Alive    bool     `json:"alive"`
-	Traits   []string `json:"traits"`
-	Renown   int      `json:"renown"`
-	P        int      `json:"p"`
-	Title    string   `json:"title"`
+	ID       int        `json:"id"`
+	Name     string     `json:"name"`
+	Role     string     `json:"role"`
+	Burg     int        `json:"burg"`
+	State    int        `json:"state"`
+	Culture  int        `json:"culture"`
+	Religion int        `json:"religion"`
+	Species  string     `json:"species"`
+	Martial  int        `json:"martial"`
+	Diplo    int        `json:"diplomacy"`
+	Steward  int        `json:"stewardship"`
+	Intrigue int        `json:"intrigue"`
+	Born     int        `json:"born"`
+	Died     int        `json:"died"`
+	Cause    string     `json:"cause"`
+	Alive    bool       `json:"alive"`
+	Traits   []string   `json:"traits"`
+	Renown   int        `json:"renown"`
+	P        int        `json:"p"`
+	Title    string     `json:"title"`
+	Mixed    *MixedData `json:"mixed,omitempty"` // child of two peoples (socialworld.go)
 }
 
 type EventData struct {

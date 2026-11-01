@@ -5,6 +5,7 @@
 	import { saveRun, deleteRun } from './store';
 	import { recordDeeds } from './chronicle';
 	import { createMusic, type MusicHandle } from './music';
+	import { createWeatherSfx, type SfxHandle } from './weathersfx';
 	import { loadSettings, saveSettings, PALETTES, type Settings as Prefs, type PaletteName } from './settings';
 	import Settings from './Settings.svelte';
 	import Touch from './Touch.svelte';
@@ -24,6 +25,7 @@
 	let keys = 0;
 	let worldPending = world;
 	const music: MusicHandle = createMusic();
+	const sfx: SfxHandle = createWeatherSfx();
 	// touch layout: coarse pointer or a narrow window
 	let touch = $state(false);
 	let ctlH = $state(0);
@@ -41,6 +43,10 @@
 		music.setVolume(prefs.musicVolume);
 		music.setStyle(prefs.musicStyle);
 		music.setFlavour(prefs.instrumentFlavour);
+		sfx.setEnabled(prefs.sfx);
+		sfx.setVolume(prefs.sfxVolume);
+		// thunder plays on the SFX bus when it is on, so the music leaves it out
+		music.setThunder(!(prefs.sfx && prefs.sfxVolume > 0));
 	}
 
 	/** Host settings the engine reads (g.Pref). */
@@ -97,6 +103,7 @@
 		if (!f || 'error' in f) return;
 		frame = f;
 		music.setState(f.music);
+		sfx.setState(f.music);
 		draw();
 		keys++;
 		if (f.save || keys % prefs.autosaveEvery === 0) void persist();
@@ -204,6 +211,7 @@
 		applyAudio();
 		applyEngine();
 		music.setState(frame.music);
+		sfx.setState(frame.music);
 		resize();
 		// the play area shrinks when touch controls appear: refit the grid whenever it changes size
 		const ro = new ResizeObserver(() => resize());
@@ -218,6 +226,7 @@
 	});
 	onDestroy(() => {
 		music.dispose();
+		sfx.dispose();
 		void persist();
 	});
 </script>
