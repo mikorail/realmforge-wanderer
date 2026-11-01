@@ -16,6 +16,8 @@ export interface MusicHandle {
 	setStyle(s: MusicStyle): void;
 	/** instrument flavour; also picked up from the saved settings, so wiring it is optional */
 	setFlavour(f: InstrumentFlavour): void;
+	/** thunder on lightning strikes; off while the weather SFX layer (src/weathersfx.ts) plays it instead */
+	setThunder(on: boolean): void;
 	dispose(): void;
 }
 
@@ -392,6 +394,7 @@ export function createMusic(): MusicHandle {
 	let rumble: BiquadFilterNode; // thunder
 	let washF: BiquadFilterNode; // sand / ash / wind noise wash
 	let lastBolt = -1;
+	let thunderOn = true;
 	let waves: Record<string, PeriodicWave> = {};
 	let noiseLong: AudioBuffer;
 	let noiseShort: AudioBuffer;
@@ -1097,7 +1100,7 @@ export function createMusic(): MusicHandle {
 			st = m;
 			syncFlavour();
 			const bolt = m.bolt ?? 0;
-			if (lastBolt >= 0 && bolt > lastBolt && enabled && ensure()) thunder();
+			if (thunderOn && lastBolt >= 0 && bolt > lastBolt && enabled && ensure()) thunder();
 			lastBolt = bolt;
 			updateFight(m.combat ?? false);
 			const key = keyNow();
@@ -1124,6 +1127,9 @@ export function createMusic(): MusicHandle {
 			flavour = f;
 			flavT = Date.now();
 			requeue();
+		},
+		setThunder(on: boolean) {
+			thunderOn = on;
 		},
 		setEnabled(on: boolean) {
 			if (disposed) return;

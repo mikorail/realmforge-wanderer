@@ -2,7 +2,6 @@ package engine
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 )
 
@@ -323,17 +322,9 @@ func (g *Game) feastGossip(a *Actor) string {
 	return fmt.Sprintf("\"The %s is %s, on the %s of %s. Stay for it, if you can. %s\"", f.Name, when, ordinal(d.Day), d.Name, g.W.feastText(f, b))
 }
 
-// feastDish: the festive dish of a feast (the culture's signature dish plus the feast's own flavour).
+// feastDish: the festive dish of a feast (seasons2.go snFestivalDish: feast word + a staple, feast tag ×2).
 func (g *Game) feastDish(b *BurgData, f *FeastData) (name, key string) {
-	tag, word, _, _, _ := feastStyleOf(f.Kind)
-	tags := []string{tag, tag}
-	if cu := g.W.cultByID[b.Culture]; cu != nil {
-		if _, k := localDish(cu); k != "" {
-			tags = append(strings.Split(k, "+"), tag)
-		}
-	}
-	sort.Strings(tags)
-	return f.Name + " " + word, strings.Join(tags, "+")
+	return g.W.snFestivalDish(b, f)
 }
 
 func (g *Game) feastItem(b *BurgData, f *FeastData, n int) *Item {
@@ -373,6 +364,7 @@ func (g *Game) joinFeast(a *Actor) {
 	}
 	g.Feasts = append(g.Feasts, FeastLog{Name: f.Name, Town: b.Name, Year: year, Day: g.Day(), Text: text})
 	name, dk := g.feastDish(b, f)
+	g.snLearnFestival(name, dk, b.Name, f.Name)
 	g.spendTurns(30)
 	g.applyMeal(name, tagsOf(dk), DayLen, true)
 	g.P.Inv = append(g.P.Inv, g.feastItem(b, f, 1))
@@ -384,18 +376,20 @@ func (g *Game) joinFeast(a *Actor) {
 	g.talkMenu(fmt.Sprintf("%s takes you by the arm into the %s. %s\n\nYou eat the {{W|%s}} with the townsfolk and are sent off with a portion wrapped for the road.\n\n{{W|(Recorded in your journal.)}}", g.the(a), f.Name, text, name))
 }
 
-// feastStock: on a feast day a town's merchants also sell the festive dish.
+// feastStock: on a feast day and the few days before (snFeastWindow) a town's merchants sell the festive dish.
 func (g *Game) feastStock(a *Actor) {
-	b, f := g.feastToday()
+	b, f, fday := g.snFeastWindow()
 	if f == nil || a.Role != "merchant" {
 		return
 	}
-	flag := "feast:" + feastKey(b, f, g.W.DateOf(nil, g.Day()).Year)
+	flag := "feast:" + feastKey(b, f, g.W.DateOf(nil, fday).Year)
 	if a.Has(flag) {
 		return
 	}
 	a.Set(flag)
-	a.Inv = append(a.Inv, g.feastItem(b, f, 2))
+	it := g.feastItem(b, f, 2)
+	it.Extra = map[string]int{"snF": fday + 1}
+	a.Inv = append(a.Inv, it)
 }
 
 // ---- decorations ----

@@ -450,6 +450,7 @@ func (g *Game) cook(cands []*Item) {
 		dish = &g.Cookbook[len(g.Cookbook)-1]
 	}
 	dish.Cooked++
+	g.snMarkSeasonal(key, ings)
 	for _, it := range ings {
 		g.useUp(it)
 	}
@@ -557,6 +558,7 @@ func (g *Game) makeDish(cu *CultureData, n int) *Item {
 
 func (g *Game) eatDish(it *Item) {
 	g.Msg("You eat the " + it.Name + ". It is still warm.")
+	g.snNoteEaten(it)
 	g.applyMeal(it.Name, tagsOf(it.Effect), 1200, false)
 	g.consume(it)
 }
@@ -731,7 +733,7 @@ func (g *Game) cookbookLines() []string {
 		if d.Where != "" {
 			where = " first cooked among the " + d.Where + ","
 		}
-		lines = append(lines, fmt.Sprintf("{{W|%s}} {{K|(%s;%s cooked %d×)}}", d.Name, strings.Join(d.Tags, " + "), where, d.Cooked))
+		lines = append(lines, fmt.Sprintf("{{W|%s}}%s {{K|(%s;%s cooked %d×)}}", d.Name, g.snMark(d.Key), strings.Join(d.Tags, " + "), where, d.Cooked))
 		lines = append(lines, Wrap("  "+strings.Join(eff, ", "), SW-6)...)
 	}
 	if len(lines) == 0 {

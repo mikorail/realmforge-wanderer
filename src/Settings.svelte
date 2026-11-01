@@ -135,6 +135,23 @@
 			</select>
 		</label>
 
+		<label class="row">
+			<span>Weather sounds</span>
+			<input type="checkbox" checked={settings.sfx} onchange={(e) => set('sfx', e.currentTarget.checked)} />
+		</label>
+		<label class="row" class:off={!settings.sfx}>
+			<span>Sounds volume <output>{Math.round(settings.sfxVolume * 100)}%</output></span>
+			<input
+				type="range"
+				min="0"
+				max="1"
+				step="0.05"
+				value={settings.sfxVolume}
+				disabled={!settings.sfx}
+				oninput={(e) => set('sfxVolume', Number(e.currentTarget.value))}
+			/>
+		</label>
+
 		<h3>Display</h3>
 		<label class="row">
 			<span>Cell size</span>

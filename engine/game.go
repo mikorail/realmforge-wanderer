@@ -1256,6 +1256,7 @@ type Music struct {
 	Feast  bool    `json:"feast"`  // a feast day in this town
 	Combat bool    `json:"combat"` // a hostile is in sight
 	Planet string  `json:"planet"` // planet kind (Realmforge planetKind), "" for an old world file
+	Shore  bool    `json:"shore"`  // open water fills much of this outdoor zone (surf SFX, seasons2.go)
 }
 
 func (g *Game) MusicState() Music {
@@ -1277,6 +1278,7 @@ func (g *Game) MusicState() Music {
 	if w := g.activeWeather(); w != nil {
 		m.Wx = w.Kind.ID // weather.go kind id when outdoors
 	}
+	m.Shore = g.snShore()
 	switch {
 	case z.Kind == "town":
 		m.Mood = "town"

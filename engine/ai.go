@@ -248,6 +248,9 @@ func (g *Game) aiAct(a *Actor) {
 	if g.companionAct(a) {
 		return
 	}
+	if g.snShelterAct(a) { // seasons2.go: shelter from storms
+		return
+	}
 	p := g.P
 	// pick a target: the player if hostile, else the nearest enemy actor
 	var tgt *Actor
