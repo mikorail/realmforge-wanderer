@@ -341,3 +341,33 @@ func TestCompanions2SaveLoad(t *testing.T) {
 		t.Errorf("companion cooldown lost")
 	}
 }
+
+// A long walk with companions: nothing panics and banter stays rare.
+func TestCompanions2Soak(t *testing.T) {
+	g := newGame(t, nil)
+	a := recruitOne(t, g)
+	b := recruitOne(t, g)
+	cpFit(g, a, "medic")
+	cpFit(g, b, "flamer")
+	cpFit(g, b, "bulwark")
+	a.Comp.Loyalty, b.Comp.Loyalty = 90, 25
+	home := g.Cur
+	t0 := g.Turn
+	r := NewRng("soak")
+	for i := 0; i < 60; i++ {
+		g.Warp(home.WX+r.Int(-4, 4), home.WY+r.Int(-4, 4), r.Int(0, 2), r.Int(0, 2), 0)
+		g.P.HP = g.P.MaxHP
+		for k := 0; k < 120 && !g.Dead; k++ {
+			g.spend(1000)
+		}
+		if g.Dead {
+			break
+		}
+	}
+	lines := cbCount(g, a) + cbCount(g, b)
+	mins := g.Turn - t0
+	t.Logf("%d banter lines in %d minutes", lines, mins)
+	if lines > mins/cbGlobal+mins/cbQuip*2+10 {
+		t.Errorf("banter too chatty: %d lines in %d minutes", lines, mins)
+	}
+}
