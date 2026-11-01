@@ -1,6 +1,8 @@
 /** Player preferences, persisted in localStorage. Plain module: the UI holds the value in $state and passes it around. */
 
-export type MusicStyle = 'chiptune' | 'ambient';
+/** auto picks drift / pastoral / desert by place (garden.ts); chiptune and ambient are the original sequencer */
+export type MusicStyle = 'auto' | 'drift' | 'pastoral' | 'desert' | 'chiptune' | 'ambient';
+export const MUSIC_STYLES: MusicStyle[] = ['auto', 'drift', 'pastoral', 'desert', 'chiptune', 'ambient'];
 export type InstrumentFlavour = 'cultural' | 'chiptune';
 export type PaletteName = 'qud' | 'classic' | 'contrast';
 
@@ -9,6 +11,8 @@ export interface Settings {
 	/** 0..1 */
 	musicVolume: number;
 	musicStyle: MusicStyle;
+	/** settings revision for one-time migrations (2 = garden styles exist) */
+	musicRev?: number;
 	/** cultural: per-land synthesised instruments; chiptune: pulse/triangle/noise only */
 	instrumentFlavour: InstrumentFlavour;
 	/** 'auto' fits the grid to the window; a number multiplies the fitted cell height */
@@ -24,7 +28,8 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
 	music: true,
 	musicVolume: 0.35,
-	musicStyle: 'chiptune',
+	musicStyle: 'auto',
+	musicRev: 2,
 	instrumentFlavour: 'cultural',
 	scale: 'auto',
 	palette: 'qud',
@@ -44,7 +49,10 @@ function clean(raw: unknown): Settings {
 	if (typeof r.music === 'boolean') s.music = r.music;
 	const vol = r.musicVolume;
 	if (typeof vol === 'number' && Number.isFinite(vol)) s.musicVolume = Math.min(1, Math.max(0, vol));
-	if (r.musicStyle === 'chiptune' || r.musicStyle === 'ambient') s.musicStyle = r.musicStyle;
+	if (MUSIC_STYLES.includes(r.musicStyle as MusicStyle)) s.musicStyle = r.musicStyle as MusicStyle;
+	// before the garden styles every saved settings object said 'chiptune' (the old default): move it to auto once
+	if (r.musicRev !== 2 && s.musicStyle === 'chiptune') s.musicStyle = 'auto';
+	s.musicRev = 2;
 	if (r.instrumentFlavour === 'cultural' || r.instrumentFlavour === 'chiptune') s.instrumentFlavour = r.instrumentFlavour;
 	const sc = r.scale;
 	if (sc === 'auto') s.scale = 'auto';

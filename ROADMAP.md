@@ -26,6 +26,7 @@
 
 - Local calendars and feasts from Realmforge (month names, town festivals).
 - Plug-in hook registry (`engine/hooks.go`), first-time tips, touch controls, ambient music style.
+- Garden soundtrack (`src/garden.ts`): drift (Eno / C418 phasing loops, sparse piano, silences), pastoral (Stardew fingerpicking and motif melodies by season), desert (Qud modal drones, synth phrases, analog arp, hand drum); "Adaptive" picks by place and is the new default.
 - Sandbox mode (F2), player homes and stash (H, F3), joinable wars with ranks (W), workbench crafting with bits, schematics, mods and infusions (T), cults/orders/guilds (O), codex journal (bestiary, atlas, library, people).
 - Realmforge link: chronicle export/import, live "Play in Wanderer", time passes in the sim, outlaw cap.
 - Qud design study: `docs/QUD_REFERENCE.md`.
@@ -41,3 +42,4 @@
 - Seasonal ingredients and festival dishes tied to the calendar.
 - Weather-aware NPC schedules (shelter indoors during storms).
 - Ambient weather sound effects separate from the music bus, with their own volume setting.
+- Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.

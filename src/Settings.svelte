@@ -114,8 +114,12 @@
 				disabled={!settings.music}
 				onchange={(e) => set('musicStyle', e.currentTarget.value as MusicStyle)}
 			>
+				<option value="auto">Adaptive (by place)</option>
+				<option value="drift">Drift (Eno / C418)</option>
+				<option value="pastoral">Pastoral (Stardew)</option>
+				<option value="desert">Desert synth (Qud)</option>
 				<option value="chiptune">Chiptune</option>
-				<option value="ambient">Ambient</option>
+				<option value="ambient">Ambient sequencer</option>
 			</select>
 		</label>
 
