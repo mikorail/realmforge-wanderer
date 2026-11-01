@@ -170,8 +170,8 @@ func (g *Game) cqMake(a *Actor) *cqQuest {
 			who = invent()
 		}
 		q.Title = fmt.Sprintf("%s: avenge %s %s", givenOf(a.Name), possessiveWord(a), who)
-		q.Text = fmt.Sprintf("\"Before I left %s, %s took my %s on the road and left them crippled. They say it still haunts the land %s of %s. I want it dead, and I want to be there when it falls.\"",
-			town, q.Foe, who, cqDir(hx, hy, x, y), town)
+		q.Text = fmt.Sprintf("\"Before I left %s, %s took my %s on the road and left them crippled. They say %s still haunts the land %s of %s. I want to be there when it falls.\"",
+			town, q.Foe, who, q.Foe, cqDir(hx, hy, x, y), town)
 		q.Perk = "STR"
 	case "heirloom":
 		item := Pick(r, []string{"silver locket", "grandmother's ring", "carved family seal", "wedding torc", "old house blade", "book of the household"})
