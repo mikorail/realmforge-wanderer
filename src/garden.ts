@@ -87,8 +87,8 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 	hallIn.connect(hallLp).connect(hall).connect(hallOut).connect(out);
 
 	const AHEAD = 0.6;
-	/** per-style bus level, matched by offline render to about -26 dB RMS before the master volume */
-	const LEVEL: Record<GardenStyle, number> = { drift: 1.8, pastoral: 0.09, desert: 1.6 };
+	/** per-style bus level, matched by offline render (about -35 dB raw before the compressor and master volume) */
+	const LEVEL: Record<GardenStyle, number> = { drift: 1.8, pastoral: 1, desert: 1.35 };
 	let scene: Scene | null = null;
 	const dying = new Set<GainNode>();
 

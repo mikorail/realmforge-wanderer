@@ -119,9 +119,12 @@ function pluck(name: string): Inst {
 			const lp = c.createBiquadFilter();
 			lp.type = 'lowpass';
 			lp.frequency.value = Math.min(11000, f * p.bright * 2 + 500);
-			lp.Q.value = 0.2;
+			// Web Audio's low-pass Q is in dB: anything above 0 adds a resonant bump, which inside this
+			// feedback loop pushed the loop gain past 1 and made low or repeated notes run away (×3000).
+			// A negative Q keeps the filter below unity everywhere; the feedback is also capped.
+			lp.Q.value = -6;
 			const fb = gainNode(c);
-			fb.gain.value = Math.pow(0.001, per / T);
+			fb.gain.value = Math.min(0.996, Math.pow(0.001, per / T));
 			const og = gainNode(c);
 			og.gain.setValueAtTime(1, t);
 			og.gain.setValueAtTime(1, t + T * 0.7);
