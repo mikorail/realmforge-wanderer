@@ -100,7 +100,10 @@ var (
 	}
 )
 
-func (g *Game) strataDefFor(bd *BurgData) *strataDef {
+// strataDefFor: the base ladder adapted to the realm's social order (socialworld.go).
+func (g *Game) strataDefFor(bd *BurgData) *strataDef { return g.swStrata(bd, g.strataBase(bd)) }
+
+func (g *Game) strataBase(bd *BurgData) *strataDef {
 	switch g.Genre {
 	case "cyberpunk":
 		return defCyber
