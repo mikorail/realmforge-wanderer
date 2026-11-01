@@ -29,6 +29,7 @@ export interface QudMusic {
 	sphere?: string; // culture sphere of the land (instruments, scales)
 	feast?: boolean; // feast day in this town
 	combat?: boolean; // a hostile is in sight
+	shore?: boolean; // open water fills much of this outdoor zone (surf SFX)
 }
 type Err = { error: string };
 export interface QudApi {

@@ -373,9 +373,21 @@ func (g *Game) snThreat(a *Actor) bool {
 }
 
 // snShelterMap: steps from every free roofed tile (multi-source BFS), or from trees/bushes for beasts.
+// Cached per zone, turn and kind: many actors act in one minute.
+var snMapCache struct {
+	z     *Zone
+	turn  int
+	beast bool
+	d     []int
+}
+
 func (g *Game) snShelterMap(beast bool) []int {
 	z := g.Cur
+	if c := &snMapCache; c.z == z && c.turn == g.Turn && c.beast == beast && c.d != nil {
+		return c.d
+	}
 	d := make([]int, MW*MH)
+	snMapCache.z, snMapCache.turn, snMapCache.beast, snMapCache.d = z, g.Turn, beast, d
 	var q []int
 	for i := range d {
 		d[i] = 1 << 20
