@@ -5,6 +5,7 @@
 // src/scales.ts) and "pure chiptune" (pulse / triangle / noise only).
 import type { QudMusic } from './qud';
 import { loadSettings, type InstrumentFlavour, type MusicStyle } from './settings';
+import { createGarden, gardenFor, type Garden, type GardenStyle } from './garden';
 import { FEELS, GENERIC, GENRE_COLOUR, MOOD_LEADS, PROFILES, SCALES, type GenreColour, type Profile } from './scales';
 import { INST, clap, createKit, disposeKit, drone2, hit, sweep, tex, type Kit, type TexKind } from './instruments';
 
@@ -397,13 +398,14 @@ export function createMusic(): MusicHandle {
 	let timer: ReturnType<typeof setInterval> | null = null;
 	let enabled = true;
 	let volume = 0.35;
-	let style: MusicStyle = 'chiptune';
+	let style: MusicStyle = 'auto';
 	let flavour: InstrumentFlavour = 'cultural';
 	try { flavour = loadSettings().instrumentFlavour; } catch { /* default */ }
 	let flavT = 0;
 	let fxT = 0;
 	let clNow = 0;
 	let kit: Kit | null = null;
+	let garden: Garden | null = null;
 	let fxIn!: GainNode;
 	let roomPre!: BiquadFilterNode;
 	let roomOut!: GainNode;
@@ -526,6 +528,7 @@ export function createMusic(): MusicHandle {
 				springOut.gain.value = 0;
 				fxIn.connect(spring).connect(springOut).connect(tone);
 				kit = createKit(c);
+				garden = createGarden(c, kit, tone);
 			} catch {
 				ctx = null;
 				return false;
@@ -988,6 +991,12 @@ export function createMusic(): MusicHandle {
 	}
 
 	const UNDER = new Set(['dungeon', 'underdark', 'crypt']);
+	function gardenStyle(): GardenStyle | null {
+		if (!st || fight) return null;
+		if (style === 'auto') return gardenFor(st);
+		if (style === 'drift' || style === 'pastoral' || style === 'desert') return style;
+		return null;
+	}
 	function applyFx(now: number) {
 		if (!fxIn || !st) return;
 		const on = flavour === 'cultural';
@@ -1027,6 +1036,15 @@ export function createMusic(): MusicHandle {
 				pendingKey = k === activeKey ? null : k;
 			}
 		}
+
+		// garden styles (drift / pastoral / desert) play outside combat; the sequencer keeps the fights
+		const gs = gardenStyle();
+		if (gs && garden) {
+			if (cur) { retire(cur, now + 0.05, 2.5); cur = null; activeKey = ''; }
+			garden.tick(st, gs, flavour === 'cultural', now);
+			return;
+		}
+		if (garden?.playing) { garden.stop(now + 0.05, 2.5); activeKey = ''; pendingKey = keyNow(); }
 
 		if (!cur || cur.done) {
 			if (pendingKey !== null) {
@@ -1132,6 +1150,8 @@ export function createMusic(): MusicHandle {
 			if (suspendT !== null) { clearTimeout(suspendT); suspendT = null; }
 			cur = null;
 			pendingKey = null;
+			garden?.dispose();
+			garden = null;
 			if (kit) disposeKit(kit);
 			kit = null;
 			const c = ctx;
