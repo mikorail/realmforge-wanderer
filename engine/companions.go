@@ -446,6 +446,9 @@ func (g *Game) companionAct(a *Actor) bool {
 		return false
 	}
 	c := g.comp(a)
+	if g.cpCast(a) { // active powers (comppowers.go)
+		return true
+	}
 	switch a.Order {
 	case OrdStay:
 		if t := g.nearestFoe(a, a.X, a.Y, 1); t != nil {
@@ -641,6 +644,7 @@ func (g *Game) companionTalk(a *Actor, text string) {
 			g.augMenuFor(inst, a)
 		})
 	}
+	g.Opts = append(g.Opts, g.cqTalkOptions(a)...) // personal quests (compquest.go)
 	add("Tell me about yourself.", func() { g.companionTalk(a, g.compAbout(a)) })
 	add("How are you holding up?", func() { g.companionTalk(a, g.compMood(a)) })
 	add("{{r|Let's part ways.}}", func() {

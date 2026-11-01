@@ -21,6 +21,9 @@
 - Body augments: 20 augments skinned per genre, installers in cities, capacity.
 - Companion augments: installers fit and remove augments on companions (own capacity); they keep them through save/load and after parting ways.
 - Companion food: give a dish (meal tags + `fed`) or a raw ingredient; shared cooked meals give a small loyalty bonus (once every 6 hours).
+- Companion banter: home town, own/enemy realm, temples, wonders, ruins, weather, feasts, meals and night camps, level-ups, grumbles, companion pairs (kin, rival realms), kill and near-death one-liners; per-companion and global cooldowns.
+- Companion personal quests: avenge a kinsman, recover a family heirloom, make peace with an estranged relative, settle a debt at home; loyalty, perk and deed.
+- Companions use active powers in combat (augments and natural): heal, flames/freeze/lightning/bolt on foes clear of allies, drain, sprint/phase to flee, force bubble, stun.
 - Adaptive chiptune soundtrack: mood, genre, biome, danger, hp, day/night, depth.
 - Soundtrack follows weather and seasons: rain patter, thunder on lightning strikes, sparse high snow, fog drones, sand/ash noise wash, slower heat; seasons shift key and mode.
 
@@ -40,6 +43,4 @@
 
 ## Planned / ideas
 - Export social orders, genre forces and persecution from Realmforge and use them in towns and talk.
-- Companion banter and personal quests drawn from their kin and home town.
-- Companions using granted active augment powers (heal, flames, phase) in combat.
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
