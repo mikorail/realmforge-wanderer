@@ -128,26 +128,36 @@ var cbLines = map[string][]cbLine{
 		{"", "{other}, how do they do things in {othertown}?"},
 		{"", "You snore, {other}. Just so you know."},
 		{"", "Ever think of going home, {other}?"},
+		{"", "What's the first thing you'll do when this is over, {other}?"},
+		{"", "{other}, does {you} ever tell you where we're going?"},
 	},
 	"pair_re": {
 		{"", "Better than in {othertown}, {other}, I can promise you that."},
 		{"", "And you talk in your sleep, {other}. We're even."},
 		{"", "Every day, {other}. Then I remember why I left."},
+		{"", "Sleep for a week, {other}. Then eat for another."},
+		{"", "Never, {other}. I've stopped asking."},
 	},
 	"pair_kin": {
 		{"", "{other}, do you remember the old well in {town}?"},
 		{"", "Your mother would skin us both if she saw us now, {other}."},
+		{"", "Who'd have thought, {other}? Two of us from {town}, this far from home."},
+		{"", "Do you think they still talk about us in {town}, {other}?"},
 	},
 	"pair_kin_re": {
 		{"", "Remember it? I fell in it, {other}. Twice."},
 		{"", "She'd skin you first, {other}. You were always the bad influence."},
+		{"", "Not me, {other}. I always knew you'd drag me somewhere."},
+		{"", "Only to say we'll come to a bad end, {other}."},
 	},
 	"pair_rival": {
 		{"", "Your {otherrealm} burned my cousin's farm, {other}."},
 		{"", "Funny. Back home I'd be paid to kill you, {other}."},
+		{"", "When the war ends, {other}, which side of the line will you stand on?"},
 	},
 	"pair_rival_re": {
-		{"", "And {otherrealm} hanged my uncle. Out here, we fight the same things, {other}."},
+		{"", "And {otherrealm} hanged my uncle. Out here we fight the same things, {other}."},
 		{"", "Same here, {other}. Let's not tell anyone at home."},
+		{"", "Whichever side {you} is on, {other}. Same as you."},
 	},
 }

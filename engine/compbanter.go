@@ -16,9 +16,10 @@ import (
 // kin); the pick is a hash of seed + trigger + companion + hour, never g.R. State in g.ext("cb").
 
 const (
-	cbGap    = 240 // minutes between two lines of one companion
-	cbGlobal = 50  // minutes between any two lines
-	cbQuip   = 40  // minutes between one-liners (kills, near death, level-ups) of one companion
+	cbGap     = 240 // minutes between two lines of one companion
+	cbGlobal  = 50  // minutes between any two lines
+	cbQuip    = 40  // minutes between one-liners (kills, near death, level-ups) of one companion
+	cbPairGap = 720 // minutes between two companion exchanges
 )
 
 type cbState struct {
@@ -31,12 +32,18 @@ type cbState struct {
 	Feast  map[int]int     `json:"f,omitempty"`  // day of the last feast line
 	Wx     string          `json:"wx,omitempty"` // last weather commented on
 	Low    map[int]bool    `json:"lo,omitempty"` // near-death quip given (until healed)
+	Said   map[int]string  `json:"sd,omitempty"` // last line of each companion (no immediate repeats)
+	Pair   int             `json:"p,omitempty"`  // turn of the last companion exchange
+	PairN  int             `json:"pn,omitempty"` // exchanges so far (cycles the pair lines)
 }
 
 func (g *Game) cb() *cbState {
 	st := g.ext("cb", func() any { return &cbState{} }).(*cbState)
 	if st.Last == nil {
 		st.Last, st.Quip, st.Seen, st.Lvl, st.Meal, st.Feast, st.Low = map[int]int{}, map[int]int{}, map[string]bool{}, map[int]int{}, map[int]int{}, map[int]int{}, map[int]bool{}
+	}
+	if st.Said == nil {
+		st.Said = map[int]string{}
 	}
 	return st
 }
@@ -171,10 +178,18 @@ func (g *Game) cbPick(trigger string, a *Actor, vars map[string]string) string {
 	if len(cands) == 0 {
 		return ""
 	}
-	return g.cbFill(a, cands[(h/2)%uint64(len(cands))], vars)
+	k := int((h / 2) % uint64(len(cands)))
+	if len(cands) > 1 && cands[k] == g.cb().Said[a.ID] {
+		k = (k + 1) % len(cands)
+	}
+	g.cb().Said[a.ID] = cands[k]
+	return g.cbFill(a, cands[k], vars)
 }
 
 func (g *Game) cbSay(a *Actor, text string) {
+	if r := []rune(text); len(r) > 0 {
+		text = strings.ToUpper(string(r[0])) + string(r[1:])
+	}
 	g.Msg(fmt.Sprintf("{{c|%s:}} \"%s\"", givenOf(a.Name), text))
 }
 
@@ -337,24 +352,29 @@ func (g *Game) cbTick() {
 
 // cbPair: a and b exchange a line and a reply (both cooldowns apply).
 func (g *Game) cbPair(a, b *Actor) {
-	if !g.cbCan(a) || !g.cbCan(b) {
+	st := g.cb()
+	if !g.cbCan(a) || !g.cbCan(b) || st.Pair > 0 && g.Turn-st.Pair < cbPairGap {
 		return
 	}
 	ca, cb2 := a.Comp, b.Comp
 	trig := "pair"
-	vars := map[string]string{"other": givenOf(b.Name), "otherrealm": g.FactionName(cb2.Faction), "othertown": nonEmpty(cb2.Town, "elsewhere")}
 	switch {
 	case ca.HomeKey == cb2.HomeKey || a.House != "" && a.House == b.House:
 		trig = "pair_kin"
 	case strings.HasPrefix(ca.Faction, "state:") && strings.HasPrefix(cb2.Faction, "state:") && g.atWar(ca.Faction, cb2.Faction):
 		trig = "pair_rival"
 	}
-	if !g.cbSpeak(trig, a, vars) {
+	open, re := cbLines[trig], cbLines[trig+"_re"]
+	if len(open) == 0 || len(re) == 0 {
 		return
 	}
-	g.cb().Global = 0
-	g.cbSpeak(trig+"_re", b, map[string]string{"other": givenOf(a.Name), "otherrealm": g.FactionName(ca.Faction), "othertown": nonEmpty(ca.Town, "elsewhere")})
-	g.cb().Global = g.Turn + 1
+	// openers and replies go together by index; cycle through them so pairs rarely repeat
+	i := int((HashStr(g.W.Seed+":cbpair:"+trig) + uint64(st.PairN)) % uint64(len(open)))
+	st.PairN++
+	st.Pair = g.Turn
+	g.cbSay(a, g.cbFill(a, open[i].Text, map[string]string{"other": givenOf(b.Name), "otherrealm": g.FactionName(cb2.Faction), "othertown": nonEmpty(cb2.Town, "elsewhere")}))
+	g.cbSay(b, g.cbFill(b, re[i%len(re)].Text, map[string]string{"other": givenOf(a.Name), "otherrealm": g.FactionName(ca.Faction), "othertown": nonEmpty(ca.Town, "elsewhere")}))
+	st.Last[a.ID], st.Last[b.ID], st.Global = g.Turn, g.Turn, g.Turn+1
 }
 
 // cbKill: a companion's kill gets a one-liner now and then (kill hook).
