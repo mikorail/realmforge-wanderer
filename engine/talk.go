@@ -51,6 +51,9 @@ func (g *Game) greeting(a *Actor) string {
 	case rep <= -250:
 		return "\"...What do you want?\" They eye you warily."
 	}
+	if sg := g.snGreeting(a); sg != "" {
+		return sg
+	}
 	if fg := g.feastGreeting(a); fg != "" {
 		return fg
 	}
@@ -716,6 +719,10 @@ func (g *Game) price(it *Item, buy bool) int {
 }
 
 func (g *Game) openTrade(a *Actor) {
+	if g.snMarketClosed(a) {
+		return
+	}
+	g.snStock(a)
 	g.feastStock(a)
 	g.Talk = a
 	g.Mode = "trade"
