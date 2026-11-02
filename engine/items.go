@@ -129,14 +129,26 @@ func (g *Game) Loot(r *Rng, tier int) *Item {
 	}
 	switch x := r.Int(0, 99); {
 	case x < 20:
+		if x >= 11 {
+			return gear(g.wpLoot(r, tier)) // new families and sphere weapons (wpweapons.go)
+		}
 		return gear(g.MakeWeapon(Pick(r, []string{"longblade", "shortblade", "axe", "cudgel"}), tier, r))
 	case x < 33:
+		if x >= 30 {
+			return gear(g.wpLootArmor(r, tier))
+		}
 		return gear(g.MakeArmor(Pick(r, []string{"body", "head", "feet", "hands", "back", "face"}), tier, r))
 	case x < 35:
 		return gear(g.MakeBackpack(clampi(tier, 0, 5)))
 	case x < 42:
+		if x >= 39 {
+			return gear(g.wpLootRanged(r, tier))
+		}
 		return gear(g.MakeRanged(tier, r))
 	case x < 50:
+		if x >= 47 {
+			return g.wpLootAmmo(r)
+		}
 		return g.MakeAmmo(r.Int(8, 20))
 	case x < 66:
 		return g.MakeTonic(Pick(r, []string{"heal", "heal", "salve", "haste", "strength", "antidote"}), 1)
@@ -199,7 +211,7 @@ func (it *Item) Describe(g *Game) []string {
 	case "weapon":
 		l = append(l, fmt.Sprintf("%s  {{c|→}}%d  {{R|♥}}%dd%d  max STR bonus %d", skillName(it.Skill), it.PV, it.DN, it.DS, it.MaxStr))
 	case "ranged":
-		l = append(l, fmt.Sprintf("missile  {{c|→}}%d  {{R|♥}}%dd%d  range %d  uses %s", it.PV, it.DN, it.DS, it.Range, g.Sk.Ammo))
+		l = append(l, fmt.Sprintf("missile  {{c|→}}%d  {{R|♥}}%dd%d  range %d  uses %s", it.PV, it.DN, it.DS, it.Range, g.wpAmmoLabel(it)))
 	case "armor":
 		l = append(l, fmt.Sprintf("worn on %s  {{C|◆}}%d AV  {{K|○}}%d DV", it.Slot, it.AV, it.DV))
 	case "light":
@@ -237,6 +249,7 @@ func (it *Item) Describe(g *Game) []string {
 			l = append(l, fmt.Sprintf("Activate (a) to invoke %s. %d charges.", g.Sk.PowerName(it.Effect), it.Charges))
 		}
 	}
+	l = append(l, g.wpDescribe(it)...)
 	if it.Elem != "" {
 		l = append(l, "Deals "+it.Elem+" damage.")
 	}

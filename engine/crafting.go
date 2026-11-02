@@ -359,7 +359,7 @@ func (g *Game) craftRecipes() []*cRecipe {
 		rs = append(rs, &cRecipe{ID: fmt.Sprintf("g:%s:%d", g.Genre, i), Name: s.Name, Kind: kind, Rank: 3, Genre: g.Genre,
 			Cost: map[int]int{3: 4, 4: 2}, Ess: 1, Make: func() *Item { return g.buildSig(s, "", g.sigTier()+1, "rare") }})
 	}
-	return rs
+	return append(rs, g.wpRecipes()...) // new ammo and sphere weapons (wpweapons.go)
 }
 
 func (g *Game) recipeByID(id string) *cRecipe {

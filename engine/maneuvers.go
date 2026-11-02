@@ -225,8 +225,8 @@ func (g *Game) skRun(n string, tx, ty int) bool {
 			g.Msg("You need a missile weapon and a target.")
 			return false
 		}
-		if !g.useAmmo() {
-			g.Msg("You're out of " + g.Sk.Ammo + ".")
+		if !g.wpUseAmmo(m) {
+			g.Msg("You're out of " + g.wpAmmoLabel(m) + ".")
 			return false
 		}
 		before := d.HP
@@ -333,6 +333,9 @@ func (g *Game) skRun(n string, tx, ty int) bool {
 			g.Msg("You sift the rubbish and find only rubbish.")
 		}
 	default:
+		if ok, done := g.wpRun(n, tx, ty); done {
+			return ok
+		}
 		g.Msg("Nothing happens.")
 		return false
 	}
