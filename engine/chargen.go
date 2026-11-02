@@ -99,6 +99,9 @@ var callingDefs = []CallingDef{
 var SkillIDs = []string{"longblade", "shortblade", "axe", "cudgel", "missile", "tinkering", "persuasion", "survival", "acrobatics", "endurance", "lore"}
 
 func skillName(id string) string {
+	if n, ok := wpSkillNames[id]; ok {
+		return n
+	}
 	switch id {
 	case "longblade":
 		return "Long Blade"

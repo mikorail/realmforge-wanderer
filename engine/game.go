@@ -307,6 +307,7 @@ func (g *Game) equip(it *Item) bool {
 	}
 	part.Item = it
 	g.removeInv(it)
+	g.wpEquipped(a, part, it) // two-handed rules (wpweapons.go)
 	return true
 }
 

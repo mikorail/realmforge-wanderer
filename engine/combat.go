@@ -7,6 +7,7 @@ import (
 
 // melee swings every wielded weapon / natural attack, Qud-style: primary always, off-hands by chance.
 func (g *Game) melee(a, d *Actor) {
+	g.wpBeforeMelee(a, d) // braced spears strike first (wpweapons.go)
 	ws := a.Weapons()
 	for i, w := range ws {
 		if d.HP <= 0 || a.HP <= 0 {
@@ -20,6 +21,7 @@ func (g *Game) melee(a, d *Actor) {
 			if w.Skill == "natural" && a != g.P {
 				chance = 0.6
 			}
+			chance = wpOffChance(w, chance)
 			if !g.R.Chance(chance) {
 				continue
 			}
@@ -47,7 +49,7 @@ func (g *Game) skillLv(a *Actor, s string) int {
 func (g *Game) swing(a, d *Actor, w *Item) {
 	sk := g.skillLv(a, w.Skill)
 	roll := g.R.Int(1, 20)
-	hit := roll + a.M(AGI) + sk + skStatusToHit(a)
+	hit := roll + a.M(AGI) + sk + skStatusToHit(a) + wpHitMod(a, d, w)
 	if a.St("confused") > 0 {
 		hit -= 4
 	}
@@ -60,6 +62,9 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 		if a == g.P || d == g.P {
 			g.Msg(fmt.Sprintf("%s %s %s.", g.The(a), verb(a == g.P, "miss", "misses"), g.the(d)))
 		}
+		return
+	}
+	if g.wpBlock(a, d, w, false) {
 		return
 	}
 	pv := w.PV + mini(a.M(STR), w.MaxStr) + skStatusPV(d)
@@ -149,6 +154,7 @@ func (g *Game) onHit(a, d *Actor, w *Item, crit bool, sk int) {
 	if a.Has("leech") && a.HP < a.MaxHP {
 		a.HP = mini(a.MaxHP, a.HP+2)
 	}
+	g.wpOnHit(a, d, w, crit, sk)
 }
 
 // penetrate: up to three PV rolls vs AV per round; three successes chain into another round at -2 PV.
@@ -406,14 +412,17 @@ func (g *Game) shoot(a *Actor, tx, ty int, w *Item) {
 			continue
 		}
 		roll := g.R.Int(1, 20)
-		hit := roll + a.M(AGI) + g.skillLv(a, "missile") - i/4 - g.weatherMissile(a)
+		hit := roll + a.M(AGI) + g.skillLv(a, wpShotSkill(w)) - i/4 - g.weatherMissile(a) + wpShotHit(a, w)
 		if roll != 20 && hit < d.DV() {
 			if a == g.P || d == g.P {
 				g.Msg(fmt.Sprintf("%s %s %s.", g.The(a), verb(a == g.P, "miss", "misses"), g.the(d)))
 			}
 			continue
 		}
-		pens := g.penetrate(w.PV, d.AV(), roll == 20)
+		if g.wpBlock(a, d, w, true) {
+			return
+		}
+		pens := g.penetrate(w.PV+wpShotPV(a, d, w), d.AV(), roll == 20)
 		if pens == 0 {
 			if a == g.P || d == g.P {
 				g.Msg(fmt.Sprintf("The shot glances off %s.", g.the(d)))

@@ -274,6 +274,7 @@ func (g *Game) finishTarget() {
 		return
 	}
 	switch {
+	case g.wpTarget(pend, tx, ty): // reach strikes, tagged guns and bows, thrown weapons (wpweapons.go)
 	case pend == "fire":
 		m := g.P.Missile()
 		if m == nil {
@@ -312,7 +313,7 @@ func (g *Game) finishTarget() {
 
 func (g *Game) useAmmo() bool {
 	for _, it := range g.P.Inv {
-		if it.Kind == "ammo" && it.Count > 0 {
+		if it.Kind == "ammo" && it.Effect == "" && it.Count > 0 {
 			it.Count--
 			if it.Count == 0 {
 				g.removeInv(it)
@@ -324,6 +325,9 @@ func (g *Game) useAmmo() bool {
 }
 
 func (g *Game) throw(it *Item, tx, ty int) {
+	if g.wpThrow(it, tx, ty) {
+		return
+	}
 	path := line(g.P.X, g.P.Y, tx, ty)
 	rng := 6 + g.P.M(STR) + g.Skills["missile"]
 	lx, ly := g.P.X, g.P.Y

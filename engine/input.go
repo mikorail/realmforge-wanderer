@@ -215,6 +215,9 @@ func (g *Game) keyMain(k string) Out {
 	case "w", "M":
 		g.openWorldMap()
 	case "f":
+		if g.wpFireKey() {
+			return out
+		}
 		if g.P.Missile() == nil {
 			g.Msg("You have no missile weapon equipped.")
 		} else {
@@ -226,6 +229,10 @@ func (g *Game) keyMain(k string) Out {
 				g.beginTarget(fmt.Sprintf("throw:%d", it.ID))
 				return out
 			}
+		}
+		if it := g.wpThrowPick(); it != nil {
+			g.beginTarget(fmt.Sprintf("wpthrow:%d", it.ID))
+			return out
 		}
 		g.Msg("You have nothing to throw. (Throw any item from the inventory.)")
 	case "a":
