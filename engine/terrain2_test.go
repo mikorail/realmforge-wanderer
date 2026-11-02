@@ -257,3 +257,21 @@ func TestTgOldSaveLoads(t *testing.T) {
 		_ = g2.tgElevLine()
 	}
 }
+
+func TestTgThinAir(t *testing.T) {
+	g := newGame(t, nil)
+	w := g.W
+	p, ok := tgFind(g, func(p int) bool { return w.tgParasangM(p) >= 5500 && w.Burg[p] == 0 })
+	if !ok {
+		t.Skip("no high peak")
+	}
+	zn := g.GetZone(p%w.W, p/w.W, 1, 1, 0)
+	g.enterZone(zn, 40, 12, true)
+	for i := 0; i < 120; i++ {
+		g.turn()
+	}
+	if g.P.St("winded") == 0 {
+		t.Errorf("not winded at %s", g.tgElevLine())
+	}
+	t.Logf("%s: %s, statuses %v", zn.Name, g.tgElevLine(), g.P.Status)
+}
