@@ -1,0 +1,49 @@
+package engine
+
+import (
+	"strings"
+	"testing"
+)
+
+func TestProceduralFloraAndAtmosphere(t *testing.T) {
+	g := newGame(t, nil)
+
+	// 1. Verify pfMakeItem generates biome-, depth-, and genre-skinned items deterministically.
+	genres := []string{"", "steampunk", "dieselpunk", "atompunk", "cyberpunk", "biopunk", "solarpunk", "mythic", "wasteland", "twilight"}
+	for _, genre := range genres {
+		g.Genre = genre
+		for biome := 1; biome <= 16; biome++ {
+			zn := &Zone{Key: "test", Biome: biome, Level: 2}
+			r1 := NewRng("pf:test:" + genre)
+			r2 := NewRng("pf:test:" + genre)
+			it1 := pfMakeItem(g, zn, r1)
+			it2 := pfMakeItem(g, zn, r2)
+			if it1 == nil || it1.Name == "" || it1.Value <= 0 || it1.Lore == "" {
+				t.Fatalf("invalid flora item for genre=%q biome=%d", genre, biome)
+			}
+			if it1.Name != it2.Name || it1.Value != it2.Value {
+				t.Fatalf("non-deterministic flora item for genre=%q biome=%d: %q vs %q", genre, biome, it1.Name, it2.Name)
+			}
+		}
+	}
+
+	// 2. Verify non-town zones receive procedural flora/curiosity items and notes.
+	g1 := newGame(t, nil)
+	zWild := g1.GetZone(g1.WX, g1.WY, 0, 0, 0)
+	if len(zWild.Items) == 0 {
+		t.Fatalf("expected procedural flora/curiosity items in wilderness zone")
+	}
+	if len(zWild.Notes) == 0 {
+		t.Fatalf("expected procedural ambient notes in wilderness zone")
+	}
+
+	// 3. Verify pfSideHook returns a formatted atmospheric sidebar line without em dashes.
+	g1.Cur = zWild
+	lines := pfSideHook(g1)
+	if len(lines) != 1 || !strings.HasPrefix(lines[0], "{{K|") {
+		t.Fatalf("expected 1 atmospheric sidebar line, got %v", lines)
+	}
+	if strings.Contains(lines[0], "—") {
+		t.Fatalf("sidebar line must not contain em dashes: %q", lines[0])
+	}
+}

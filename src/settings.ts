@@ -5,6 +5,7 @@ export type MusicStyle = 'auto' | 'drift' | 'pastoral' | 'desert' | 'chiptune' |
 export const MUSIC_STYLES: MusicStyle[] = ['auto', 'drift', 'pastoral', 'desert', 'chiptune', 'ambient'];
 export type InstrumentFlavour = 'cultural' | 'chiptune';
 export type PaletteName = 'qud' | 'classic' | 'contrast';
+export type RenderStyle = 'sprites' | 'ascii';
 
 export interface Settings {
 	music: boolean;
@@ -23,6 +24,8 @@ export interface Settings {
 	scale: 'auto' | number;
 	/** 'qud' uses the engine palette unchanged */
 	palette: PaletteName;
+	/** 'sprites' draws procedural character/creature/environment miniatures on the map; 'ascii' draws classic glyphs */
+	renderStyle: RenderStyle;
 	animations: boolean;
 	/** keys between autosaves */
 	autosaveEvery: number;
@@ -39,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	instrumentFlavour: 'cultural',
 	scale: 'auto',
 	palette: 'qud',
+	renderStyle: 'sprites',
 	animations: true,
 	autosaveEvery: 150,
 	showHints: true,
@@ -68,6 +72,8 @@ function clean(raw: unknown): Settings {
 	else if (typeof sc === 'number' && (SCALE_OPTIONS as readonly number[]).includes(sc)) s.scale = sc;
 	const p = r.palette;
 	if (p === 'qud' || p === 'classic' || p === 'contrast') s.palette = p;
+	const rs = r.renderStyle;
+	if (rs === 'sprites' || rs === 'ascii') s.renderStyle = rs;
 	if (typeof r.animations === 'boolean') s.animations = r.animations;
 	const a = r.autosaveEvery;
 	if (typeof a === 'number' && (AUTOSAVE_OPTIONS as readonly number[]).includes(a)) s.autosaveEvery = a;

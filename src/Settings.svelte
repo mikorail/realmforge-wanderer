@@ -1,7 +1,7 @@
 <script lang="ts">
 	/** Modal settings pane. Every change is passed up through onchange and applied live by the game screen. */
 	import { onMount } from 'svelte';
-	import { AUTOSAVE_OPTIONS, SCALE_OPTIONS, type InstrumentFlavour, type MusicStyle, type PaletteName, type Settings } from './settings';
+	import { AUTOSAVE_OPTIONS, SCALE_OPTIONS, type InstrumentFlavour, type MusicStyle, type PaletteName, type RenderStyle, type Settings } from './settings';
 
 	let { settings, onchange, onclose }: { settings: Settings; onchange: (s: Settings) => void; onclose: () => void } = $props();
 
@@ -153,6 +153,13 @@
 		</label>
 
 		<h3>Display</h3>
+		<label class="row">
+			<span>Map visuals</span>
+			<select value={settings.renderStyle} onchange={(e) => set('renderStyle', e.currentTarget.value as RenderStyle)}>
+				<option value="sprites">Procedural sprites &amp; tiles</option>
+				<option value="ascii">Classic ASCII glyphs</option>
+			</select>
+		</label>
 		<label class="row">
 			<span>Cell size</span>
 			<select value={String(settings.scale)} onchange={(e) => set('scale', e.currentTarget.value === 'auto' ? 'auto' : Number(e.currentTarget.value))}>

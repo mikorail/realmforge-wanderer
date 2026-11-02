@@ -7,6 +7,7 @@
 	import { createMusic, type MusicHandle } from './music';
 	import { createWeatherSfx, type SfxHandle } from './weathersfx';
 	import { loadSettings, saveSettings, PALETTES, type Settings as Prefs, type PaletteName } from './settings';
+	import { computeUiMask, drawProceduralCell } from './sprites';
 	import Settings from './Settings.svelte';
 	import Touch from './Touch.svelte';
 
@@ -166,7 +167,10 @@
 		const ctx = canvas?.getContext('2d');
 		if (!ctx) return;
 		const glyphs = Array.from(f.g);
-		ctx.font = `${Math.round(chh * 0.86)}px "Share Tech Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace`;
+		const useSprites = prefs.renderStyle === 'sprites';
+		const uiMask = useSprites ? computeUiMask(glyphs, f.b, f.w, f.h) : null;
+		const mainFont = `${Math.round(chh * 0.86)}px "Share Tech Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace`;
+		ctx.font = mainFont;
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'middle';
 		for (let i = 0; i < f.w * f.h; i++) {
@@ -176,8 +180,22 @@
 		for (let i = 0; i < f.w * f.h; i++) {
 			const g = glyphs[i];
 			if (g === ' ') continue;
-			const x = (i % f.w) * cw, y = Math.floor(i / f.w) * chh;
-			ctx.fillStyle = palette[f.f.charCodeAt(i) - 65];
+			const gx = i % f.w;
+			const gy = Math.floor(i / f.w);
+			const x = gx * cw;
+			const y = gy * chh;
+			const fgIdx = f.f.charCodeAt(i) - 65;
+			const bgIdx = f.b.charCodeAt(i) - 65;
+			const fg = palette[fgIdx];
+			if (useSprites && uiMask && !uiMask[i] && gx < 80 && gy < 25) {
+				if (drawProceduralCell(ctx, g, fgIdx, bgIdx, fg, palette, gx, gy, x, y, cw, chh)) {
+					ctx.font = mainFont;
+					ctx.textAlign = 'center';
+					ctx.textBaseline = 'middle';
+					continue;
+				}
+			}
+			ctx.fillStyle = fg;
 			if (g === '█') ctx.fillRect(x, y, cw + 0.5, chh + 0.5);
 			else if (g === '─') ctx.fillRect(x, y + chh / 2, cw + 0.5, 1);
 			else if (g === '│') ctx.fillRect(x + cw / 2, y, 1, chh + 0.5);
