@@ -93,7 +93,7 @@ func (g *Game) MakeBackpack(tier int) *Item {
 
 // capacity: 20 + STR*3 + equipped backpack bonus.
 func (g *Game) capacity() int {
-	c := 20 + g.P.Score(STR)*3
+	c := 20 + g.P.Score(STR)*3 + g.trCarry() // saddlebags and carts (transport.go)
 	for _, bp := range g.P.Body {
 		if bp.Item != nil && !bp.Severed && bp.Item.Extra != nil {
 			c += bp.Item.Extra["cap"]

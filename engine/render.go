@@ -441,6 +441,7 @@ func (g *Game) drawWorld() {
 				f = CBlack
 			}
 			if g.Known[p] {
+				gl, f = g.trWorldGlyph(p, gl, f) // rail track (transport.go)
 				if bd := w.burgByID[w.Burg[p]]; bd != nil {
 					switch {
 					case !bd.Alive:
@@ -522,6 +523,7 @@ func (g *Game) drawWorld() {
 			info = append(info, st)
 		}
 		info = append(info, g.unRiftInfo(p)...) // planets.go
+		info = append(info, g.trInfo(p)...)     // transport.go
 	}
 	if !w.IsWater(p) {
 		info = append(info, g.tvInfo(p)...) // travel.go
