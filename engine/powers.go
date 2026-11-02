@@ -544,6 +544,9 @@ func (g *Game) craft(rc Recipe) {
 func (g *Game) pickup() {
 	its := g.Cur.ItemsAt(g.P.X, g.P.Y)
 	if len(its) == 0 {
+		if g.flGather() { // plants underfoot (flora.go)
+			return
+		}
 		g.Msg("There is nothing here.")
 		return
 	}
