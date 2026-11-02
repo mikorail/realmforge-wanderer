@@ -526,6 +526,7 @@ func (g *Game) drawWorld() {
 	if !w.IsWater(p) {
 		info = append(info, g.tvInfo(p)...) // travel.go
 	}
+	info = append(info, g.nmInfo(p)...) // names.go
 	g.Popup = nil
 	g.wmInfo = info
 }
