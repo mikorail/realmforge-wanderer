@@ -97,7 +97,7 @@ func trReindex(w *WorldData) {
 
 // trSpeed is km per hour by rail or air kind.
 var trSpeed = map[string]float64{
-	"railway": 45, "diesel line": 65, "atomic monorail": 110, "maglev": 280, "bio-tram": 35, "solar rail": 140, "salvage rail": 30,
+	"railway": 60, "diesel line": 80, "atomic monorail": 110, "maglev": 280, "bio-tram": 35, "solar rail": 140, "salvage rail": 30,
 	"airship": 80, "zeppelin": 110, "rocket ferry": 600, "aerodyne": 300, "sky-ray": 70, "solar glider": 90, "gyrocopter": 120,
 	"skyliner": 400, "skyship": 60, "griffon roost": 70, "sky barge": 40,
 }
@@ -381,20 +381,44 @@ type trTrip struct {
 	Via     []int // parasangs crossed
 }
 
-func trSlice(ps []int, a, b int) []int {
-	if a > b {
-		a, b = b, a
-	}
-	return ps[a : b+1]
-}
-
-func trIndexOf(ps []int, p int) int {
-	for i, q := range ps {
-		if q == p {
-			return i
+// trVia is the track between parasangs a and b: the closest pair of occurrences, loops cut out.
+func trVia(ps []int, a, b int) []int {
+	bi, bj := -1, -1
+	for i, p := range ps {
+		if p != a {
+			continue
+		}
+		for j, q := range ps {
+			if q == b && (bi < 0 || abs(i-j) < abs(bi-bj)) {
+				bi, bj = i, j
+			}
 		}
 	}
-	return -1
+	if bi < 0 {
+		return nil
+	}
+	var seg []int
+	if bi <= bj {
+		seg = append(seg, ps[bi:bj+1]...)
+	} else {
+		for k := bi; k >= bj; k-- {
+			seg = append(seg, ps[k])
+		}
+	}
+	var out []int
+	at := map[int]int{}
+	for _, p := range seg {
+		if k, ok := at[p]; ok {
+			for _, q := range out[k+1:] {
+				delete(at, q)
+			}
+			out = out[:k+1]
+			continue
+		}
+		at[p] = len(out)
+		out = append(out, p)
+	}
+	return out
 }
 
 // trRailTrips lists the train rides from burg bid (running lines only).
@@ -410,7 +434,6 @@ func (g *Game) trRailTrips(bid int) (trips []trTrip, cut []TrRailData) {
 			cut = append(cut, l)
 			continue
 		}
-		i0 := trIndexOf(l.Parasangs, from.P)
 		for _, sid := range l.Stations {
 			to := w.burgByID[sid]
 			if sid == bid || to == nil || !to.Alive {
@@ -418,8 +441,7 @@ func (g *Game) trRailTrips(bid int) (trips []trTrip, cut []TrRailData) {
 			}
 			steps := 0.0
 			var via []int
-			if i1 := trIndexOf(l.Parasangs, to.P); i0 >= 0 && i1 >= 0 {
-				via = trSlice(l.Parasangs, i0, i1)
+			if via = trVia(l.Parasangs, from.P, to.P); len(via) > 1 {
 				steps = float64(len(via) - 1)
 			}
 			if steps <= 0 {
@@ -558,7 +580,7 @@ func (g *Game) trEvent(t trTrip, r *Rng) {
 		if len(text) > 180 {
 			text = text[:177] + "…"
 		}
-		g.Msg(fmt.Sprintf("%s beside you talks the whole way: {{K|\"In Y%d — %s\"}}", titleCase(Pick(r, trPassengers)), e.Y, text))
+		g.Msg(fmt.Sprintf("%s beside you talks the whole way: {{K|\"In Y%d — %s\"}}", trCap(Pick(r, trPassengers)), e.Y, text))
 		return
 	}
 	if t.Air {
@@ -657,6 +679,21 @@ func (g *Game) trDockTalk(a *Actor) []Option {
 		g.Opts = append(g.Opts, Option{"Never mind.", func() { g.talkMenu(g.greeting(a)) }})
 		g.Sel = 0
 	}}}
+}
+
+// trA is "a horse" / "an elephant".
+func trA(s string) string {
+	if s != "" && strings.ContainsRune("aeiouAEIOU", rune(s[0])) {
+		return "an " + s
+	}
+	return "a " + s
+}
+
+func trCap(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 func trHas(xs []string, s string) bool {
@@ -816,14 +853,14 @@ func (g *Game) trOstlerTalk(a *Actor) []Option {
 			if d.Machine && d.Rough < 0.5 {
 				note = fmt.Sprintf("fast on roads, carries %d", d.Carry)
 			}
-			out = append(out, Option{fmt.Sprintf("Buy a %s. {{K|(%s)}} — %s", d.Name, note, g.cuFormat(price)), func() {
+			out = append(out, Option{fmt.Sprintf("Buy %s. {{K|(%s)}} — %s", trA(d.Name), note, g.cuFormat(price)), func() {
 				if st.Mount != nil && st.Stable == nil {
 					if od := trMountByID(st.Mount.Def); od != nil {
 						g.cuEarn(od.Price / 3)
 					}
 				}
 				if g.trBuyMount(d, price) {
-					g.Msg(fmt.Sprintf("You buy a %s. It eyes you warily.", st.Mount.Name))
+					g.Msg(fmt.Sprintf("You buy %s. It eyes you warily.", trA(st.Mount.Name)))
 				} else {
 					g.Msg("{{y|You cannot afford it.}}")
 				}
@@ -841,13 +878,13 @@ func (g *Game) trOstlerTalk(a *Actor) []Option {
 		if c.Draft {
 			need = ", needs a mount to pull it"
 		}
-		out = append(out, Option{fmt.Sprintf("Buy a %s. {{K|(+%d carrying%s)}} — %s", c.Name, c.Carry, need, g.cuFormat(price)), func() {
+		out = append(out, Option{fmt.Sprintf("Buy %s. {{K|(+%d carrying%s)}} — %s", trA(c.Name), c.Carry, need, g.cuFormat(price)), func() {
 			if g.cuSpend(price) {
 				if old := trCartByID(st.Cart); old != nil {
 					g.cuEarn(old.Price / 3)
 				}
 				st.Cart = c.ID
-				g.Msg(fmt.Sprintf("You buy a %s.", c.Name))
+				g.Msg(fmt.Sprintf("You buy %s.", trA(c.Name)))
 			}
 			again()
 		}})

@@ -223,7 +223,7 @@ func TestTrOldWorldMountsNoStations(t *testing.T) {
 	opts := trTalk(g, a)
 	found := false
 	for _, o := range opts {
-		if strings.HasPrefix(o.Text, "Buy a ") {
+		if strings.HasPrefix(o.Text, "Buy ") {
 			found = true
 		}
 	}
