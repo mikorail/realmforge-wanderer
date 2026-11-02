@@ -200,6 +200,9 @@ func (g *Game) gossip(a *Actor) string {
 	if s := g.swGossip(a); s != "" {
 		return s
 	}
+	if s := g.hzGossip(a); s != "" { // disasters and outbreaks (hazards.go)
+		return s
+	}
 	r := NewRng(fmt.Sprintf("%d:%d", a.ID, g.Turn/600))
 	w := g.W
 	p := w.Idx(g.Cur.WX, g.Cur.WY)

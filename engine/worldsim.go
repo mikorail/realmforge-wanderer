@@ -1455,6 +1455,7 @@ func (g *Game) wsNewsLines() []wsLine {
 		out = append(out, wsLine{e.P, txt})
 	}
 	out = append(out, g.swNews()...) // reforms, unrest, persecution, famine (socialworld.go)
+	out = append(out, g.hzNews()...) // outbreaks and disasters (hazards.go)
 	for _, t := range s.Trav {
 		q, ok := t.at(h)
 		if !ok || t.Done || t.Broken {
