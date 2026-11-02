@@ -13,7 +13,10 @@ import (
 type cityPlan struct {
 	tier      int               // 0 single zone, 1 plus-shape, 2 full 3×3
 	districts map[[2]int]string // sub-zone → district kind
-	walled    bool
+	// ring: outer wards beyond the walls of great cities and capitals, keyed by zone offset from the
+	// city parasang's top-left zone (-1..3), so they sit in the zones bordering the neighbour parasangs
+	ring   map[[2]int]string
+	walled bool
 }
 
 var sideOrder = [][2]int{{1, 0}, {2, 1}, {1, 2}, {0, 1}, {2, 0}, {2, 2}, {0, 2}, {0, 0}}
@@ -93,6 +96,7 @@ func (g *Game) cityPlanFor(bd *BurgData) *cityPlan {
 		}
 		cp.districts[s] = kind
 	}
+	g.cityRing(bd, cp)
 	g.plans[bd.ID] = cp
 	return cp
 }
@@ -631,9 +635,98 @@ func (g *Game) districtAt(wx, wy, zx, zy int) (string, *BurgData) {
 	}
 	bd := w.burgByID[w.Burg[w.Idx(wx, wy)]]
 	if bd == nil || !bd.Alive || bd.Layer != "surface" {
-		return "", nil
+		return g.ringAt(wx, wy, zx, zy)
 	}
 	return g.cityPlanFor(bd).districts[[2]int{zx, zy}], bd
 }
 
 func districtTitle(kind string) string { return strings.ToLower(districtNames[kind]) }
+
+// cityRing lays out the outer wards of a great city or a capital: the 16 zones around its 3×3
+// footprint, inside the neighbouring parasangs, turning it into a 5×5 sprawl with the walls
+// around the old city. Only open land without a town of its own is built on.
+func (g *Game) cityRing(bd *BurgData, cp *cityPlan) {
+	if cp.tier < 2 && !(bd.Capital && cp.tier >= 1) {
+		return
+	}
+	w := g.W
+	px, py := bd.P%w.W, bd.P/w.W
+	cp.ring = map[[2]int]string{}
+	pool := []string{"homes", "homes", "farms", "artisans", "forge", "homes", "market"}
+	for ry := -1; ry <= 3; ry++ {
+		for rx := -1; rx <= 3; rx++ {
+			if rx >= 0 && rx <= 2 && ry >= 0 && ry <= 2 {
+				continue
+			}
+			ox, oy := floorDiv3(rx), floorDiv3(ry)
+			if !w.In(px+ox, py+oy) {
+				continue
+			}
+			np := w.Idx(px+ox, py+oy)
+			if w.IsWater(np) || w.Height[np] >= 70 || w.Burg[np] > 0 || len(w.wondersAt[np]) > 0 {
+				continue
+			}
+			if g.ringContested(np, bd.P) {
+				continue
+			}
+			corner := (rx == -1 || rx == 3) && (ry == -1 || ry == 3)
+			gate := (rx == 1 && (ry == -1 || ry == 3)) || (ry == 1 && (rx == -1 || rx == 3))
+			kind := pool[int(HashStr(fmt.Sprintf("%s:ring:%d:%d,%d", g.Seed, bd.ID, rx, ry))%uint64(len(pool)))]
+			switch {
+			case corner:
+				kind = "farms"
+			case gate:
+				kind = "market"
+			}
+			cp.ring[[2]int{rx, ry}] = kind
+		}
+	}
+}
+
+// ringContested: another sprawling city also borders parasang np, so neither builds there.
+func (g *Game) ringContested(np, own int) bool {
+	w := g.W
+	x, y := np%w.W, np/w.W
+	for _, d := range dirs8 {
+		if !w.In(x+d[0], y+d[1]) {
+			continue
+		}
+		q := w.Idx(x+d[0], y+d[1])
+		if q == own {
+			continue
+		}
+		if o := w.burgByID[w.Burg[q]]; o != nil && o.Alive && o.Layer == "surface" && (w.cityTier[o.ID] >= 2 || o.Capital && w.cityTier[o.ID] >= 1) {
+			return true
+		}
+	}
+	return false
+}
+
+func floorDiv3(v int) int {
+	if v < 0 {
+		return -1
+	}
+	return v / 3
+}
+
+// ringAt finds the outer ward of a neighbouring great city at zone (zx,zy) of parasang (wx,wy).
+func (g *Game) ringAt(wx, wy, zx, zy int) (string, *BurgData) {
+	w := g.W
+	for dy := -1; dy <= 1; dy++ {
+		for dx := -1; dx <= 1; dx++ {
+			cx, cy := wx+dx, wy+dy
+			if (dx == 0 && dy == 0) || !w.In(cx, cy) {
+				continue
+			}
+			bd := w.burgByID[w.Burg[w.Idx(cx, cy)]]
+			if bd == nil || !bd.Alive || bd.Layer != "surface" || w.cityTier[bd.ID] == 0 {
+				continue
+			}
+			cp := g.cityPlanFor(bd)
+			if k, ok := cp.ring[[2]int{(wx-cx)*3 + zx, (wy-cy)*3 + zy}]; ok {
+				return k, bd
+			}
+		}
+	}
+	return "", nil
+}

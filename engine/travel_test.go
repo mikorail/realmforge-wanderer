@@ -45,3 +45,34 @@ func TestTvDuration(t *testing.T) {
 		}
 	}
 }
+
+func TestCityRingOuterWards(t *testing.T) {
+	g := newGame(t, nil)
+	w := g.W
+	found := 0
+	for i := range w.Burgs {
+		bd := &w.Burgs[i]
+		if !bd.Alive || bd.Layer != "surface" || w.cityTier[bd.ID] < 2 {
+			continue
+		}
+		cp := g.cityPlanFor(bd)
+		px, py := bd.P%w.W, bd.P/w.W
+		for k, kind := range cp.ring {
+			ox, oy := floorDiv3(k[0]), floorDiv3(k[1])
+			zx, zy := k[0]-ox*3, k[1]-oy*3
+			got, owner := g.districtAt(px+ox, py+oy, zx, zy)
+			if owner != bd || got != kind {
+				t.Fatalf("%s ward %v: districtAt gave %q of %v, want %q", bd.Name, k, got, owner, kind)
+			}
+			zn := g.GetZone(px+ox, py+oy, zx, zy, 0)
+			if zn.Kind != "town" || zn.Burg != bd.ID {
+				t.Fatalf("%s ward %v generated as %q (%s)", bd.Name, k, zn.Kind, zn.Name)
+			}
+			found++
+		}
+	}
+	if found == 0 {
+		t.Fatal("no great city has outer wards")
+	}
+	t.Logf("%d outer wards", found)
+}

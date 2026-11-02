@@ -449,7 +449,14 @@ func (g *Game) genSurface(zn *Zone, r *Rng, p int) {
 		}
 	}
 	zn.Faction = fmt.Sprintf("state:%d", w.State[p])
-	if zn.ZX == 1 && zn.ZY == 1 {
+	if kind, bd := g.ringAt(zn.WX, zn.WY, zn.ZX, zn.ZY); bd != nil && w.Burg[p] == 0 && zn.Z == 0 {
+		// an outer ward of a great city next door (city.go cityRing): no walls out here
+		outer := *g.cityPlanFor(bd)
+		outer.walled = false
+		g.genDistrict(zn, r, bd, &outer, kind)
+		zn.Name = bd.Name + ", Outer " + strings.TrimSuffix(districtNames[kind], " District")
+		return
+	} else if zn.ZX == 1 && zn.ZY == 1 {
 		g.genFeature(zn, r, p)
 	} else if bid := w.Burg[p]; bid > 0 {
 		if bd := w.burgByID[bid]; bd != nil && bd.Alive {
