@@ -450,6 +450,7 @@ func (g *Game) drawWorld() {
 			}
 			if g.Known[p] {
 				gl, f = g.trWorldGlyph(p, gl, f) // rail track (transport.go)
+				gl, f = g.shWorldGlyph(p, gl, f) // your ship (sailing.go)
 				if bd := w.burgByID[w.Burg[p]]; bd != nil {
 					switch {
 					case !bd.Alive:
@@ -538,6 +539,7 @@ func (g *Game) drawWorld() {
 		info = append(info, g.tvInfo(p)...) // travel.go
 	}
 	info = append(info, g.nmInfo(p)...) // names.go
+	info = append(info, g.shInfo(p)...) // sailing.go
 	g.Popup = nil
 	g.wmInfo = info
 }

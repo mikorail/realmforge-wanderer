@@ -346,6 +346,9 @@ func (g *Game) click(x, y int) {
 }
 
 func (g *Game) keyWorld(k string) {
+	if shWorldKey(g, k) { // aboard your ship (sailing.go)
+		return
+	}
 	if dx, dy, ok := arrowOf(k); ok {
 		g.WorldMove(dx, dy)
 		return
