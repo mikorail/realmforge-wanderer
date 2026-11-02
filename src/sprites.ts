@@ -162,6 +162,72 @@ export function drawProceduralCell(
 		return true;
 	}
 
+	// 2b. Plant species glyphs from engine/flora.go: palm Γ, cactus φ, bamboo ‼, flower °, stump ⁿ
+	if (g === 'Γ' || g === 'φ' || g === '‼' || g === '°' || g === 'ⁿ') {
+		ctx.save();
+		ctx.fillStyle = fg;
+		ctx.strokeStyle = fg;
+		ctx.lineWidth = Math.max(1, cw * 0.12);
+		if (g === 'Γ') {
+			// palm: curved trunk and drooping fronds
+			const tx = cx + (((h & 3) - 1.5) * cw) / 16;
+			ctx.strokeStyle = palette[14] || fg;
+			ctx.beginPath();
+			ctx.moveTo(cx, y + chh * 0.9);
+			ctx.quadraticCurveTo(cx - cw * 0.08, y + chh * 0.55, tx, y + chh * 0.28);
+			ctx.stroke();
+			ctx.strokeStyle = fg;
+			for (let k = 0; k < 5; k++) {
+				const a = Math.PI * (1.05 + k * 0.22);
+				ctx.beginPath();
+				ctx.moveTo(tx, y + chh * 0.28);
+				ctx.quadraticCurveTo(tx + Math.cos(a) * cw * 0.3, y + chh * 0.28 + Math.sin(a) * chh * 0.18, tx + Math.cos(a) * cw * 0.44, y + chh * 0.42);
+				ctx.stroke();
+			}
+		} else if (g === 'φ') {
+			// cactus: column with two arms
+			const w = cw * 0.2;
+			ctx.fillRect(cx - w / 2, y + chh * 0.22, w, chh * 0.66);
+			ctx.fillRect(x + cw * 0.18, y + chh * 0.42, w * 0.8, chh * 0.2);
+			ctx.fillRect(x + cw * 0.18, y + chh * 0.3, w * 0.8, chh * 0.16);
+			ctx.fillRect(cx + w / 2, y + chh * 0.5, cw * 0.18, chh * 0.12);
+			ctx.fillRect(x + cw * 0.66, y + chh * 0.36, w * 0.8, chh * 0.2);
+		} else if (g === '‼') {
+			// bamboo: jointed canes
+			for (let k = 0; k < 3; k++) {
+				const bx = x + cw * (0.25 + k * 0.25);
+				ctx.beginPath();
+				ctx.moveTo(bx, y + chh * 0.92);
+				ctx.lineTo(bx + (((h >>> k) & 1) - 0.5) * cw * 0.08, y + chh * 0.1);
+				ctx.stroke();
+				ctx.fillRect(bx - cw * 0.07, y + chh * (0.35 + k * 0.12), cw * 0.14, 1);
+			}
+		} else if (g === '°') {
+			// flower or floating pad: petals round a centre
+			const r = cw * 0.11;
+			for (let k = 0; k < 5; k++) {
+				const a = (k / 5) * Math.PI * 2 + (h & 7);
+				ctx.beginPath();
+				ctx.arc(cx + Math.cos(a) * r * 1.3, cy + Math.sin(a) * r * 1.3, r, 0, Math.PI * 2);
+				ctx.fill();
+			}
+			ctx.fillStyle = palette[15] || '#cfc041';
+			ctx.beginPath();
+			ctx.arc(cx, cy, r * 0.8, 0, Math.PI * 2);
+			ctx.fill();
+		} else {
+			// stump: low ringed cylinder
+			ctx.fillRect(cx - cw * 0.22, y + chh * 0.55, cw * 0.44, chh * 0.3);
+			ctx.globalAlpha = 0.6;
+			ctx.fillStyle = palette[15] || fg;
+			ctx.beginPath();
+			ctx.ellipse(cx, y + chh * 0.55, cw * 0.22, chh * 0.07, 0, 0, Math.PI * 2);
+			ctx.fill();
+		}
+		ctx.restore();
+		return true;
+	}
+
 	// 3. Trees, pines, giant mushrooms, dead trees (♣, ♠, ↑, τ)
 	if (g === '♣' || g === '♠' || g === '↑' || g === 'τ') {
 		ctx.save();

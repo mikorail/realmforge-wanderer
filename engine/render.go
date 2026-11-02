@@ -79,6 +79,7 @@ func (g *Game) drawMap() {
 			if t == TWall && z.Kind == "town" {
 				f = z.WallF
 			}
+			gl, f = g.flTile(z, i, t, gl, f) // plant species (flora.go)
 			if z.Underwater && (z.Dry == nil || z.Dry[i] == false) {
 				b = CDarkBlue
 			}
@@ -629,6 +630,9 @@ func (g *Game) describeTile(x, y int) string {
 	td := "{{y|" + t.D().Name + "}}"
 	if t.D().Desc != "" {
 		td += ". " + t.D().Desc
+	}
+	if fl := g.flLook(z, x, y); fl != "" { // plant species (flora.go)
+		td = fl
 	}
 	parts = append(parts, td)
 	if z.Fire[y*MW+x] > 0 {

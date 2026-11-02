@@ -789,6 +789,9 @@ func (g *Game) MoveP(dx, dy int) {
 		g.interact(nx, ny)
 		return
 	}
+	if !t.D().Walk && g.flBump(nx, ny) { // fell / gather plants (flora.go)
+		return
+	}
 	phasing := p.St("phased") > 0
 	if !t.D().Walk && !phasing && !g.canClimb(t) {
 		if t == TRock || t == TWall {
