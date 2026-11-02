@@ -341,6 +341,35 @@ func (s *bsSp) Lore() string {
 	return fmt.Sprintf("%s. %s %s; %s, %s, %s.", s.When(), titleCase(bsSizeNames[s.Size]), bsGroupNames[s.Group], bsDietNames[s.Diet], bsTemperNames[s.Temper], bsActNames[s.Act])
 }
 
+// bsProper: first words of common names that stay capitalised (places and people).
+var bsProper = map[string]bool{}
+
+func init() {
+	for _, w := range strings.Fields(`European American African Atlantic Indian Eurasian Asian Japanese Steller's Nile California
+		Atlas North West Wallace's Virginia Victoria Thomson's Tasmanian Sumatran Steller Siamese Schomburgk's Roman Rodrigues
+		Raggiana Przewalski's Portuguese Philippine Pere Patagonian Pallas's Mexican Mekong Labrador Komodo Javan Humboldt
+		Haast's Grevy's Greenland Gila Galapagos Gaboon Falkland Ethiopian Columbian Christmas Chinese Caspian Caribbean Carolina
+		Canada Brazilian Bramble Bornean Barbary Bactrian Antarctic Andean Amazonian Amazon Aldabra Adelie Pleistocene Dorcas`) {
+		bsProper[w] = true
+	}
+}
+
+// Display is the name in play: lowercase like other creatures, but genera and place names keep their capitals.
+func (s *bsSp) Display() string {
+	ws := strings.Fields(s.Name)
+	if len(ws) == 0 {
+		return s.Name
+	}
+	prehist := s.Era != "living" && s.Era != "recent"
+	if prehist && (len(ws) == 1 || len(ws) == 2 && strings.ToLower(ws[1]) == ws[1] && (strings.HasSuffix(ws[1], "us") || strings.HasSuffix(ws[1], "is") || strings.HasSuffix(ws[1], "as"))) {
+		return s.Name // a genus, or a binomial
+	}
+	if bsProper[ws[0]] {
+		return s.Name
+	}
+	return strings.ToLower(s.Name[:1]) + s.Name[1:]
+}
+
 // bsSpecies looks a species up by common name or slug (for other systems, e.g. mounts).
 func bsSpecies(name string) *bsSp {
 	if s := bsByID[bsSlug(name)]; s != nil {
@@ -408,7 +437,7 @@ func bsTemplate(s *bsSp) CTpl {
 	}
 	str := bsStrT[sz]
 	t := CTpl{ID: s.Tpl(), Glyph: s.Glyph, F: s.F, Lvl: lvl, Attr: [6]int{str, agi, str, 4 + boolInt(s.Group == "mam" || s.Group == "bird")*3, 8 + sz, 4 + sz},
-		HP: bsHPT[sz], Speed: 100, Faction: "wildlife", Body: s.Body, Names: nm(s.Name), Desc: s.Desc}
+		HP: bsHPT[sz], Speed: 100, Faction: "wildlife", Body: s.Body, Names: nm(s.Display()), Desc: s.Desc}
 	if s.Hostile() {
 		t.Faction = "beasts"
 		t.Speed += 10
@@ -780,7 +809,7 @@ func bsZone(g *Game, zn *Zone, _ *Rng) {
 	if len(pool) == 0 {
 		return
 	}
-	n := r.Int(2, 4)
+	n := r.Int(1, 3)
 	switch zn.Kind {
 	case "outskirts":
 		n = r.Int(0, 1)
@@ -792,9 +821,9 @@ func bsZone(g *Game, zn *Zone, _ *Rng) {
 	if pl.where == 's' && pl.water >= 25 && n < 4 {
 		n++ // a river or shore draws more life
 	}
-	morph := 0.03
+	morph := 0.02
 	if bsPunk[g.Genre] {
-		morph = 0.1
+		morph = 0.06
 	}
 	for i := 0; i < n; i++ {
 		s := bsDraw(r, pool, ws)
@@ -856,7 +885,7 @@ func (g *Game) bsLostAt(wx, wy, zx, zy, z int) string {
 			return ""
 		}
 		return kind
-	case z == 1 && w.IsWater(p):
+	case z == 1 && w.IsWater(p) && p < len(w.seaOpen) && w.seaOpen[p]:
 		h := HashStr(fmt.Sprintf("%s:bs:trench:%d:%d", w.Seed, wx, wy))
 		if h%100 < 3 {
 			if sx, sy := sub(h / 100); sx == zx && sy == zy {
@@ -1042,7 +1071,7 @@ func (g *Game) bsMakeFossil(s *bsSp, r *Rng) *Item {
 	case "cenozoic", "pleistocene":
 		val += 15
 	}
-	return &Item{ID: g.newID(), Kind: "fossil", Name: "fossil " + part + " of " + bsArticle(s.Name), Glyph: '§', F: CGray, Value: val, Weight: 2,
+	return &Item{ID: g.newID(), Kind: "fossil", Name: "fossil " + part + " of " + bsArticle(s.Display()), Glyph: '§', F: CGray, Value: val, Weight: 2,
 		Effect: "bs:" + s.ID, Ident: true, Lore: s.Name + ": " + s.Lore() + " " + s.Desc}
 }
 
@@ -1344,7 +1373,7 @@ func bsMeatTag(s *bsSp) string {
 func (g *Game) bsProducts(s *bsSp, d *Actor) []*Item {
 	r := NewRng(fmt.Sprintf("%s:bs:kill:%d", g.W.Seed, d.ID))
 	var out []*Item
-	low := strings.ToLower(s.Name)
+	low := s.Display()
 	prod := func(what string, val, wt int, col byte) {
 		out = append(out, &Item{ID: g.newID(), Kind: "trophy", Name: low + " " + what, Glyph: '~', F: col, Value: val, Weight: wt, Effect: "bsp:" + s.ID})
 	}
