@@ -34,14 +34,21 @@ func TestWsCaravansMove(t *testing.T) {
 			t.Fatal("path crosses water")
 		}
 	}
-	roads := 0
-	for _, p := range tr.Path {
-		if g.W.Road[p] > 0 || g.W.Burg[p] > 0 {
-			roads++
+	// caravans prefer roads; some town pairs have none, so judge the whole fleet, not one caravan
+	roads, steps := 0, 0
+	for _, x := range s.Trav {
+		if x.Kind != "caravan" {
+			continue
+		}
+		for _, p := range x.Path {
+			steps++
+			if g.W.Road[p] > 0 || g.W.Burg[p] > 0 {
+				roads++
+			}
 		}
 	}
-	if roads < len(tr.Path)/2 {
-		t.Errorf("caravan off the roads: %d/%d", roads, len(tr.Path))
+	if roads*3 < steps*2 {
+		t.Errorf("caravans off the roads: %d/%d steps", roads, steps)
 	}
 	a, _ := tr.at(tr.Start)
 	b, _ := tr.at(tr.Start + 3*tr.Hpp)

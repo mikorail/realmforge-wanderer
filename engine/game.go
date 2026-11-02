@@ -307,6 +307,7 @@ func (g *Game) equip(it *Item) bool {
 	}
 	part.Item = it
 	g.removeInv(it)
+	g.wpEquipped(a, part, it) // two-handed rules (wpweapons.go)
 	return true
 }
 
@@ -788,6 +789,9 @@ func (g *Game) MoveP(dx, dy int) {
 		g.interact(nx, ny)
 		return
 	}
+	if !t.D().Walk && g.flBump(nx, ny) { // fell / gather plants (flora.go)
+		return
+	}
 	phasing := p.St("phased") > 0
 	if !t.D().Walk && !phasing && !g.canClimb(t) {
 		if t == TRock || t == TWall {
@@ -827,6 +831,7 @@ func (g *Game) stepTo(nx, ny int) {
 	}
 	cost = g.climbCost(nx, ny, cost)
 	cost = g.weatherStep(nx, ny, cost)
+	cost = g.tgStep(nx, ny, cost) // terrain hazards (tghazards.go)
 	p.X, p.Y = nx, ny
 	if z.Traps != nil {
 		if _, ok := z.Traps[ny*MW+nx]; ok {

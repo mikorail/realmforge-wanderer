@@ -79,6 +79,7 @@ func (g *Game) drawMap() {
 			if t == TWall && z.Kind == "town" {
 				f = z.WallF
 			}
+			gl, f = g.flTile(z, i, t, gl, f) // plant species (flora.go)
 			if z.Underwater && (z.Dry == nil || z.Dry[i] == false) {
 				b = CDarkBlue
 			}
@@ -261,6 +262,7 @@ func (g *Game) drawSide() {
 			depth = "aloft"
 		}
 		line(fmt.Sprintf("{{K|%s · %s}}", g.W.StateName(g.W.State[g.W.Idx(g.WX, g.WY)]), depth))
+		line(g.tgElevLine()) // tgelev.go
 		line("{{K|" + g.timeOfDay() + "}}")
 		line(g.dateLine())
 		if _, f := g.feastToday(); f != nil {
@@ -372,6 +374,12 @@ func (g *Game) worldGlyph(p int) (rune, byte, byte) {
 		}
 		return gl, CBlue, CDarkBlue
 	}
+	if v, act := tgVolcanoAt(w, p); v { // tglandforms.go
+		if act {
+			return '▲', CRed, CBg
+		}
+		return '▲', CDarkOrange, CBg
+	}
 	if h >= 70 {
 		return '▲', CGray, CBg
 	}
@@ -441,6 +449,7 @@ func (g *Game) drawWorld() {
 				f = CBlack
 			}
 			if g.Known[p] {
+				gl, f = g.trWorldGlyph(p, gl, f) // rail track (transport.go)
 				if bd := w.burgByID[w.Burg[p]]; bd != nil {
 					switch {
 					case !bd.Alive:
@@ -522,10 +531,13 @@ func (g *Game) drawWorld() {
 			info = append(info, st)
 		}
 		info = append(info, g.unRiftInfo(p)...) // planets.go
+		info = append(info, g.trInfo(p)...)     // transport.go
 	}
+	info = append(info, g.tgInfo(p)...) // tgelev.go
 	if !w.IsWater(p) {
 		info = append(info, g.tvInfo(p)...) // travel.go
 	}
+	info = append(info, g.nmInfo(p)...) // names.go
 	g.Popup = nil
 	g.wmInfo = info
 }
@@ -618,6 +630,9 @@ func (g *Game) describeTile(x, y int) string {
 	td := "{{y|" + t.D().Name + "}}"
 	if t.D().Desc != "" {
 		td += ". " + t.D().Desc
+	}
+	if fl := g.flLook(z, x, y); fl != "" { // plant species (flora.go)
+		td = fl
 	}
 	parts = append(parts, td)
 	if z.Fire[y*MW+x] > 0 {

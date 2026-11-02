@@ -36,6 +36,7 @@ type Zone struct {
 	Faction    string         `json:"fac"`
 	Biome      int            `json:"biome"`
 	Traps      map[int]uint8  `json:"traps,omitempty"`
+	Flora      *flZone        `json:"flora,omitempty"` // plant species state (flora.go)
 }
 
 func ZoneKey(wx, wy, zx, zy, z int) string { return fmt.Sprintf("%d.%d.%d.%d.%d", wx, wy, zx, zy, z) }

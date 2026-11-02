@@ -38,7 +38,7 @@ func (g *Game) tryDive() bool {
 }
 
 func (g *Game) canClimb(t Terrain) bool {
-	return g.P.Pow("climbing") > 0 && (t == TRock || t == TTree)
+	return g.P.Pow("climbing") > 0 && (t == TRock || t == TTree || t == TCliff || t == TIceWall)
 }
 
 // climbCost is the time to enter a tile; climbing rock or trees takes 3x.

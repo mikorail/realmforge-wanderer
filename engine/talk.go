@@ -200,6 +200,12 @@ func (g *Game) gossip(a *Actor) string {
 	if s := g.swGossip(a); s != "" {
 		return s
 	}
+	if s := g.hzGossip(a); s != "" { // disasters and outbreaks (hazards.go)
+		return s
+	}
+	if s := g.nmGossip(a); s != "" {
+		return s
+	}
 	r := NewRng(fmt.Sprintf("%d:%d", a.ID, g.Turn/600))
 	w := g.W
 	p := w.Idx(g.Cur.WX, g.Cur.WY)
@@ -596,6 +602,9 @@ func (g *Game) annalsBook(state int) *Item {
 
 func (g *Game) interact(x, y int) {
 	if inBump(g, x, y) { // stat gates, shrines, glyphs (gates.go / insight.go)
+		return
+	}
+	if tgBump(g, x, y) { // obsidian, sulfur (tghazards.go)
 		return
 	}
 	z := g.Cur
