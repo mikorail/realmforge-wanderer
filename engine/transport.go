@@ -754,6 +754,20 @@ func (g *Game) trOffer(bd *BurgData) []*trMountDef {
 			out = append(out, x.d)
 		}
 	}
+	// the genre's own mount (motorbike, hover-skiff, clockwork strider...) always gets a slot,
+	// even where local beasts outscore it
+	has := false
+	for _, d := range out {
+		has = has || d.Genres != nil
+	}
+	if !has && len(out) == 3 {
+		for _, x := range xs {
+			if x.d.Genres != nil {
+				out[2] = x.d
+				break
+			}
+		}
+	}
 	return out
 }
 

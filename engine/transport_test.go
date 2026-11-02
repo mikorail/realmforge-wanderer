@@ -107,7 +107,13 @@ func TestTrNoFareNoRide(t *testing.T) {
 	g := newGame(t, nil)
 	from, _ := trInject(t, g)
 	g.cuSync()
-	for g.P.Gold > 0 && g.cuSpend(g.P.Gold) {
+	// spend everything: a mixed purse may refuse one big payment but take smaller ones
+	for amt := g.P.Gold; amt > 0 && g.P.Gold > 0; {
+		if !g.cuSpend(amt) {
+			amt--
+		} else {
+			amt = g.P.Gold
+		}
 	}
 	trips, _ := g.trRailTrips(from.ID)
 	if g.trRide(from, trips[0]) {

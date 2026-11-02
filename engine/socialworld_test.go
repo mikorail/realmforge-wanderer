@@ -237,7 +237,9 @@ func TestSocialWorldSlaveTownAndMovementQuest(t *testing.T) {
 			t.Fatalf("%s quest not rewarded", q.Kind)
 		}
 	}
-	if !kinds["pamphlets"] || !kinds["captive"] {
+	// the captive quest needs free outskirts around the town; a 5x5 capital's neighbours are all wards
+	needCaptive := len(swFreeSlots(g, g.W.burgByID[zn.Burg])) > 1
+	if !kinds["pamphlets"] || (needCaptive && !kinds["captive"]) {
 		t.Errorf("quest kinds seen: %v", kinds)
 	}
 }

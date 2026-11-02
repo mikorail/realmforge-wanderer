@@ -252,7 +252,7 @@ func (g *Game) aiAct(a *Actor) {
 	if g.snShelterAct(a) { // seasons2.go: shelter from storms
 		return
 	}
-	if g.bsAct(a) { // wildlife.go: sleep, flee, herds, warnings, predation
+	if g.bsAct(a) { // zwildlife.go: sleep, flee, herds, warnings, predation
 		return
 	}
 	p := g.P

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -85,11 +86,14 @@ var attireOverlay = map[string]string{
 	"wasteland": "scrap-patched", "twilight": "ash-stained",
 }
 
+// attireSpheres lists the spheres with regional attire, sorted: map order is random in Go, and
+// callers draw from the zone rng with it, so an unsorted list made tailor zones nondeterministic.
 func attireSpheres() []string {
 	out := make([]string, 0, len(attireTable))
 	for k := range attireTable {
 		out = append(out, k)
 	}
+	sort.Strings(out)
 	return out
 }
 

@@ -138,7 +138,8 @@ func TestCompanionLevelsUp(t *testing.T) {
 	g := newGame(t, nil)
 	a := recruitOne(t, g)
 	lv, hp := a.Level, a.MaxHP
-	for i := 0; i < 6; i++ {
+	// enough kills to level whatever level the recruit starts at (capped)
+	for i := 0; i < 40 && a.Level <= lv; i++ {
 		foe := g.Spawn("rat", 3, g.R)
 		foe.X, foe.Y = a.X, a.Y+1
 		g.Cur.Actors = append(g.Cur.Actors, foe)

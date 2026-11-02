@@ -658,7 +658,7 @@ func (g *Game) codexLines(tab, w int) []string {
 		}
 		sort.Slice(bs, func(i, j int) bool { return bs[i].Order < bs[j].Order })
 		lines = append(lines, fmt.Sprintf("{{K|%d creatures recorded. Slay three of a kind to learn its anatomy.}}", len(bs)), "")
-		lines = append(lines, g.bsCodexNote()...) // wildlife.go
+		lines = append(lines, g.bsCodexNote()...) // zwildlife.go
 		for _, b := range bs {
 			head := fmt.Sprintf("{{Y|%s}} {{K|seen %d · slain %d · level %s}}", titleCase(b.Name), b.Seen, b.Kills, cxRange(b.MinLv, b.MaxLv))
 			if b.SimMon > 0 {
