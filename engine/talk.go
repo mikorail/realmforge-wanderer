@@ -200,6 +200,9 @@ func (g *Game) gossip(a *Actor) string {
 	if s := g.swGossip(a); s != "" {
 		return s
 	}
+	if s := g.hzGossip(a); s != "" { // disasters and outbreaks (hazards.go)
+		return s
+	}
 	if s := g.nmGossip(a); s != "" {
 		return s
 	}

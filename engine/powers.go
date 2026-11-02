@@ -414,6 +414,8 @@ func (g *Game) useItem(it *Item) {
 		case "antidote":
 			delete(p.Status, "poisoned")
 			g.Msg("The poison leaves you.")
+		case "hzcure", "hzvax": // diseases (hazards_play.go)
+			g.hzUseTonic(it)
 		}
 		g.consume(it)
 	case "map": // treasure maps (hunts.go)

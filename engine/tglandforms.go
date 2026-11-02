@@ -45,11 +45,16 @@ func tgNeighbours(w *WorldData, p int, card bool) []int {
 	return out
 }
 
-// tgVolcanoAt reports whether parasang p holds a volcano and whether it is active. Derived from
-// height, biome and planet for now; a disasters system may later back it with Realmforge data.
+// tgVolcanoAt reports whether parasang p holds a volcano and whether it is active. When the world
+// file carries Realmforge's volcanoes (hazards.go) they decide; older worlds derive them from
+// height, biome and planet.
 func tgVolcanoAt(w *WorldData, p int) (bool, bool) {
 	if w == nil || p < 0 || p >= len(w.Biome) || w.IsWater(p) {
 		return false, false
+	}
+	if w.Hazards != nil && len(w.Hazards.Volcanoes) > 0 {
+		v := w.hzVolcanoAt(p)
+		return v != nil, v != nil && v.Active
 	}
 	b, h := w.Biome[p], w.Height[p]
 	nmax, sum, n := 0, 0, 0
