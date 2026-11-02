@@ -278,8 +278,8 @@ var flCat = []flSp{
 	flS(flTree, "bone-white sycamore", flGBroad, CWhite, "a pale relic of an older forest").only("twilight", "wasteland").w(2).wood("sycamore", 8),
 
 	// ---------------- snags, cacti, dead trees (TDeadTree) ----------------
-	flS(flSnag, "saguaro", flGCactus, CGreen, "a fluted green column raising its arms").b(1).t(16, 40).h(0, 55).w(7).wood("saguaro ribs", 4).fruit("saguaro fruit", "spry", sSu, 2),
-	flS(flSnag, "cardón", flGCactus, CDarkGreen, "a giant many-armed cactus").b(1).t(16, 40).h(0, 50).w(4).wood("cactus ribs", 4),
+	flS(flSnag, "saguaro", flGCactus, CGreen, "a fluted green column raising its arms").b(1).t(12, 40).h(0, 55).w(7).wood("saguaro ribs", 4).fruit("saguaro fruit", "spry", sSu, 2),
+	flS(flSnag, "cardón", flGCactus, CDarkGreen, "a giant many-armed cactus").b(1).t(12, 40).h(0, 50).w(4).wood("cactus ribs", 4),
 	flS(flSnag, "Joshua tree", flGCactus, CGray, "shaggy-limbed, each arm ending in a spiked fist").b(1, 2).t(8, 32).h(30, 70).w(5).wood("yucca wood", 3),
 	flS(flSnag, "quiver tree", flGCactus, CYellow, "a forking aloe with golden, powdery bark").b(1, 3).t(16, 38).h(20, 60).w(3).wood("aloe wood", 3),
 	flS(flSnag, "candelabra euphorbia", flGCactus, CDarkGreen, "a spurge of ribbed arms, its milk caustic").b(3, 1).t(18, 38).h(0, 60).w(3).fruit("euphorbia latex", "venom", sAll, 1),
@@ -287,8 +287,8 @@ var flCat = []flSp{
 	flS(flSnag, "charred snag", flGSnag, CDarkGray, "burned hollow, still smoking at its heart").b(13, 16).w(6).wood("charcoal", 3),
 	flS(flSnag, "petrified trunk", flGSnag, CGray, "turned to stone long ago").b(13, 1, 2, 16).w(2),
 	flS(flSnag, "obsidian thorn", flGSnag, CDarkMagenta, "a tree-shaped spike of volcanic glass").b(16, 13).w(3),
-	flS(flSnag, "ghost tree", flGSnag, CWhite, "a bleached snag, barkless and silver").w(2).wood("deadwood", 3),
-	flS(flSnag, "lightning-split snag", flGSnag, CBrown, "split to the root by an old strike").w(2).wood("deadwood", 3),
+	flS(flSnag, "ghost tree", flGSnag, CWhite, "a bleached snag, barkless and silver").b(2, 3, 4, 5, 6, 7, 8, 9, 10, 12).w(2).wood("deadwood", 3),
+	flS(flSnag, "lightning-split snag", flGSnag, CBrown, "split to the root by an old strike").b(3, 4, 5, 6, 7, 8, 9, 12).w(2).wood("deadwood", 3),
 	flS(flSnag, "wired snag", flGSnag, CDarkCyan, "strung with dead cable").only("cyberpunk", "dieselpunk", "atompunk").w(4).wood("deadwood", 3),
 
 	// ---------------- shrubs (TBush) ----------------

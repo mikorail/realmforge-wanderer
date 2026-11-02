@@ -28,6 +28,7 @@ type flZone struct {
 	tt    []Terrain
 	cands map[uint8][]uint16
 	key   string
+	hs    uint64 // cached flTileHash base (seed ^ zone key)
 }
 
 var flByName = func() map[string]uint16 {
@@ -276,7 +277,11 @@ func flWeighted(c []uint16, h uint64) uint16 {
 func (g *Game) flSeed() uint64 { return HashStr(g.W.Seed + ":fl") }
 
 func flTileHash(seed uint64, zn *Zone, i int) uint64 {
-	return wxMix(seed ^ HashStr(zn.Key)*0x9e3779b97f4a7c15 ^ uint64(i+1)*0xc2b2ae3d27d4eb4f)
+	st := flState(zn)
+	if st.hs == 0 {
+		st.hs = seed ^ HashStr(zn.Key)*0x9e3779b97f4a7c15
+	}
+	return wxMix(st.hs ^ uint64(i+1)*0xc2b2ae3d27d4eb4f)
 }
 
 // flPick is the species (id+1) of a tile: mixed stands from patch dominants in global coordinates
