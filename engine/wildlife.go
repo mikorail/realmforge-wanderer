@@ -20,7 +20,7 @@ import (
 type bsSp struct {
 	ID     string  // slug; template id is "bs_"+ID
 	Name   string  // common name
-	Group  string  // code: mam bird rept dino ptero amph fish ins arach crust myria arth moll cnid echi worm misc
+	Group  string  // code: mam syn bird rept dino ptero amph fish ins arach crust myria arth moll cnid echi worm misc
 	Era    string  // living recent pleistocene cenozoic mesozoic paleozoic precambrian
 	Period string  // "Late Cretaceous" (prehistoric) or "" (living)
 	Ma     float64 // millions of years ago (prehistoric)
@@ -62,7 +62,7 @@ var (
 var bsGroupNames = map[string]string{
 	"mam": "mammal", "bird": "bird", "rept": "reptile", "dino": "dinosaur", "ptero": "pterosaur", "amph": "amphibian",
 	"fish": "fish", "ins": "insect", "arach": "arachnid", "crust": "crustacean", "myria": "myriapod", "arth": "arthropod",
-	"moll": "mollusc", "cnid": "cnidarian", "echi": "echinoderm", "worm": "worm", "misc": "enigmatic organism",
+	"moll": "mollusc", "cnid": "cnidarian", "echi": "echinoderm", "worm": "worm", "misc": "enigmatic organism", "syn": "synapsid",
 }
 
 var bsTempers = map[string]bool{"passive": true, "skittish": true, "herd": true, "territorial": true, "predator": true, "pack": true}
@@ -1023,7 +1023,7 @@ func (g *Game) bsTidePool(zn *Zone, r *Rng) {
 // ---- fossils ----
 
 var bsFossilParts = map[string][]string{
-	"mam": {"skull", "jawbone", "molar", "femur"}, "bird": {"wing bone", "skull", "egg"}, "rept": {"skull", "vertebra", "tooth"},
+	"mam": {"skull", "jawbone", "molar", "femur"}, "syn": {"skull", "sail spine", "jawbone"}, "bird": {"wing bone", "skull", "egg"}, "rept": {"skull", "vertebra", "tooth"},
 	"dino": {"tooth", "claw", "vertebra", "skull", "egg"}, "ptero": {"wing bone", "skull"}, "amph": {"skull", "skeleton"},
 	"fish": {"tooth", "skull plate", "scale"}, "ins": {"wing in amber", "imprint"}, "arach": {"imprint", "body in amber"},
 	"crust": {"carapace", "claw"}, "myria": {"trackway", "segment"}, "arth": {"carapace", "imprint"}, "moll": {"shell"},
