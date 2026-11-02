@@ -699,7 +699,9 @@ func (g *Game) nmStreets(zn *Zone, bd *BurgData, kind string) {
 	} else if cu := w.cultByID[bd.Culture]; cu != nil && len(cu.Places) > 0 {
 		names = append(names, cu.Places[nmHash(w, "st:p:"+zn.Key, len(cu.Places))]+" "+word[nmHash(w, "st:pw:"+zn.Key, len(word))])
 	}
-	placed := 0
+	if kind != "market" && kind != "plaza" && len(names) > 1 {
+		names = names[nmHash(w, "st:one:"+zn.Key, 2):][:1] // a quiet district gets one signpost
+	}
 	for i, nm := range names {
 		// walk the zone from a hashed start and take the first cobble beside a road or a crossing of cobbles
 		start := nmHash(w, fmt.Sprint("st:s:", i, ":", zn.Key), MW*MH)
@@ -711,11 +713,9 @@ func (g *Game) nmStreets(zn *Zone, bd *BurgData, kind string) {
 			}
 			zn.Set(x, y, TInscription)
 			zn.Notes[j] = fmt.Sprintf("{{Y|%s}}\nA signpost of %s.", nm, bd.Name)
-			placed++
 			break
 		}
 	}
-	_ = placed
 }
 
 // ---- entering ----
