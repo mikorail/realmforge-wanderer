@@ -601,6 +601,9 @@ func (g *Game) interact(x, y int) {
 	if inBump(g, x, y) { // stat gates, shrines, glyphs (gates.go / insight.go)
 		return
 	}
+	if tgBump(g, x, y) { // obsidian, sulfur (tghazards.go)
+		return
+	}
 	z := g.Cur
 	t := z.At(x, y)
 	i := y*MW + x

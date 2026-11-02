@@ -828,6 +828,7 @@ func (g *Game) stepTo(nx, ny int) {
 	}
 	cost = g.climbCost(nx, ny, cost)
 	cost = g.weatherStep(nx, ny, cost)
+	cost = g.tgStep(nx, ny, cost) // terrain hazards (tghazards.go)
 	p.X, p.Y = nx, ny
 	if z.Traps != nil {
 		if _, ok := z.Traps[ny*MW+nx]; ok {

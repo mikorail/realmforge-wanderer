@@ -261,6 +261,7 @@ func (g *Game) drawSide() {
 			depth = "aloft"
 		}
 		line(fmt.Sprintf("{{K|%s · %s}}", g.W.StateName(g.W.State[g.W.Idx(g.WX, g.WY)]), depth))
+		line(g.tgElevLine()) // tgelev.go
 		line("{{K|" + g.timeOfDay() + "}}")
 		line(g.dateLine())
 		if _, f := g.feastToday(); f != nil {
@@ -371,6 +372,12 @@ func (g *Game) worldGlyph(p int) (rune, byte, byte) {
 			gl = '~'
 		}
 		return gl, CBlue, CDarkBlue
+	}
+	if v, act := tgVolcanoAt(w, p); v { // tglandforms.go
+		if act {
+			return '▲', CRed, CBg
+		}
+		return '▲', CDarkOrange, CBg
 	}
 	if h >= 70 {
 		return '▲', CGray, CBg
@@ -525,6 +532,7 @@ func (g *Game) drawWorld() {
 		info = append(info, g.unRiftInfo(p)...) // planets.go
 		info = append(info, g.trInfo(p)...)     // transport.go
 	}
+	info = append(info, g.tgInfo(p)...) // tgelev.go
 	if !w.IsWater(p) {
 		info = append(info, g.tvInfo(p)...) // travel.go
 	}
