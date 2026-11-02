@@ -65,6 +65,21 @@ const (
 	TCobble
 	TTrap
 	TPortal // a rift to another planet (planets.go)
+	// landforms (tglandforms.go)
+	TCliff
+	TFalls
+	TSpray
+	TGlacier
+	TIceWall
+	TPalm
+	THotSpring
+	TGeyser
+	TFumarole
+	TTar
+	TQuicksand
+	TSalt
+	TObsidian
+	TSulfur
 	NTerrain
 )
 
@@ -143,6 +158,20 @@ var TDefs = [NTerrain]TDef{
 	TCobble:       {"cobbles", '·', CGray, CBg, true, false, 0, false, "", false},
 	TTrap:         {"trap", '^', CMagenta, CBg, true, false, 0, false, "A trap you spotted. Step around it.", false},
 	TPortal:       {"rift gate", 'Ø', CMagenta, CDarkMagenta, false, false, 0, false, "A shimmering tear onto another world. Bump to step through.", true},
+	TCliff:        {"cliff", '▲', CBrown, CBgDark, false, true, 0, false, "A sheer rock face. Find a way round, or climb it.", false},
+	TFalls:        {"waterfall", '║', CWhite, CBlue, true, true, 1, false, "Water thunders over the lip. You could slip behind the curtain.", false},
+	TSpray:        {"spray", '░', CCyan, CDarkBlue, true, false, 1, false, "Cold mist off the falls. It soaks you through.", false},
+	TGlacier:      {"glacier ice", '▒', CWhite, CDarkCyan, true, false, 0, false, "Old blue ice, ridged and slick. Mind the crevasses.", false},
+	TIceWall:      {"ice wall", '#', CCyan, CBgLight, false, true, 0, false, "Walls of glassy blue ice.", false},
+	TPalm:         {"palm", '♣', CYellow, CBg, false, false, 0, true, "A date palm, its fronds rattling in the wind.", false},
+	THotSpring:    {"hot spring", '~', CCyan, CDarkCyan, true, false, 1, false, "Steaming mineral water. A long soak mends aches.", false},
+	TGeyser:       {"geyser", '¤', CWhite, CDarkCyan, false, false, 0, false, "A crusted vent that hisses and gurgles. It erupts from time to time; keep clear.", false},
+	TFumarole:     {"fumarole", '∴', CYellow, CDarkRed, true, false, 0, false, "A crack venting hot, foul gas.", false},
+	TTar:          {"tar pit", '≈', CDarkGray, CBlack, true, false, 0, true, "Black, sucking tar. Slow going, and it burns.", false},
+	TQuicksand:    {"quicksand", ':', CBrown, CBgDark, true, false, 0, false, "Wet sand that gives way underfoot. Keep moving.", false},
+	TSalt:         {"salt flat", '.', CWhite, CBgLight, true, false, 0, false, "A blinding crust of salt, cracked into plates.", false},
+	TObsidian:     {"obsidian", '%', CDarkMagenta, CBgDark, false, true, 0, false, "Black volcanic glass. Bump to knap shards.", true},
+	TSulfur:       {"sulfur crust", '%', CYellow, CBgDark, false, true, 0, false, "A crust of yellow sulfur, reeking of rotten eggs. Bump to scrape some.", true},
 }
 
 func (t Terrain) D() *TDef { return &TDefs[t] }
