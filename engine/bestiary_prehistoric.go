@@ -5,7 +5,7 @@ package engine
 // name|group|when|habitat|size|diet|temper|activity|flags|glyph+colour|rarity|attack|description
 var _ = bsReg(`
 # Pleistocene megafauna
-Woolly mammoth|mam|Late Pleistocene:0.01|10,9,2,4|6|h|herd|d|ivory|MW|3|tusks|A shaggy elephant of the mammoth steppe with spiralling tusks; the last ones lived on a lonely Arctic island.
+Woolly mammoth|mam|Late Pleistocene:0.004|10,9,2,4|6|h|herd|d|ivory|MW|3|tusks|A shaggy elephant of the mammoth steppe with spiralling tusks; the last ones lived on a lonely Arctic island.
 Columbian mammoth|mam|Late Pleistocene:0.012|4,3|6|h|herd|d|ivory|Mw|3|tusks|A huge, sparsely haired mammoth of warmer plains, taller than any living elephant.
 American mastodon|mam|Late Pleistocene:0.011|9,6,12|6|h|herd|d|ivory|Mr|3|tusks|A stocky browser of spruce forests and swamps, distinct from the true mammoths.
 Straight-tusked elephant|mam|Middle Pleistocene:0.1|6,4|6|h|herd|d|ivory|My|4|tusks|A towering elephant of interglacial forests, larger than any elephant now alive.

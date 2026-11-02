@@ -607,7 +607,7 @@ func (s *bsSp) fits(pl *bsPlace) bool {
 		}
 		return s.Fresh
 	}
-	if s.Coast && pl.coast {
+	if s.Coast && pl.coast && (s.Sea == 0 || seaOK(s.Sea)) {
 		return true
 	}
 	if s.Mtn && pl.height < 55 {
