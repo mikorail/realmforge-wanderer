@@ -674,9 +674,9 @@ func (g *Game) tgVolcano(zn *Zone, r *Rng, pt *tgPainter, active bool) {
 					pt.set(x, y, TFumarole, false)
 				case n < 0.07:
 					pt.set(x, y, TSulfur, false)
-				case n > 0.82:
+				case n > 0.88:
 					pt.set(x, y, TRock, false)
-				case n > 0.6:
+				case n > 0.76:
 					pt.set(x, y, TRubble, false)
 				default:
 					pt.set(x, y, TAsh, false)

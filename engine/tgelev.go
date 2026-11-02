@@ -180,7 +180,10 @@ func (g *Game) tgElevLine() string {
 	if g.Cur.WaterAt(g.P.X, g.P.Y) >= 1 && alt < 0 {
 		return fmt.Sprintf("{{B|Sea, %s m deep}}", tgFmt(-alt))
 	}
-	return "{{K|" + tgFmt(alt) + " m above the sea}}" + tgAirTag(alt)
+	if tag := tgAirTag(alt); tag != "" {
+		return "{{K|" + tgFmt(alt) + " m up,}}" + tag
+	}
+	return "{{K|" + tgFmt(alt) + " m above the sea}}"
 }
 
 func tgAirTag(alt float64) string {

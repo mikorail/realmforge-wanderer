@@ -255,6 +255,64 @@ export function drawProceduralCell(
 		return true;
 	}
 
+	// 4b. Landforms (engine/tglandforms.go): cliffs and peaks (▲), waterfalls (║), fumaroles (∴), glacier ice (▒)
+	if (g === '▲') {
+		ctx.save();
+		ctx.fillStyle = fg;
+		ctx.beginPath();
+		ctx.moveTo(x + cw * 0.08, y + chh * 0.9);
+		ctx.lineTo(x + cw * (0.42 + (h & 3) * 0.04), y + chh * 0.14);
+		ctx.lineTo(x + cw * 0.92, y + chh * 0.9);
+		ctx.closePath();
+		ctx.fill();
+		ctx.globalAlpha = 0.45;
+		ctx.fillStyle = palette[18] || '#041312';
+		ctx.fillRect(x + cw * 0.5, y + chh * 0.45, cw * 0.08, chh * 0.4);
+		ctx.restore();
+		return true;
+	}
+	if (g === '║') {
+		ctx.save();
+		ctx.strokeStyle = fg;
+		ctx.lineWidth = Math.max(1, cw * 0.1);
+		for (let k = 0; k < 3; k++) {
+			const sx = x + cw * (0.25 + k * 0.25);
+			const off = ((h >>> (k * 3)) & 7) / 7;
+			ctx.beginPath();
+			ctx.moveTo(sx, y + chh * (0.05 + off * 0.2));
+			ctx.lineTo(sx, y + chh * (0.6 + off * 0.35));
+			ctx.stroke();
+		}
+		ctx.restore();
+		return true;
+	}
+	if (g === '∴') {
+		ctx.save();
+		ctx.fillStyle = fg;
+		const r = Math.max(1.2, cw * 0.12);
+		for (const [px, py] of [[0.5, 0.3], [0.3, 0.7], [0.7, 0.7]]) {
+			ctx.beginPath();
+			ctx.arc(x + cw * px, y + chh * py, r, 0, Math.PI * 2);
+			ctx.fill();
+		}
+		ctx.restore();
+		return true;
+	}
+	if (g === '▒') {
+		ctx.save();
+		ctx.strokeStyle = fg;
+		ctx.globalAlpha = 0.6;
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(x + cw * 0.1, y + chh * (0.35 + (h & 3) * 0.05));
+		ctx.lineTo(x + cw * 0.9, y + chh * (0.3 + ((h >>> 2) & 3) * 0.05));
+		ctx.moveTo(x + cw * 0.2, y + chh * 0.72);
+		ctx.lineTo(x + cw * 0.75, y + chh * 0.68);
+		ctx.stroke();
+		ctx.restore();
+		return true;
+	}
+
 	// 5. Water & Lava waves (~, ≈)
 	if (g === '~' || g === '≈') {
 		ctx.save();
