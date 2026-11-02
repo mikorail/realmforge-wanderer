@@ -884,6 +884,9 @@ func (g *Game) fall() {
 }
 
 func (g *Game) crossEdge(nx, ny int) {
+	if shEdge(g) { // ship decks (sailing.go)
+		return
+	}
 	z := g.Cur
 	wx, wy, zx, zy := z.WX, z.WY, z.ZX, z.ZY
 	x, y := nx, ny
@@ -1003,6 +1006,9 @@ func (g *Game) nearHostile() bool {
 }
 
 func (g *Game) WorldMove(dx, dy int) {
+	if shWorldMove(g, dx, dy) { // your own ship (sailing.go)
+		return
+	}
 	nx, ny := g.WX+dx, g.WY+dy
 	if !g.W.In(nx, ny) {
 		return
