@@ -156,7 +156,7 @@ func (g *Game) siteName(theme string, p int, r *Rng) string {
 	if theme == "vault" && g.Genre == "twilight" {
 		noun = Pick(r, []string{"Drowned Reliquary", "Gilded Undercroft", "Sunken Archive"})
 	}
-	return fmt.Sprintf("%s of %s", noun, place)
+	return g.nmSiteName(theme, p, fmt.Sprintf("%s of %s", noun, place)) // names.go
 }
 
 // outlawZone: the sub-zone of a town's parasang where its outlaw camp sits (first one outside the city)
