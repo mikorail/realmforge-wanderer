@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 )
@@ -1008,29 +1009,8 @@ func (g *Game) WorldMove(dx, dy int) {
 	}
 	g.WX, g.WY = nx, ny
 	g.CX, g.CY = nx, ny
-	cost := 300
-	if g.P.Pow("wings") > 0 {
-		cost = 180
-	}
-	cost -= g.Skills["survival"] * 40
-	if g.W.Road[np] > 0 {
-		cost = cost * 2 / 3
-	}
-	if g.W.Height[np] >= 70 {
-		cost = cost * 3 / 2
-	}
-	cost = g.travelWeather(np, cost)
-	for i := 0; i < cost; i++ {
-		g.Turn++
-		g.mealTick()
-		if g.Turn%(2+g.Skills["endurance"]) != 0 && !g.slowHunger() {
-			g.Hunger++
-			g.Thirst++
-		}
-		if g.Turn%30 == 0 && g.P.HP < g.P.MaxHP {
-			g.P.HP++
-		}
-	}
+	cost := g.travelWeather(np, g.tvMinutes(np)) // days at true scale (travel.go)
+	g.tvJourney(cost)
 	wsOnMove(g) // travellers, armies and events along the way (worldsim.go)
 	g.Known[np] = true
 	for _, d := range dirs8 {
@@ -1041,15 +1021,13 @@ func (g *Game) WorldMove(dx, dy int) {
 			}
 		}
 	}
-	if g.Hunger > 2400 || g.Thirst > 1800 {
-		g.hurt(g.P, 3, nil, "privation on the road")
-		g.Msg("{{R|The road is hard without food and water.}}")
-	}
 	// ambushes
 	chance := 0.12 - 0.03*float64(g.Skills["survival"])
 	if g.W.State[np] == 0 {
 		chance += 0.06
 	}
+	// a multi-day crossing gives the road more chances, capped so travel stays travel
+	chance = math.Min(0.4, 1-math.Pow(1-chance/2, float64(cost)/DayLen))
 	if g.W.Burg[np] > 0 {
 		chance = 0
 	}

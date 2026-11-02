@@ -523,6 +523,9 @@ func (g *Game) drawWorld() {
 		}
 		info = append(info, g.unRiftInfo(p)...) // planets.go
 	}
+	if !w.IsWater(p) {
+		info = append(info, g.tvInfo(p)...) // travel.go
+	}
 	g.Popup = nil
 	g.wmInfo = info
 }

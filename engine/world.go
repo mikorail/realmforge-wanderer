@@ -14,6 +14,7 @@ type WorldData struct {
 	Genre       string            `json:"genre"`
 	Planet      string            `json:"planet"`
 	PlanetKind  string            `json:"planetKind"`
+	KmPer       float64           `json:"kmPer,omitempty"` // km across one parasang; 0 = Realmforge default (travel.go)
 	Year        int               `json:"year"`
 	Era         string            `json:"era"`
 	W           int               `json:"w"`
