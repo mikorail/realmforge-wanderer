@@ -927,6 +927,11 @@ func shKeys(g *Game, k string) {
 
 func shDraw(g *Game) {
 	s := g.sc
+	if g.OnWorld {
+		pop, info := g.Popup, g.wmInfo
+		g.drawWorld() // the sea under the menu, not the harbour you left
+		g.Popup, g.wmInfo = pop, info
+	}
 	h := len(g.Popup) + len(g.Opts) + 5
 	y0 := maxi(1, (MH-h)/2)
 	s.Box(2, y0, SW-4, h, CBrown, g.sh().Title)

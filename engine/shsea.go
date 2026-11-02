@@ -24,6 +24,7 @@ type shFight struct {
 	Fine    int    `json:"fi,omitempty"`
 	Prize   int    `json:"pr,omitempty"`
 	Tpl     string `json:"tp,omitempty"` // monster template
+	SimMon  int    `json:"sm,omitempty"` // a Realmforge monster of the sea
 	Foes    []int  `json:"fo,omitempty"`
 }
 
@@ -142,6 +143,14 @@ func (g *Game) shEncounterRoll(sp *shShip, np int, days float64) {
 	if st.Fight != nil || st.Ship != sp || st.quiet {
 		return
 	}
+	for _, mi := range g.W.monstersAt[np] {
+		m := &g.W.Monsters[mi]
+		if !m.Slain && !g.Slain[m.ID] && (m.Layer == "surface" || m.Layer == "sea" || m.Layer == "") && g.R.Chance(0.5) {
+			st.Fight = &shFight{Kind: "monster", Name: m.Name, SimMon: m.ID, Level: clampi(m.Power/7, 8, 35), Kmd: 300}
+			g.shFightMenu()
+			return
+		}
+	}
 	chance := math.Min(0.45, 0.16*days+0.04)
 	if !g.R.Chance(chance) {
 		return
@@ -251,7 +260,7 @@ func (g *Game) shFightMenu() {
 	case "pirate":
 		g.Popup = Wrap(fmt.Sprintf("{{R|Sails on the horizon: %s, pirates, bearing down on you!}} %s", trCap(f.Name), status), 100)
 		g.shCombatOpts(add, runDC)
-		toll := maxi(20, g.P.Gold/4)
+		toll := clampi(g.P.Gold/4, 20, 60+f.Level*40)
 		add(fmt.Sprintf("Pay them off. — %s", g.cuFormat(toll)), func() {
 			if !g.cuSpend(toll) {
 				g.shFightLine("\"That's not enough to buy your life.\"")
@@ -451,8 +460,7 @@ func (g *Game) shBoardAction() {
 	shLayDeck(zn, ox, half, beam)
 	f.Foes = nil
 	if f.Kind == "monster" {
-		a := g.Spawn(f.Tpl, f.Level, r)
-		a.Angry, a.AI = true, "hostile"
+		a := g.shMonster(f, r)
 		a.X, a.Y = ox+half+2, 12
 		zn.Actors = append(zn.Actors, a)
 		f.Foes = append(f.Foes, a.ID)
@@ -511,6 +519,108 @@ func (g *Game) shBoardAction() {
 	g.Mode, g.OnWorld = "main", false
 	g.recompute()
 	g.Msg("{{R|Steel out! Walk off the deck's edge to cut the grapples and flee.}}")
+}
+
+// shMonster is the beast of a sea fight: a Realmforge legend or a bestiary predator.
+func (g *Game) shMonster(f *shFight, r *Rng) *Actor {
+	var m *MonsterData
+	for i := range g.W.Monsters {
+		if f.SimMon > 0 && g.W.Monsters[i].ID == f.SimMon {
+			m = &g.W.Monsters[i]
+		}
+	}
+	if m == nil {
+		a := g.Spawn(f.Tpl, f.Level, r)
+		a.Angry, a.AI = true, "hostile"
+		return a
+	}
+	a := g.Spawn("horror", f.Level, r)
+	a.Name, a.Proper, a.Boss, a.SimMon, a.Desc = m.Name, true, true, m.ID, m.Lore
+	if sp := []rune(strings.ToUpper(m.Species)); len(sp) > 0 {
+		a.Glyph = sp[0]
+	}
+	a.F, a.Faction, a.Angry, a.AI = CRed, "legends", true, "hostile"
+	a.MaxHP = maxi(a.MaxHP, m.HP)
+	a.HP = a.MaxHP
+	a.AVNat += int(m.Armor * 14)
+	a.XP, a.Gold = 400+m.Power*20, 100+m.Power*3
+	if m.Trophy != "" {
+		a.Inv = append(a.Inv, &Item{ID: g.newID(), Kind: "trophy", Name: m.Trophy, Glyph: '♦', F: CYellow, Value: 200 + m.Power*4, Lore: "Proof you slew " + m.Name + "."})
+	}
+	return a
+}
+
+// ---- islands ----
+
+var shIsleCache = map[*WorldData]map[int]int{}
+
+// shIsleSize is the land area (parasangs, capped at 9) of the island holding p; 0 for sea.
+func shIsleSize(w *WorldData, p int) int {
+	if w.IsWater(p) {
+		return 0
+	}
+	c := shIsleCache[w]
+	if c == nil {
+		c = map[int]int{}
+		shIsleCache[w] = c
+	}
+	if n, ok := c[p]; ok {
+		return n
+	}
+	seen := map[int]bool{p: true}
+	q := []int{p}
+	for len(q) > 0 && len(seen) < 10 {
+		x := q[0]
+		q = q[1:]
+		for _, d := range dirs8 {
+			if !w.In(x%w.W+d[0], x/w.W+d[1]) {
+				continue
+			}
+			n := w.Idx(x%w.W+d[0], x/w.W+d[1])
+			if !seen[n] && !w.IsWater(n) {
+				seen[n] = true
+				q = append(q, n)
+			}
+		}
+	}
+	n := mini(len(seen), 9)
+	c[p] = n
+	return n
+}
+
+// shIsleZone hides a castaway's cache on small, empty islands (zone hook, side rng only).
+func shIsleZone(g *Game, zn *Zone, _ *Rng) {
+	if zn.Z != 0 || zn.ZX != 1 || zn.ZY != 1 || zn.Kind != "surface" || zn.Burg > 0 {
+		return
+	}
+	w := g.W
+	p := w.Idx(zn.WX, zn.WY)
+	if w.Burg[p] > 0 || shIsleSize(w, p) > 6 || HashStr(g.Seed+":sh:isle:"+zn.Key)%2 != 0 {
+		return
+	}
+	r := NewRng(g.Seed + ":sh:isle:" + zn.Key)
+	x, y, ok := zn.FreeSpot(r, func(x, y int) bool {
+		return abs(x-40) < 25 && abs(y-12) < 8 && zn.At(x, y).D().Water == 0 && zn.ActorAt(x, y) == nil
+	})
+	if !ok {
+		return
+	}
+	notes := []string{
+		"A cairn of sea-worn stones. Scratched on the top one: \"Left here by the crew of %s. Dig if you are hungry.\"",
+		"A driftwood cross over a mound. \"%s — we buried what we could not carry.\"",
+		"A cave mouth stacked with shells in a spiral, and a tally of days scratched beside it: the last mark of %s.",
+	}
+	zn.Set(x, y, TInscription)
+	zn.Notes[y*MW+x] = fmt.Sprintf(Pick(r, notes), "the "+g.shNewName(zn.Key))
+	put := func(it *Item) {
+		if ix, iy, ok := zn.FreeSpot(r, func(ix, iy int) bool { return abs(ix-x) <= 2 && abs(iy-y) <= 2 && zn.At(ix, iy).D().Water == 0 }); ok {
+			it.X, it.Y = ix, iy
+			zn.Items = append(zn.Items, it)
+		}
+	}
+	put(g.Loot(r, 1+zn.Level/3))
+	put(g.Loot(r, 1+zn.Level/3))
+	put(&Item{ID: g.newID(), Kind: "gold", Name: g.Sk.Currency, Glyph: '$', F: CYellow, Count: 20 + r.Int(0, 50)})
 }
 
 // shBoardTick ends a boarding action when every foe is down (turn hook).
@@ -683,5 +793,6 @@ func (g *Game) shFish() {
 
 func init() {
 	turnHooks = append(turnHooks, shBoardTick)
+	zoneHooks = append(zoneHooks, shIsleZone)
 	enterHooks = append(enterHooks, shEnter)
 }

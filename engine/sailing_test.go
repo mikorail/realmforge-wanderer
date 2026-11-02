@@ -381,3 +381,34 @@ func TestShOldSaveLoads(t *testing.T) {
 	h.Key("ArrowLeft")
 	h.Render()
 }
+
+func TestShIslandCacheAndSeaLegend(t *testing.T) {
+	g := newGame(t, nil)
+	w := g.W
+	found := false
+	for p := range w.Biome {
+		if w.IsWater(p) || w.Burg[p] > 0 || shIsleSize(w, p) > 6 || HashStr(g.Seed+":sh:isle:"+ZoneKey(p%w.W, p/w.W, 1, 1, 0))%2 != 0 {
+			continue
+		}
+		zn := g.GetZone(p%w.W, p/w.W, 1, 1, 0)
+		for i, n := range zn.Notes {
+			if zn.T[i] == TInscription && (strings.Contains(n, "cairn") || strings.Contains(n, "mound") || strings.Contains(n, "shells")) {
+				found = true
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		t.Skip("no small islands on this world")
+	}
+	// a sea fight against a Realmforge legend spawns that legend
+	if len(w.Monsters) > 0 {
+		m := w.Monsters[0]
+		a := g.shMonster(&shFight{Kind: "monster", Name: m.Name, SimMon: m.ID, Level: 10}, NewRng("t"))
+		if a.SimMon != m.ID || a.Name != m.Name {
+			t.Errorf("legend not spawned: %s", a.Name)
+		}
+	}
+}
