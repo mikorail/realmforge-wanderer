@@ -45,7 +45,8 @@ type WorldData struct {
 	SectorNames []string          `json:"sectorNames"`
 	Terms       map[string]string `json:"terms"`
 	LayerNames  map[string]string `json:"layerNames"`
-	Forces      *WorldForces      `json:"forces,omitempty"` // genre forces on the map (socialworld.go)
+	Forces      *WorldForces      `json:"forces,omitempty"`    // genre forces on the map (socialworld.go)
+	Transport   *TransportData    `json:"transport,omitempty"` // rail lines, air routes, docks (transport.go)
 
 	burgByID    map[int]*BurgData
 	stateByID   map[int]*StateData

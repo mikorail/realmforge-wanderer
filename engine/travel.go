@@ -57,7 +57,7 @@ func (g *Game) tvPace(p int) float64 {
 	if g.W.Height[p] >= 70 {
 		pace *= 0.5
 	}
-	return pace * (1 + 0.08*float64(g.Skills["survival"]))
+	return pace * (1 + 0.08*float64(g.Skills["survival"])) * g.trPaceMul(p) // mounts and carts (transport.go)
 }
 
 // tvMinutes is how long crossing into parasang p takes (turns are minutes).
@@ -114,10 +114,9 @@ func (g *Game) tvProvision(ate, drank *int) {
 	}
 }
 
-// tvJourney passes the time of crossing into the next parasang: hunger, thirst, meals, healing,
-// rations from the pack and privation. It reports the journey in one message.
-func (g *Game) tvJourney(cost int) {
-	ate, drank, hurt := 0, 0, 0
+// tvPass passes cost minutes on the move (road, rail or air): hunger, thirst, meals, healing,
+// rations from the pack and privation. It returns meals eaten, drams drunk and HP lost.
+func (g *Game) tvPass(cost int) (ate, drank, hurt int) {
 	for i := 0; i < cost; i++ {
 		g.Turn++
 		g.mealTick()
@@ -137,7 +136,13 @@ func (g *Game) tvJourney(cost int) {
 			hurt++
 		}
 	}
-	msg := fmt.Sprintf("You travel %.0f km: %s on the way.", g.tvKm(), tvDuration(cost))
+	return
+}
+
+// tvJourney passes the time of crossing into the next parasang and reports the journey in one message.
+func (g *Game) tvJourney(cost int) {
+	ate, drank, hurt := g.tvPass(cost)
+	msg := fmt.Sprintf("You travel %.0f km: %s on the way%s.", g.tvKm(), tvDuration(cost), g.trRiding())
 	if ate > 0 || drank > 0 {
 		msg += fmt.Sprintf(" {{K|(%d meals, %d drams of water from your pack)}}", ate, drank)
 	}
@@ -145,17 +150,18 @@ func (g *Game) tvJourney(cost int) {
 	if hurt > 0 {
 		g.Msg("{{R|The road is hard without food and water.}}")
 	}
+	g.trJourney(cost) // mount feed, lameness, theft (transport.go)
 }
 
 // tvInfo is the world-map cursor's distance line.
 func (g *Game) tvInfo(p int) []string {
 	cx, cy := p%g.W.W, p/g.W.W
 	if cx == g.WX && cy == g.WY {
-		return []string{fmt.Sprintf("{{K|This region: %.0f km across, %s on foot}}", g.tvKm(), tvDuration(g.tvMinutes(p)))}
+		return []string{fmt.Sprintf("{{K|This region: %.0f km across, %s %s}}", g.tvKm(), tvDuration(g.tvMinutes(p)), g.trHow())}
 	}
 	dx, dy := float64(cx-g.WX), float64(cy-g.WY)
 	km := math.Hypot(dx, dy) * g.tvKm()
 	// estimate along the way at the pace of the destination and here
 	pace := (g.tvPace(p) + g.tvPace(g.W.Idx(g.WX, g.WY))) / 2
-	return []string{fmt.Sprintf("{{K|%.0f km away, about %s on foot}}", km, tvDuration(int(km/pace*DayLen)))}
+	return []string{fmt.Sprintf("{{K|%.0f km away, about %s %s}}", km, tvDuration(int(km/pace*DayLen)), g.trHow())}
 }
