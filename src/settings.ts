@@ -30,6 +30,8 @@ export interface Settings {
 	/** keys between autosaves */
 	autosaveEvery: number;
 	showHints: boolean;
+	/** f / t fire at the best clear target at once; F aims by hand */
+	autoAim: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -46,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	animations: true,
 	autosaveEvery: 150,
 	showHints: true,
+	autoAim: true,
 };
 
 export const SCALE_OPTIONS = [0.75, 1, 1.25, 1.5] as const;
@@ -78,6 +81,7 @@ function clean(raw: unknown): Settings {
 	const a = r.autosaveEvery;
 	if (typeof a === 'number' && (AUTOSAVE_OPTIONS as readonly number[]).includes(a)) s.autosaveEvery = a;
 	if (typeof r.showHints === 'boolean') s.showHints = r.showHints;
+	if (typeof r.autoAim === 'boolean') s.autoAim = r.autoAim;
 	return s;
 }
 

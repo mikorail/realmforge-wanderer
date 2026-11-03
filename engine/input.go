@@ -215,6 +215,9 @@ func (g *Game) keyMain(k string) Out {
 	case "w", "M":
 		g.openWorldMap()
 	case "f":
+		if g.P.Missile() != nil && g.aaQuick("fire") || g.P.Missile() == nil && wpReachOf(g.P) != nil && g.aaQuick("reach") { // auto-aim (autoaim.go)
+			return out
+		}
 		if g.wpFireKey() {
 			return out
 		}
@@ -223,15 +226,27 @@ func (g *Game) keyMain(k string) Out {
 		} else {
 			g.beginTarget("fire")
 		}
+	case "F": // aim by hand: opens the cursor instead of auto-aiming
+		if g.P.Missile() != nil {
+			g.beginTarget("fire")
+		} else if wpReachOf(g.P) != nil {
+			g.beginTarget("reach")
+		} else {
+			g.Msg("You have no missile weapon equipped.")
+		}
 	case "t":
 		for _, it := range g.P.Inv {
 			if it.Kind == "grenade" {
-				g.beginTarget(fmt.Sprintf("throw:%d", it.ID))
+				if pend := fmt.Sprintf("throw:%d", it.ID); !g.aaQuick(pend) {
+					g.beginTarget(pend)
+				}
 				return out
 			}
 		}
 		if it := g.wpThrowPick(); it != nil {
-			g.beginTarget(fmt.Sprintf("wpthrow:%d", it.ID))
+			if pend := fmt.Sprintf("wpthrow:%d", it.ID); !g.aaQuick(pend) {
+				g.beginTarget(pend)
+			}
 			return out
 		}
 		g.Msg("You have nothing to throw. (Throw any item from the inventory.)")
@@ -377,6 +392,9 @@ func (g *Game) keyTarget(k string) {
 		g.Mode = "main"
 		g.Pend = ""
 	case "Tab", "+":
+		if g.aaCycle(g.Pend) { // clear shots in distance order (autoaim.go)
+			return
+		}
 		var cur *Actor
 		idx := -1
 		cands := 0

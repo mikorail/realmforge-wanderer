@@ -44,6 +44,39 @@
 		if (attrTotal - next.reduce((t, v) => t + cost(v), 0) < 0) return;
 		attr = next;
 	}
+	/** attribute minimums the chosen calling asks for (score before the calling's own bonus) */
+	const reqMiss = $derived(
+		Object.entries(truekin ? {} : (calling?.req ?? {}))
+			.map(([k, v]) => ({ i: +k, need: v as number, have: attr[+k] + (species?.Attr?.[+k] ?? 0) }))
+			.filter((r) => r.have < r.need)
+	);
+	/** spend the points at random; weight 3 on the calling's own attributes when shaped */
+	function roll(shaped: boolean) {
+		let next = [12, 12, 12, 12, 12, 12];
+		const left = () => attrTotal - next.reduce((t, v) => t + cost(v), 0);
+		if (shaped) {
+			for (const [k, v] of Object.entries(truekin ? {} : (calling?.req ?? {}))) {
+				const i = +k;
+				while (next[i] + (species?.Attr?.[i] ?? 0) < (v as number) && left() > 0) next[i]++;
+			}
+		}
+		const w = (i: number) => (shaped && calling?.attr?.[i] ? 3 : 1);
+		for (let guard = 0; guard < 400; guard++) {
+			const open = next.map((v, i) => i).filter((i) => next[i] < 20 && cost(next[i] + 1) - cost(next[i]) <= left());
+			if (!open.length) break;
+			let r = Math.random() * open.reduce((t, i) => t + w(i), 0);
+			let pick = open[0];
+			for (const i of open) {
+				r -= w(i);
+				if (r <= 0) {
+					pick = i;
+					break;
+				}
+			}
+			next[pick]++;
+		}
+		attr = next;
+	}
 	function setPower(id: string, lv: number) {
 		const next = { ...powers, [id]: Math.max(0, Math.min(3, lv)) };
 		if (!next[id]) delete next[id];
@@ -141,12 +174,21 @@
 						<small class="mods">
 							{#each Object.entries(c.attr) as [k, v] (k)}<span>{options.attrNames[+k].slice(0, 3).toUpperCase()} +{v}</span>{/each}
 							{#each Object.entries(c.skills) as [k, v] (k)}<span class="plan">{k} {v}</span>{/each}
+							{#each Object.entries(c.req ?? {}) as [k, v] (k)}<span class="neg">needs {options.attrNames[+k].slice(0, 3).toUpperCase()} {v}</span>{/each}
 						</small>
 					</button>
 				{/each}
 			</div>
 		{:else if cur === 'Attributes'}
 			<p class="hint">Points left: <b class:neg={attrLeft < 0}>{attrLeft}</b> · above 18 costs 2 per point · modifier = (score − 16) / 2</p>
+			<p class="hint">
+				<button onclick={() => roll(false)}>Roll at random</button>
+				{#if !truekin}<button onclick={() => roll(true)}>Roll for my calling</button>{/if}
+				<small>press again for a new roll</small>
+			</p>
+			{#each reqMiss as r (r.i)}
+				<p class="hint"><b class="neg">{calling.name} needs {options.attrNames[r.i]} {r.need}</b> · you have {r.have}</p>
+			{/each}
 			<table>
 				<tbody>
 					{#each options.attrNames as a, i (a)}
@@ -207,7 +249,7 @@
 		{#if step < steps.length - 1}
 			<button class="go" onclick={() => step++}>Next →</button>
 		{:else}
-			<button class="go" onclick={begin} disabled={attrLeft < 0 || powerLeft < 0}>Begin</button>
+			<button class="go" onclick={begin} disabled={attrLeft < 0 || powerLeft < 0 || reqMiss.length > 0}>Begin</button>
 		{/if}
 	</footer>
 </div>

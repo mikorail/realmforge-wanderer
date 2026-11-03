@@ -185,6 +185,10 @@
 			<span>Show hints</span>
 			<input type="checkbox" checked={settings.showHints} onchange={(e) => set('showHints', e.currentTarget.checked)} />
 		</label>
+		<label class="row">
+			<span>Auto-aim (f, t fire at once; F aims by hand)</span>
+			<input type="checkbox" checked={settings.autoAim} onchange={(e) => set('autoAim', e.currentTarget.checked)} />
+		</label>
 
 		<h3>Saving</h3>
 		<label class="row">

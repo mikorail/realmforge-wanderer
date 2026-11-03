@@ -82,6 +82,7 @@ type CallingDef struct {
 	Desc   string         `json:"desc"`
 	Attr   map[int]int    `json:"attr"`
 	Skills map[string]int `json:"skills"`
+	Req    map[int]int    `json:"req,omitempty"`   // minimum attribute scores (before the calling's own bonus) to take this calling
 	Caste  bool           `json:"caste,omitempty"` // True Kin caste (mutations.go)
 	Arc    string         `json:"arc,omitempty"`
 }
@@ -94,6 +95,18 @@ var callingDefs = []CallingDef{
 	{ID: "mystic", Desc: "Faith or strange power: one extra power point, good with words.", Attr: map[int]int{WIL: 2, EGO: 1}, Skills: map[string]int{"lore": 1, "persuasion": 1}},
 	{ID: "merchant", Desc: "Starts rich; better prices, trusted by towns.", Attr: map[int]int{EGO: 2, INT: 1}, Skills: map[string]int{"persuasion": 2, "shortblade": 1}},
 	{ID: "rogue", Desc: "Quick hands, two knives, hard to pin down.", Attr: map[int]int{AGI: 2, EGO: 1}, Skills: map[string]int{"shortblade": 2, "acrobatics": 1}},
+}
+
+// callingReq: a calling asks for its key attribute: the score a character brings (points spent plus
+// species bonus, before the calling's own bonus) must reach it. The shell enforces it at creation.
+var callingReq = map[string]map[int]int{
+	"warrior":  {STR: 14},
+	"scout":    {AGI: 14},
+	"scholar":  {INT: 14},
+	"tinker":   {INT: 14},
+	"mystic":   {WIL: 14},
+	"merchant": {EGO: 14},
+	"rogue":    {AGI: 14},
 }
 
 var SkillIDs = []string{"longblade", "shortblade", "axe", "cudgel", "missile", "tinkering", "persuasion", "survival", "acrobatics", "endurance", "lore"}
@@ -151,6 +164,7 @@ func CharOptions(w *WorldData) string {
 			continue
 		}
 		c.Name = sk.Calling(c.ID)
+		c.Req = callingReq[c.ID]
 		cs = append(cs, c)
 	}
 	var ps []PowerDef

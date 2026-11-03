@@ -247,6 +247,9 @@ func (g *Game) beginTarget(pend string) {
 	g.Pend = pend
 	g.Mode = "target"
 	g.CX, g.CY = g.P.X, g.P.Y
+	if g.aaCursor(pend) { // best clear shot first (autoaim.go)
+		return
+	}
 	if t := g.nearestTarget(-1); t != nil {
 		g.CX, g.CY = t.X, t.Y
 	}

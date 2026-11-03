@@ -54,6 +54,7 @@
 	function applyEngine() {
 		api.pref('anim', prefs.animations);
 		api.pref('hints', prefs.showHints);
+		api.pref('autoaim', prefs.autoAim);
 	}
 
 	/** Called by the settings pane on every change: store it, then re-apply what it touches. */
