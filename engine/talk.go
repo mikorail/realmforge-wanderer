@@ -33,6 +33,9 @@ func (g *Game) openTalk(a *Actor) {
 	g.Mode = "talk"
 	g.Sel = 0
 	g.Popup = nil
+	if g.tmOpenTalk(a) { // taming a wild beast (taming.go)
+		return
+	}
 	if a.AI == "follower" {
 		g.companionTalk(a, g.compGreeting(a))
 		return
@@ -50,6 +53,9 @@ func (g *Game) greeting(a *Actor) string {
 		return "\"Friend! Your name is spoken well here.\""
 	case rep <= -250:
 		return "\"...What do you want?\" They eye you warily."
+	}
+	if s := g.egGreeting(a); s != "" {
+		return s
 	}
 	if sg := g.snGreeting(a); sg != "" {
 		return sg
@@ -198,6 +204,9 @@ func (g *Game) gossip(a *Actor) string {
 		return s
 	}
 	if s := g.swGossip(a); s != "" {
+		return s
+	}
+	if s := g.egGossip(a); s != "" {
 		return s
 	}
 	if s := g.hzGossip(a); s != "" { // disasters and outbreaks (hazards.go)
@@ -695,7 +704,8 @@ func (g *Game) dig(x, y int) {
 
 func (g *Game) price(it *Item, buy bool) int {
 	v := maxi(it.Value, 1)
-	v = maxi(1, int(float64(v)*g.wsItemMul(it))) // regional market (worldsim.go)
+	v = maxi(1, int(float64(v)*g.wsItemMul(it)))  // regional market (worldsim.go)
+	v = maxi(1, int(float64(v)*g.egPriceMod(it))) // the world-scale threat (endgame.go)
 	if g.Talk != nil {
 		tr := thTraitRep(g, g.Talk) // how your traits sit with them (traits.go)
 		if buy {
@@ -718,7 +728,7 @@ func (g *Game) price(it *Item, buy bool) int {
 		if g.Talk.Has("markup") {
 			f += 0.15
 		}
-		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk) * g.swPriceMod(g.Talk, it, true)
+		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk) * g.swPriceMod(g.Talk, it, true) * g.poPriceMod(g.Talk)
 		if f < 0.75 {
 			f = 0.75
 		}
@@ -727,7 +737,7 @@ func (g *Game) price(it *Item, buy bool) int {
 	f := 0.4 + ego + per + rep
 	f *= g.uwStolenFactor(it, buy) // honest merchants pay half for stolen goods (crime.go)
 	f /= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk)
-	f *= g.swPriceMod(g.Talk, it, false)
+	f *= g.swPriceMod(g.Talk, it, false) * g.poPriceMod(g.Talk)
 	if f > 0.8 {
 		f = 0.8
 	}

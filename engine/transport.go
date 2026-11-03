@@ -269,6 +269,7 @@ func (g *Game) trPaceMul(p int) float64 {
 			share = 0
 		}
 		mul = 1 + (d.Pace-1)*share
+		mul = g.tmAdjust(p, d, mul) // stamina, river swimmers, mount level (taming.go)
 	}
 	if c := trCartByID(st.Cart); c != nil && st.Stable == nil {
 		if c.Draft && d == nil {
@@ -320,6 +321,7 @@ func (g *Game) trJourney(cost int) {
 		return
 	}
 	m := st.Mount
+	g.tmJourney(cost) // flying stamina, mount XP and loyalty (taming.go)
 	days := float64(cost) / DayLen
 	p := g.W.Idx(g.WX, g.WY)
 	b := g.W.Biome[p]

@@ -62,6 +62,9 @@ func (g *Game) warsOf(id int) []int {
 	var out []int
 	seen := map[int]bool{}
 	add := func(e int) {
+		if g.poPeace(id, e) { // a treaty won at court (politics.go)
+			return
+		}
 		if e > 0 && e != id && !seen[e] {
 			if s := g.W.stateByID[e]; s != nil && s.Alive {
 				seen[e] = true

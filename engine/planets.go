@@ -65,7 +65,7 @@ type RiftData struct {
 
 // feature stores whose ids belong to one planet (bounties, money of its realms, homes, orders,
 // parlors, quest spine, laws, war, world sim, villains)
-var unLocalKeys = []string{"bh", "cu", "home", "orders", "pl", "sh", "spine", "uw", "war", "ws", "vl"}
+var unLocalKeys = []string{"bh", "cu", "eg", "home", "orders", "pl", "sh", "spine", "uw", "war", "ws", "vl"}
 
 func unParse(s string) (*WorldData, error) {
 	u := &Universe{}

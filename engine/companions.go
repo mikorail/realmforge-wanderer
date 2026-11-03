@@ -645,6 +645,7 @@ func (g *Game) companionTalk(a *Actor, text string) {
 		})
 	}
 	g.Opts = append(g.Opts, g.cqTalkOptions(a)...) // personal quests (compquest.go)
+	g.Opts = append(g.Opts, g.tmCompOptions(a)...) // tamed beasts (taming.go)
 	add("Tell me about yourself.", func() { g.companionTalk(a, g.compAbout(a)) })
 	add("How are you holding up?", func() { g.companionTalk(a, g.compMood(a)) })
 	add("{{r|Let's part ways.}}", func() {

@@ -1023,6 +1023,7 @@ func (g *Game) WorldMove(dx, dy int) {
 	cost := g.travelWeather(np, g.tvMinutes(np)) // days at true scale (travel.go)
 	g.tvJourney(cost)
 	wsOnMove(g) // travellers, armies and events along the way (worldsim.go)
+	egOnMove(g)
 	g.Known[np] = true
 	for _, d := range dirs8 {
 		if g.W.In(nx+d[0], ny+d[1]) {
@@ -1244,12 +1245,13 @@ type Music struct {
 	Sphere string  `json:"sphere"` // culture sphere of the land (sinic, norse, mande…) for instruments and scales
 	Feast  bool    `json:"feast"`  // a feast day in this town
 	Combat bool    `json:"combat"` // a hostile is in sight
+	Doom   float64 `json:"doom"`   // 0..1 world-scale threat (endgame.go)
 	Planet string  `json:"planet"` // planet kind (Realmforge planetKind), "" for an old world file
 	Shore  bool    `json:"shore"`  // open water fills much of this outdoor zone (surf SFX, seasons2.go)
 }
 
 func (g *Game) MusicState() Music {
-	m := Music{Genre: g.Genre, Day: g.daylight(), HP: float64(g.P.HP) / float64(maxi(g.P.MaxHP, 1)), Season: g.Season(), Bolt: g.boltN, Planet: g.W.PlanetKind}
+	m := Music{Genre: g.Genre, Day: g.daylight(), HP: float64(g.P.HP) / float64(maxi(g.P.MaxHP, 1)), Season: g.Season(), Bolt: g.boltN, Planet: g.W.PlanetKind, Doom: g.egDoom()}
 	if g.Dead {
 		m.Mood = "dead"
 		return m

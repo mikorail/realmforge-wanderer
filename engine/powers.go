@@ -34,6 +34,7 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.skAbilities()...)
 	out = append(out, g.augAbilities()...)
 	out = append(out, g.mrAbilities()...)
+	out = append(out, g.tmAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
 	for _, bp := range g.P.Body {
 		if bp.Item != nil {
@@ -85,6 +86,10 @@ func (g *Game) powerLevel(id string, it *Item) int {
 
 // usePower resolves an active power at a target tile (or a direction for dir powers).
 func (g *Game) usePower(id string, it *Item, tx, ty int) {
+	if strings.HasPrefix(id, "tm_") { // beast taming and mounts (taming.go)
+		g.tmUse(id, tx, ty)
+		return
+	}
 	if strings.HasPrefix(id, "mr_") { // sect techniques (murim.go)
 		g.mrUse(id, tx, ty)
 		return

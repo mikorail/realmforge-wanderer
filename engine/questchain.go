@@ -1098,5 +1098,8 @@ func (g *Game) qcDraw() {
 	if n == 0 {
 		put("{{K|None yet. Ask elders and notables whether there is trouble to settle.}}")
 	}
+	for _, l := range g.egSpineLines() { // the world-scale threat (endgame.go)
+		put(l)
+	}
 	s.TextB(x, y+h-1, "{{K|[Esc] close}}", CGray, CBgDark, x+w)
 }

@@ -444,6 +444,9 @@ func (g *Game) drawWorld() {
 			}
 			p := w.Idx(wx, wy)
 			gl, f, b := g.worldGlyph(p)
+			if og, of, ob, ok := g.egOverlay(p); ok { // the world-scale threat (endgame.go)
+				gl, f, b = og, of, ob
+			}
 			if g.Tab == 1 && w.State[p] > 0 && !w.IsWater(p) {
 				b = statePal[w.State[p]%len(statePal)]
 				f = CBlack

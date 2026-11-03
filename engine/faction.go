@@ -168,6 +168,9 @@ func (g *Game) Enemies(a, b *Actor) bool {
 func (g *Game) atWar(fa, fb string) bool {
 	a, _ := strconv.Atoi(strings.TrimPrefix(fa, "state:"))
 	b, _ := strconv.Atoi(strings.TrimPrefix(fb, "state:"))
+	if g.poPeace(a, b) {
+		return false
+	}
 	if s := g.W.stateByID[a]; s != nil {
 		for _, w := range s.Wars {
 			if w == b {
