@@ -264,7 +264,7 @@ func (g *Game) aiAct(a *Actor) {
 	best := 1 << 20
 	if g.Hostile(a) && a.AI != "follower" && g.ssNotices(a) { // stealth (stealth.go)
 		dd := dist(a, p)
-		if dd < 30 && (g.visible(a.X, a.Y) || dd < 6) {
+		if dd < 30 && (g.visible(a.X, a.Y) || dd < 6 || g.caScentNotice(a)) {
 			tgt, best = p, dd
 		}
 	}
@@ -303,6 +303,9 @@ func (g *Game) aiAct(a *Actor) {
 				g.wander(a)
 			}
 		}
+		return
+	}
+	if g.caSmartAct(a, tgt) {
 		return
 	}
 	// flee when badly hurt (except bosses, undead and constructs)

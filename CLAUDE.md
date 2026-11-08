@@ -64,3 +64,7 @@ New features should live in their own file and register from `init()` instead of
 - `procassets.go` + `procflora.go`: procedural creature/NPC variations, biome morphs, flora, and environmental setpieces (`pa`, `pf`).
 - `tactics.go`: called shots (`V`), flanking/high-ground/cover/weather combat modifiers, special ammo, tactical throwables, and morale (`tc`).
 - `qol.go`: auto-explore (`Tab`/`v`), auto-pickup rules, message log search/category filter, and Markdown adventure diary export (`ql`).
+
+- `tribes.go` + `combat_ai.go`: colored/biome subrace variations for all species, tribal camps/chieftains/parleys/war-paint (`tr`), smarter enemy AI (kiting, flanking, wounded retreat/rally) and weather combat rules (`ca`).
+- `world_story.go` + `city_life.go`: planet traits, rift storms, `starmap` screen, off-world trade pricing, library dungeon reveals, twisted rumours, dreams, 3-verse start prophecy, companion arcs/sacrifice, NPC epilogues (`wy`), plus town murder mysteries, shift jobs, and city night-life (`cy`).
+- `murim_deep.go`, `taming_deep.go`, `craft_explore.go`: hidden beggar masters, sect grudges, heir martial lineage, seclusion, demonic arts (`md`), beast breeding/tricks/pack saddlebags/animal rep (`td`), scrap inventions, enchanting/curses, sport fishing/diving, cartography, quest compass arrow, photo mode (`ce`), plus sprite animation/subrace palettes (`src/actorsprites.ts`) and combat/UI SFX (`src/weathersfx.ts`).

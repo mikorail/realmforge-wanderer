@@ -52,33 +52,13 @@
 - Tactical combat and throwables (`tactics.go`): called shots at limbs (`head`, `arm`, `leg`, `wing`, `eye`), flanking, high ground, cover and weather ranged modifiers, special ammo (`bodkin`, `broadhead`, `fire`, `frost`, `poison`, `silver`, `emp`), tactical throwables (`net`, `bolas`, `caltrops`, `smokebomb`, `flashbang`), and squad morale (routs and boss rally cries).
 - Quality-of-life and exploration (`qol.go`): auto-explore (`AutoExplore`), configurable auto-pickup rules (`qlAutoPickup`), message-log search and category filter (`FilterMsgs`), and self-writing Markdown adventure diary export (`ExportDiary`).
 
+- Tribes and colored/biome subrace variations (`tribes.go`, `src/actorsprites.ts`): colored/subrace variations for every species (Crimson Bloodfang Orcs, Azure Frost-Tusk Orcs, Redcap Butcher Goblins, Sun-Gold/Silver-Moon/Emerald/Obsidian Elves, Red-Beard/Rime-Beard Dwarves, Crimson/Azure/Emerald/Golden Saurians & Lizardfolk, Moss-Back/Glacier Trolls, Woad-Painted/Red-Ochre Humans, etc.) with console colors, hex skin/scale/fur/war-paint tags, totems, procedural tribal encampments, chieftains, shamans, parleys, war-paint buffs, and rites of strength.
+- Smarter combat AI and weather in combat (`combat_ai.go`): archers kiting to keep distance, packs and tribal warriors flanking opposite allies, wounded foes retreating to bandage and rally, rain dousing fire, fog concealing archers, and wind carrying scent to downwind predators.
+- Planet traits, rift storms, star-map and story arcs (`world_story.go`, `city_life.go`): planet traits (`low_gravity`, `toxic_air`, `tidally_locked`, `dead_ruin`), seasonal rift storms, interactive Star-Map screen (`starmap`), off-world goods selling dear, historical library books revealing dungeons, twisted/outdated rumours, historical dreams on rest, 3-verse start-of-run prophecies feeding endgame endings, companion personal arcs and lethal-blow sacrifice, NPC epilogues, detective murder mysteries and courtroom accusations, city shift jobs, and city night-life (night guilds, smugglers, ghosts).
+- Deep murim, taming, crafting and presentation (`murim_deep.go`, `taming_deep.go`, `craft_explore.go`, `src/actorsprites.ts`, `src/weathersfx.ts`): hidden masters disguised as beggars, sect grudges and avengers, martial lineage passed to heirs, closed-door seclusion breakthroughs, forbidden demonic arts and qi-deviation, breeding tamed animals, teaching tricks (`fetch`, `guard`, `hunt`), pack animals with saddlebags, wildlife animal reputation, workbench scrap inventions, item enchanting and cursed items, sport fishing and free-diving, cartography survey maps, HUD quest compass arrow, ASCII photo mode, sprite animation (idle/walk/hit flash), and procedural WebAudio combat/UI sound effects.
+
 ## Planned / ideas
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
-
-### Ideas, not started
-**Combat**
-- Smarter foes: archers keep their distance, packs surround you, wounded enemies flee and return.
-- Weather in combat: rain douses fire, fog helps archers, wind carries your scent to predators.
-
-**World and story**
-- Planet traits (low gravity, toxic air, tidally locked day/night, dead ruin worlds), rift storms that swap creatures or close a rift for a season, a star-map screen, goods from other planets selling dear.
-- Libraries whose books tell real events and reveal dungeon locations, wrong or out-of-date rumours, dreams that replay the world's history and hint at relics.
-- A prophecy given at the start that resolves differently by what you do and feeds the endgame endings; an epilogue for every NPC you met when the run ends; companion arcs that can end in betrayal, sacrifice or departure.
-- Legacy runs: your heir starts in the same world years later (`fmHeir` already exports the heir), your deeds are legends and your hideout is a ruin.
-- Detective mysteries (solve a murder from clues, accuse in a courtroom), city jobs for coin (porter, scribe, guard shift), night-life in cities (night guilds, smugglers, ghosts).
-
-**Murim**
-- Hidden masters disguised as beggars, grudges where a killed disciple's master hunts you years later, martial lineage passed to an heir, seclusion for a season, forbidden demonic arts that corrupt.
-
-**Taming and beasts**
-- Breeding two tamed animals, teaching tricks (fetch, guard, hunt), pack animals that carry your gear, animal reputation (wildlife remembers you).
-
-**Crafting and exploring**
-- Inventions designed from scrap and saved at the workbench, enchanting and cursed items, fishing and diving as sports.
-- Cartography: draw your own map and sell it; auto-travel and auto-explore that stop at danger, a quest arrow on the map, message-log search, a self-writing diary, a photo mode.
-
-**Presentation**
-- Sprite animation (idle, walk, hit flash), more tile variety per genre, combat and UI sound effects.
 
 ### Dropped on purpose
 - Player settlements, accessibility work, a playtest bot and extra test suites, ruling a realm with decrees, founding a faith or order.

@@ -401,3 +401,113 @@ export function createWeatherSfx(): SfxHandle {
 		},
 	};
 }
+
+export type CombatSfxKind = 'swing' | 'hit' | 'crit' | 'bow' | 'spell' | 'block' | 'levelup' | 'coin' | 'ui';
+
+let sharedCombatCtx: AudioContext | null = null;
+let sharedCombatGain: GainNode | null = null;
+
+function ensureCombatBus(): { c: AudioContext; bus: AudioNode } | null {
+	if (typeof window === 'undefined') return null;
+	if (!sharedCombatCtx) {
+		try {
+			const AC: typeof AudioContext | undefined =
+				window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+			if (!AC) return null;
+			sharedCombatCtx = new AC();
+			sharedCombatGain = sharedCombatCtx.createGain();
+			sharedCombatGain.gain.value = 0.35;
+			sharedCombatGain.connect(sharedCombatCtx.destination);
+		} catch {
+			return null;
+		}
+	}
+	if (sharedCombatCtx.state !== 'running') sharedCombatCtx.resume().catch(() => {});
+	return { c: sharedCombatCtx, bus: sharedCombatGain! };
+}
+
+/** Synthesizes crisp procedural WebAudio combat & UI sound effects on the SFX bus. */
+export function playCombatSfx(kind: CombatSfxKind, ctxOverride?: AudioContext, destOverride?: AudioNode): boolean {
+	const target = ctxOverride && destOverride ? { c: ctxOverride, bus: destOverride } : ensureCombatBus();
+	if (!target) return false;
+	const { c, bus } = target;
+	const now = c.currentTime;
+
+	const playTone = (type: OscillatorType, f0: number, f1: number, dur: number, peak: number, delay = 0) => {
+		const t = now + delay;
+		const osc = c.createOscillator();
+		const g = c.createGain();
+		osc.type = type;
+		osc.frequency.setValueAtTime(f0, t);
+		osc.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+		g.gain.setValueAtTime(0.0001, t);
+		g.gain.linearRampToValueAtTime(peak, t + Math.min(0.012, dur * 0.2));
+		g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
+		osc.connect(g).connect(bus);
+		osc.start(t);
+		osc.stop(t + dur + 0.02);
+		osc.onended = () => { osc.disconnect(); g.disconnect(); };
+	};
+
+	const playNoiseBurst = (dur: number, filterFreq: number, filterType: BiquadFilterType, q: number, peak: number) => {
+		const len = Math.max(256, Math.floor(c.sampleRate * dur));
+		const buf = c.createBuffer(1, len, c.sampleRate);
+		const d = buf.getChannelData(0);
+		for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 1.5);
+		const srcNode = c.createBufferSource();
+		srcNode.buffer = buf;
+		const flt = c.createBiquadFilter();
+		flt.type = filterType;
+		flt.frequency.setValueAtTime(filterFreq, now);
+		flt.Q.value = q;
+		const g = c.createGain();
+		g.gain.setValueAtTime(peak, now);
+		g.gain.exponentialRampToValueAtTime(0.0005, now + dur);
+		srcNode.connect(flt).connect(g).connect(bus);
+		srcNode.start(now);
+		srcNode.stop(now + dur + 0.01);
+		srcNode.onended = () => { srcNode.disconnect(); flt.disconnect(); g.disconnect(); };
+	};
+
+	switch (kind) {
+		case 'swing':
+			playNoiseBurst(0.11, 900, 'bandpass', 1.8, 0.28);
+			playTone('sine', 260, 110, 0.09, 0.14);
+			break;
+		case 'hit':
+			playNoiseBurst(0.08, 320, 'lowpass', 1.2, 0.42);
+			playTone('triangle', 170, 55, 0.1, 0.35);
+			break;
+		case 'crit':
+			playNoiseBurst(0.14, 1400, 'bandpass', 2.4, 0.45);
+			playTone('sawtooth', 520, 140, 0.16, 0.38);
+			playTone('sine', 880, 1320, 0.12, 0.25, 0.02);
+			break;
+		case 'bow':
+			playTone('triangle', 440, 190, 0.12, 0.26);
+			playNoiseBurst(0.07, 1800, 'highpass', 1.5, 0.2);
+			break;
+		case 'spell':
+			playTone('sine', 360, 920, 0.22, 0.28);
+			playTone('triangle', 720, 480, 0.24, 0.2, 0.04);
+			break;
+		case 'block':
+			playTone('square', 980, 620, 0.09, 0.25);
+			playNoiseBurst(0.06, 2600, 'bandpass', 4.0, 0.32);
+			break;
+		case 'levelup':
+			playTone('triangle', 440, 442, 0.12, 0.26, 0);
+			playTone('triangle', 554.37, 556, 0.12, 0.26, 0.09);
+			playTone('triangle', 659.25, 661, 0.14, 0.28, 0.18);
+			playTone('triangle', 880, 884, 0.28, 0.32, 0.27);
+			break;
+		case 'coin':
+			playTone('sine', 1318.5, 1320, 0.08, 0.24, 0);
+			playTone('sine', 1760, 1762, 0.16, 0.28, 0.06);
+			break;
+		case 'ui':
+			playTone('sine', 660, 880, 0.045, 0.16);
+			break;
+	}
+	return true;
+}

@@ -562,6 +562,7 @@ func (g *Game) fmContinueAsHeir() bool {
 	if g.Cur != nil {
 		place = g.Cur.Name
 	}
+	g.mdRecordLineage()
 	g.hf().Legends = append(g.hf().Legends, HFLegend{
 		Name:    g.P.Name,
 		Species: g.P.Species,
@@ -604,6 +605,7 @@ func (g *Game) fmContinueAsHeir() bool {
 		g.P.Attr = heirChild.Attr
 	}
 	g.P.Level = maxi(1, int(float64(g.P.Level)*h.LevelFrac))
+	g.mdApplyLineageToHeir()
 	g.XP = 0
 	g.P.MaxHP = 14 + g.P.Level*4 + g.P.Attr[TOU]
 	g.P.HP = g.P.MaxHP

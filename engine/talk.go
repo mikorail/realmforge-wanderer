@@ -733,8 +733,8 @@ func (g *Game) price(it *Item, buy bool) int {
 		}
 		v = maxi(1, d.Base*n)
 	}
-	v = maxi(1, int(float64(v)*g.wsItemMul(it)))  // regional market (worldsim.go)
-	v = maxi(1, int(float64(v)*g.egPriceMod(it))) // the world-scale threat (endgame.go)
+	v = maxi(1, int(float64(v)*g.wsItemMul(it)*g.wyOffworldPriceMul(it))) // regional market (worldsim.go) & off-world goods (world_story.go)
+	v = maxi(1, int(float64(v)*g.egPriceMod(it)))                         // the world-scale threat (endgame.go)
 	if g.Talk != nil {
 		tr := thTraitRep(g, g.Talk) // how your traits sit with them (traits.go)
 		if buy {

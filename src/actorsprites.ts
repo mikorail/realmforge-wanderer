@@ -18,6 +18,8 @@ export interface QudActor {
 	w?: string; // wielded weapon skill
 	a?: number; // armour 0 none .. 3 heavy
 	k?: string; // caste
+	tr?: string; // tribe/subrace color tag e.g. tr_hex:#skin:#accent
+	fl?: string[]; // optional actor flags
 }
 
 type Head = 'round' | 'long' | 'wide' | 'skull';
@@ -294,15 +296,53 @@ function drawItem(c: Ctx, item: Outfit['item'], hx: number, hy: number, u: numbe
 	}
 }
 
+
+let spriteAnimTick = 0;
+let spriteHitFlashSet = new Set<string>();
+
+/** Updates the global sprite animation tick and optional set of hit-flashing actor IDs/names. */
+export function setSpriteAnimTick(tick: number, hitFlashActors?: Set<string | number>) {
+	spriteAnimTick = Number.isFinite(tick) ? tick : 0;
+	spriteHitFlashSet = new Set<string>();
+	if (hitFlashActors) {
+		for (const id of hitFlashActors) spriteHitFlashSet.add(String(id));
+	}
+}
+
+/** Parses a tribe/subrace color tag of the form "tr_hex:#skin:#accent" (or embedded in flags/caste). */
+export function parseTribeHex(src?: string | string[]): { skin?: string; accent?: string } | null {
+	if (!src) return null;
+	const list = Array.isArray(src) ? src : [src];
+	for (const item of list) {
+		const m = /tr_hex:(#[0-9a-fA-F]{6})(?::(#[0-9a-fA-F]{6}))?/.exec(item);
+		if (m) return { skin: m[1], accent: m[2] };
+	}
+	return null;
+}
+
+function actorTribeColors(a: QudActor): { skin?: string; accent?: string } | null {
+	return parseTribeHex(a.tr) ?? parseTribeHex(a.fl) ?? parseTribeHex(a.k) ?? parseTribeHex(a.s);
+}
+
+function actorAnimBobAndFlash(a: QudActor, chh: number, bgIdx: number): { bobY: number; flash: boolean } {
+	const phase = (a.i * 1.37) + (a.x * 0.7) + (a.y * 0.5);
+	const bobY = spriteAnimTick > 0 ? Math.sin(spriteAnimTick * 0.22 + phase) * Math.max(0.6, chh * 0.03) : 0;
+	const flash = bgIdx === 18 || spriteHitFlashSet.has(String(a.i));
+	return { bobY, flash };
+}
+
 /** a person: species body plan, calling/role outfit, and per-individual variation */
 export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: string[], bgIdx: number, x: number, y: number, cw: number, chh: number) {
 	const seed = hash(a.i + 17);
 	const sp = a.s ?? 'human';
 	const L = lookFor(sp);
 	const o = outfitFor(a, seed);
-	const skin = pick(L.skin, seed >>> 3);
+	const trCol = actorTribeColors(a);
+	const { bobY, flash } = actorAnimBobAndFlash(a, chh, bgIdx);
+	y += bobY;
+	const skin = flash ? '#ffffff' : (trCol?.skin ?? pick(L.skin, seed >>> 3));
 	const hair = L.hair ? pick(L.hair, seed >>> 7) : undefined;
-	const cloth = shade(pick(o.cloth, seed >>> 11), ((seed >>> 16) % 7 - 3) * 0.04);
+	const cloth = flash ? '#ff5555' : shade(trCol?.accent ?? pick(o.cloth, seed >>> 11), ((seed >>> 16) % 7 - 3) * 0.04);
 	const dark = shade(cloth, -0.35);
 	const steel = '#c9ccd2';
 	const u = cw;
@@ -671,8 +711,11 @@ export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, 
 	const u = cw;
 	const v = chh;
 	const size = a.z ? 0.55 + a.z * 0.08 : g >= 'A' && g <= 'Z' ? 1 : 0.8;
+	const trCol = actorTribeColors(a);
+	const { bobY, flash } = actorAnimBobAndFlash(a, chh, bgIdx);
+	y += bobY;
 	const sz = size * (1 + (((seed >>> 4) % 9) - 4) * 0.03);
-	const body = shade(fg, (((seed >>> 9) % 7) - 3) * 0.05);
+	const body = flash ? '#ff6666' : shade(trCol?.skin ?? fg, (((seed >>> 9) % 7) - 3) * 0.05);
 	const belly = shade(body, 0.28);
 	const dark = shade(body, -0.35);
 	const cx = x + u * 0.5;
@@ -899,4 +942,10 @@ export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, 
 		c.fillText(g, x + cw - 0.5, y + chh);
 	}
 	c.restore();
+}
+
+/** Unified entry point for drawing either a person or creature sprite with animation and hit-flash support. */
+export function drawActorSprite(c: Ctx, a: QudActor, g: string, fg: string, palette: string[], bgIdx: number, x: number, y: number, cw: number, chh: number) {
+	if (a.s || g === '@') drawPersonSprite(c, a, fg, palette, bgIdx, x, y, cw, chh);
+	else drawCreatureSprite2(c, a, g, fg, palette, bgIdx, x, y, cw, chh);
 }
