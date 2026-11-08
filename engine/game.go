@@ -273,6 +273,7 @@ func NewGame(w *WorldData, spec CharSpec) *Game {
 	g.Msg(g.describeStart())
 	g.Msg("Press {{W|?}} for help. Walk off the edge to explore; {{W|<}} on the surface opens the world map.")
 	g.Mode = "main"
+	g.stApply(spec) // starting scenario (starts.go)
 	g.recompute()
 	return g
 }

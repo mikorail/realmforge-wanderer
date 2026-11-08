@@ -270,6 +270,7 @@ func (g *Game) trPaceMul(p int) float64 {
 		}
 		mul = 1 + (d.Pace-1)*share
 		mul = g.tmAdjust(p, d, mul) // stamina, river swimmers, mount level (taming.go)
+		mul = g.bcMount(mul)        // saddle quality (beastcraft.go)
 	}
 	if c := trCartByID(st.Cart); c != nil && st.Stable == nil {
 		if c.Draft && d == nil {

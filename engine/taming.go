@@ -425,7 +425,7 @@ func (g *Game) tmFeed(a *Actor, s *bsSp, it *Item, q int) {
 	}
 	gain := 1
 	dc := g.tmDC(s, a, q)
-	bonus := boolInt(p.Calm > g.Turn) * 2
+	bonus := boolInt(p.Calm > g.Turn)*2 + g.bcBait(a)
 	if p.Trust+gain >= need && !tmMountOnly(s) && !g.tmSlotFree() {
 		g.tmBeastMenu(a, g.The(a)+" would follow you, but you already lead as many companions as you can keep.")
 		return
@@ -436,6 +436,7 @@ func (g *Game) tmFeed(a *Actor, s *bsSp, it *Item, q int) {
 	}
 	ok, margin := g.tmRoll("survival", dc, bonus)
 	p.Tries++
+	g.bcBaitSpend(a, it)
 	p.Last = g.Turn
 	g.spend(1000)
 	if g.Mode == "dead" || a.HP <= 0 {
@@ -930,7 +931,7 @@ func (g *Game) tmRegen(r *tmRide, s *bsSp, upTo int) {
 	if r.At == 0 || r.At > upTo {
 		r.At = upTo
 	}
-	r.Stam = clampf(r.Stam+0.6*float64(upTo-r.At), 0, tmMaxStam(s))
+	r.Stam = clampf(r.Stam+0.6*float64(upTo-r.At), 0, tmMaxStam(s)*g.bcStamina())
 	r.At = upTo
 }
 

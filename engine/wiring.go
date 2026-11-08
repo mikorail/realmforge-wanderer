@@ -9,5 +9,6 @@ func init() {
 		s.Comp = clampi(s.Comp-n, 0, maxi(s.CompMax, 1))
 	}
 	// bounty hunters (hunts.go) track the bounties crimes put on you (crime.go)
-	bhPlayerBounty = func(g *Game, state int) int { return g.uwBounty(state) }
+	bhPlayerBounty = func(g *Game, state int) int { return g.uwBounty(state) + g.nxBounty(state) }
+	nxRivalDossier = func(g *Game) []string { return g.rvDossier() } // rival section of the Hunters screen (nemesis.go)
 }

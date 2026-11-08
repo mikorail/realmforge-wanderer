@@ -215,6 +215,9 @@ func (g *Game) gossip(a *Actor) string {
 	if s := g.nmGossip(a); s != "" {
 		return s
 	}
+	if s := g.nxGossip(a); s != "" {
+		return s
+	}
 	r := NewRng(fmt.Sprintf("%d:%d", a.ID, g.Turn/600))
 	w := g.W
 	p := w.Idx(g.Cur.WX, g.Cur.WY)

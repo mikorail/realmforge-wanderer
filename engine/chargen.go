@@ -213,7 +213,7 @@ func CharOptions(w *WorldData) string {
 		"genre": w.Genre, "world": w.Name, "year": w.Year, "powersName": sk.PowersName, "currency": sk.Currency,
 		"species": sps, "callings": cs, "powers": ps, "starts": starts, "attrNames": AttrNames, "skillDesc": skillDesc,
 		"attrPoints": 30, "powerPoints": 12,
-		"genotypes": muGenotypes(sk), "morphotypes": muMorphs, "castes": castes, "modes": muModes,
+		"scenarios": stList(w.Genre), "genotypes": muGenotypes(sk), "morphotypes": muMorphs, "castes": castes, "modes": muModes,
 	}
 	b, _ := json.Marshal(out)
 	return string(b)
@@ -247,6 +247,8 @@ type CharSpec struct {
 	GameMode string `json:"gameMode"`
 	// "chimera" | "esper" | "" (mutants only), applied by Game.muNewGame — mutations.go
 	Morph string `json:"morph,omitempty"`
+	// starting scenario: "" (standard), a power start, a twist, or "power+twist" — starts.go
+	Scenario string `json:"scenario,omitempty"`
 }
 
 func validName(s string) string {

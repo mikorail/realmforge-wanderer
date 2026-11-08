@@ -8,7 +8,19 @@
 	let morph = $state<string>('');
 	let gameMode = $state<string>('classic');
 	const truekin = $derived(genotype === 'truekin');
-	const steps = $derived(truekin ? ['Genotype', 'Species', 'Caste', 'Attributes', 'Origin'] : ['Genotype', 'Species', 'Calling', 'Attributes', options.powersName, 'Origin']);
+	let power = $state<string>('');
+	let twist = $state<string>('');
+	const scenarios: any[] = options.scenarios ?? [];
+	const mirror = $derived(twist === 'mirror');
+	const scenario = $derived([power, twist].filter(Boolean).join('+'));
+	const moves = $derived(scenarios.some((s: any) => s.moves && (s.id === power || s.id === twist)));
+	const steps = $derived(
+		mirror
+			? ['Scenario', 'Origin']
+			: truekin
+				? ['Scenario', 'Genotype', 'Species', 'Caste', 'Attributes', 'Origin']
+				: ['Scenario', 'Genotype', 'Species', 'Calling', 'Attributes', options.powersName, 'Origin']
+	);
 	const cur = $derived(steps[step]);
 	const callingList = $derived(truekin ? options.castes : options.callings);
 	let species = $state<any>(options.species[0]);
@@ -106,8 +118,33 @@
 		const firstHome = options.starts.find((b: any) => b.Species === s.ID);
 		if (firstHome) start = firstHome.ID;
 	}
+	const pickOne = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
+	/** Mirror Life: roll species, calling, attributes, powers and birthplace; the choice is then locked. */
+	function rollMirror() {
+		genotype = 'mutant';
+		morph = '';
+		species = pickOne(options.species);
+		calling = pickOne(options.callings);
+		const homes = options.starts.filter((b: any) => b.Species === species.ID);
+		start = pickOne<any>(homes.length ? homes : options.starts).ID;
+		roll(true);
+		let next: Record<string, number> = {};
+		const pool = options.powers.filter((p: any) => !p.defect).sort(() => Math.random() - 0.5);
+		for (const p of pool) {
+			const t = { ...next, [p.id]: 1 };
+			if (options.powerPoints - Object.entries(t).reduce((n, [k, v]) => n + powerCost(k, v as number), 0) >= 0 && Math.random() < 0.5) next = t;
+		}
+		powers = next;
+	}
+	function pickScenario(s: any) {
+		if (s.kind === 'power') power = power === s.id ? '' : s.id;
+		else {
+			twist = twist === s.id ? '' : s.id;
+			if (twist === 'mirror') rollMirror();
+		}
+	}
 	function begin() {
-		onbegin({ name: name || 'Wanderer', species: species.ID, calling: calling.id, attr, powers: truekin ? {} : powers, start, genotype, morph: truekin ? '' : morph, gameMode });
+		onbegin({ name: name || 'Wanderer', species: species.ID, calling: calling.id, attr, powers: truekin ? {} : powers, start, genotype, morph: truekin ? '' : morph, gameMode, scenario });
 	}
 	function onkey(e: KeyboardEvent) {
 		if (e.target instanceof HTMLInputElement) return;
@@ -130,7 +167,41 @@
 	</header>
 
 	<main>
-		{#if cur === 'Genotype'}
+		{#if cur === 'Scenario'}
+			<p class="hint">How does your story begin? Take the standard start, or one power start and one twist.</p>
+			<div class="grid">
+				<button class="card" class:on={!power && !twist} onclick={() => { power = ''; twist = ''; }}>
+					<b>Standard</b>
+					<small>An ordinary wanderer sets out from home.</small>
+				</button>
+			</div>
+			<p class="hint" style="margin-top:12px">Power start (pick one)</p>
+			<div class="grid">
+				{#each scenarios.filter((s: any) => s.kind === 'power') as s (s.id)}
+					<button class="card" class:on={power === s.id} onclick={() => pickScenario(s)}>
+						<b>{s.name}</b>
+						<small>{s.pitch}</small>
+						<small class="neg">{s.down}</small>
+					</button>
+				{/each}
+			</div>
+			<p class="hint" style="margin-top:12px">Twist (optional)</p>
+			<div class="grid">
+				{#each scenarios.filter((s: any) => s.kind === 'twist') as s (s.id)}
+					<button class="card" class:on={twist === s.id} onclick={() => pickScenario(s)}>
+						<b>{s.name}</b>
+						<small>{s.pitch}</small>
+						<small class="neg">{s.down}</small>
+					</button>
+				{/each}
+			</div>
+			{#if mirror}
+				<p class="hint" style="margin-top:12px">
+					Fate dealt you: <b>{species?.Name} {calling?.name}</b>, {Object.keys(powers).length} {options.powersName.toLowerCase()}.
+					<button onclick={rollMirror}>Re-roll</button>
+				</p>
+			{/if}
+		{:else if cur === 'Genotype'}
 			<p class="hint">What are you? True Kin are pure-strain: no mutations, 2 more attribute points, a caste, and body augments instead.</p>
 			<div class="grid">
 				{#each options.genotypes as g (g.ID)}
@@ -230,15 +301,19 @@
 			</div>
 		{:else}
 			<label class="name">Name <input bind:value={name} maxlength="24" placeholder="Wanderer" /></label>
+			{#if moves}<p class="hint">Your scenario chooses where you begin.</p>{/if}
 			<p class="hint">Where do you set out from? Your home realm starts friendly; its enemies don't.</p>
 			<label class="name">Mode
 				<select bind:value={gameMode}>
 					{#each options.modes as m (m.ID)}<option value={m.ID}>{m.Name}: {m.Desc}</option>{/each}
 				</select>
 			</label>
-			<div class="list">
+			{#if mirror}
+				<p class="hint">Fate chose your birthplace: <b>{options.starts.find((b: any) => b.ID === start)?.Name}</b>.</p>
+			{/if}
+			<div class="list" class:locked={mirror}>
 				{#each starts as b (b.ID)}
-					<button class:on={start === b.ID} onclick={() => (start = b.ID)}>
+					<button class:on={start === b.ID} disabled={mirror} onclick={() => (start = b.ID)}>
 						<b>{b.Name}</b> {b.Capital ? '★' : ''} <span class="dim">— {b.Realm} · {b.Culture}{b.Notables ? ` · ${b.Notables} notable${b.Notables > 1 ? 's' : ''}` : ''} {b.Species === species?.ID ? '· your people' : ''}</span>
 					</button>
 				{/each}
@@ -248,7 +323,7 @@
 
 	<footer>
 		<button onclick={oncancel}>Cancel</button>
-		<span class="sum">{species?.Name} {calling?.name}{truekin ? '' : ` · ${Object.keys(powers).length} ${options.powersName.toLowerCase()}`}</span>
+		<span class="sum">{scenario ? scenario.replace('+', ' + ') + ' · ' : ''}{species?.Name} {calling?.name}{truekin ? '' : ` · ${Object.keys(powers).length} ${options.powersName.toLowerCase()}`}</span>
 		{#if step < steps.length - 1}
 			<button class="go" onclick={() => step++}>Next →</button>
 		{:else}
@@ -396,6 +471,9 @@
 		color: #fff;
 		border: 1px solid #40a4b9;
 		padding: 6px 8px;
+	}
+	.list.locked {
+		display: none;
 	}
 	.list {
 		display: flex;
