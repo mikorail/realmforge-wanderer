@@ -7,6 +7,8 @@
 	import Play from './Play.svelte';
 	import { listChronicles, exportChronicle, type Chronicle } from './chronicle';
 	import { isLinked, waitForWorld } from './link';
+	import HallOfFame from './HallOfFame.svelte';
+	import { feedLegends, setPendingSeed, todaySeed, seedSpec, seedWorldIndex, listHall } from './halloffame';
 
 	interface Sample {
 		file: string;
@@ -27,7 +29,7 @@
 		return String(j?.seed ?? '');
 	}
 
-	let phase = $state<'title' | 'loading' | 'chargen' | 'play' | 'error'>('title');
+	let phase = $state<'title' | 'loading' | 'chargen' | 'play' | 'error' | 'plan'>('title');
 	let error = $state('');
 	let samples = $state<Sample[]>([]);
 	let runs = $state<RunMeta[]>([]);
@@ -36,6 +38,10 @@
 	let frame = $state<QudFrame | null>(null);
 	let worldText: string | null = null;
 	let busy = $state('');
+	let hallOpen = $state(false);
+	let hallCount = $state(0);
+	let seedText = $state('');
+	let plan = $state<{ seed: string; spec: Record<string, unknown>; desc: string; world: string } | null>(null);
 	let chronicles = $state<Chronicle[]>([]);
 	let linked = $state(false);
 	let stopLink: (() => void) | null = null;
@@ -43,6 +49,7 @@
 	onMount(async () => {
 		runs = await listRuns();
 		chronicles = await listChronicles();
+		hallCount = (await listHall()).length;
 		if (isLinked()) {
 			linked = true;
 			phase = 'loading';
@@ -82,6 +89,7 @@
 			worldText = json; // Play stores the newer snapshot with the next autosave
 			frame = f;
 			phase = 'play';
+			void feedLegends(a);
 		} catch (e) {
 			fail(e);
 		}
@@ -136,6 +144,36 @@
 		if ('error' in f) return fail(f.error);
 		frame = f;
 		phase = 'play';
+		void feedLegends(api);
+	}
+
+	/** Daily or shared seed: pick world, species, calling, scenario and attributes from the seed text, show them, then begin. */
+	async function planSeed(seed: string) {
+		seed = seed.trim();
+		if (!seed || !samples.length) return;
+		try {
+			phase = 'loading';
+			busy = `Reading seed ${seed}…`;
+			const s = samples[seedWorldIndex(seed, samples.length)];
+			const r = await fetch(import.meta.env.BASE_URL + 'worlds/' + s.file);
+			if (!r.ok) throw new Error(`could not load ${s.file}`);
+			const text = await r.text();
+			const a = await engine();
+			const opts = a.init(text);
+			if (typeof opts !== 'string') throw new Error(opts.error);
+			options = JSON.parse(opts);
+			worldText = text;
+			const p = seedSpec(options, seed);
+			plan = { seed, spec: p.spec, desc: p.desc, world: s.name };
+			phase = 'plan';
+		} catch (e) {
+			fail(e);
+		}
+	}
+	function beginPlan() {
+		if (!plan) return;
+		setPendingSeed(plan.seed);
+		begin(plan.spec);
 	}
 
 	async function resume(r: RunMeta) {
@@ -152,6 +190,7 @@
 			worldText = null;
 			frame = f;
 			phase = 'play';
+			void feedLegends(a);
 		} catch (e) {
 			fail(e);
 		}
@@ -165,7 +204,10 @@
 
 	async function toTitle() {
 		frame = null;
+		plan = null;
+		setPendingSeed('');
 		phase = 'title';
+		hallCount = (await listHall()).length;
 		runs = await listRuns();
 		chronicles = await listChronicles();
 	}
@@ -218,6 +260,33 @@
 				</section>
 			{/if}
 
+			{#if phase === 'plan' && plan}
+				<section>
+					<h2>Seed {plan.seed}</h2>
+					<p>{plan.desc} <span class="dim">— {plan.world}</span></p>
+					<p class="dim">Anyone who enters this seed gets the same life. The code is saved with your score.</p>
+					<button onclick={beginPlan}>Begin</button>
+					<button onclick={toTitle}>Cancel</button>
+				</section>
+			{:else}
+			{#if hallOpen}
+				<HallOfFame onclose={() => (hallOpen = false)} />
+			{:else}
+				<section>
+					<h2>Hall of Fame</h2>
+					<button onclick={() => (hallOpen = true)}>Past lives ({hallCount})</button>
+				</section>
+			{/if}
+
+			<section>
+				<h2>Daily &amp; shared seed</h2>
+				<div class="run">
+					<input class="seedin" placeholder="Seed text" bind:value={seedText} onkeydown={(e) => e.key === 'Enter' && planSeed(seedText)} />
+					<button onclick={() => planSeed(seedText)} disabled={!seedText.trim()}>Start</button>
+					<button onclick={() => planSeed(todaySeed())}>Daily {todaySeed()}</button>
+				</div>
+			</section>
+
 			<section>
 				<h2>New life</h2>
 				<div class="grid">
@@ -236,6 +305,7 @@
 					</label>
 				</div>
 			</section>
+			{/if}
 		{/if}
 	</main>
 {/if}
@@ -329,6 +399,10 @@
 		50% {
 			opacity: 0.4;
 		}
+	}
+	.seedin {
+		flex: 1;
+		font: inherit;
 	}
 	.cgwrap {
 		position: fixed;

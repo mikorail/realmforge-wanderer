@@ -54,6 +54,9 @@ func (g *Game) greeting(a *Actor) string {
 	case rep <= -250:
 		return "\"...What do you want?\" They eye you warily."
 	}
+	if s := g.fmGreeting(a); s != "" { // titles (family.go)
+		return s
+	}
 	if s := g.egGreeting(a); s != "" {
 		return s
 	}
@@ -197,6 +200,15 @@ func (g *Game) aboutNPC(a *Actor) string {
 
 // gossip pulls real events from the simulation near this place.
 func (g *Game) gossip(a *Actor) string {
+	if s := g.arGossip(a); s != "" { // masters and patrons (arcane.go)
+		return s
+	}
+	if s := g.hfGossip(a); s != "" { // past lives of this world (halloffame.go)
+		return s
+	}
+	if s := g.fmGossip(a); s != "" { // songs of your deeds (family.go)
+		return s
+	}
 	if s := g.mrGossip(a); s != "" {
 		return s
 	}
@@ -734,7 +746,7 @@ func (g *Game) price(it *Item, buy bool) int {
 		if g.Talk.Has("markup") {
 			f += 0.15
 		}
-		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk) * g.swPriceMod(g.Talk, it, true) * g.poPriceMod(g.Talk)
+		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk) * g.swPriceMod(g.Talk, it, true) * g.poPriceMod(g.Talk) * g.fmPriceMod(g.Talk)
 		if f < 0.75 {
 			f = 0.75
 		}
@@ -743,10 +755,12 @@ func (g *Game) price(it *Item, buy bool) int {
 	f := 0.4 + ego + per + rep
 	f *= g.uwStolenFactor(it, buy) // honest merchants pay half for stolen goods (crime.go)
 	f /= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk)
+	f /= g.fmPriceMod(g.Talk) // title perks (family.go)
 	f *= g.swPriceMod(g.Talk, it, false) * g.poPriceMod(g.Talk)
 	if f > 0.8 {
 		f = 0.8
 	}
+	f *= clPriceMod(g, g.Talk, it) // curio dealers and fences pay more for small things (clutter.go)
 	return maxi(1, int(float64(v)*f*g.lqPriceFactor(false)))
 }
 

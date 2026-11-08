@@ -47,6 +47,10 @@ export interface QudApi {
 	/** host setting for the engine (anim, hints) */
 	pref(key: string, on: boolean): void;
 	deeds(): string;
+	/** life summary + score (engine/halloffame.go) */
+	hall(): string;
+	/** past lives of this world, JSON array (engine HFLegend) */
+	legends(json: string): void;
 }
 
 declare global {

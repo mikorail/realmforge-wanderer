@@ -425,7 +425,7 @@ func (g *Game) tmFeed(a *Actor, s *bsSp, it *Item, q int) {
 	}
 	gain := 1
 	dc := g.tmDC(s, a, q)
-	bonus := boolInt(p.Calm > g.Turn)*2 + g.bcBait(a)
+	bonus := boolInt(p.Calm > g.Turn)*2 + g.bcBait(a) + g.gmCalmBonus()
 	if p.Trust+gain >= need && !tmMountOnly(s) && !g.tmSlotFree() {
 		g.tmBeastMenu(a, g.The(a)+" would follow you, but you already lead as many companions as you can keep.")
 		return

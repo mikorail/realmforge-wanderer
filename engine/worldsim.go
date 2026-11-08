@@ -1454,11 +1454,13 @@ func (g *Game) wsNewsLines() []wsLine {
 		}
 		out = append(out, wsLine{e.P, txt})
 	}
-	out = append(out, g.swNews()...) // reforms, unrest, persecution, famine (socialworld.go)
-	out = append(out, g.hzNews()...) // outbreaks and disasters (hazards.go)
-	out = append(out, g.egNews()...) // the world-scale threat (endgame.go)
-	out = append(out, g.nxNews()...) // the nemesis (nemesis.go)
-	for _, t := range g.rvNews() {   // rival adventurers (rival.go)
+	out = append(out, g.swNews()...)      // reforms, unrest, persecution, famine (socialworld.go)
+	out = append(out, g.hzNews()...)      // outbreaks and disasters (hazards.go)
+	out = append(out, g.egNews()...)      // the world-scale threat (endgame.go)
+	out = append(out, g.nxNews()...)      // the nemesis (nemesis.go)
+	out = append(out, g.tqNews()...)      // market events (tradeways.go)
+	out = append(out, g.jyNewsLines()...) // closed routes (journeys.go)
+	for _, t := range g.rvNews() {        // rival adventurers (rival.go)
 		out = append(out, wsLine{g.W.Idx(g.WX, g.WY), t})
 	}
 	for _, t := range s.Trav {

@@ -4,6 +4,7 @@
 	import type { QudApi, QudFrame } from './qud';
 	import { saveRun, deleteRun } from './store';
 	import { recordDeeds } from './chronicle';
+	import { recordHall, takePendingSeed } from './halloffame';
 	import { createMusic, type MusicHandle } from './music';
 	import { createWeatherSfx, type SfxHandle } from './weathersfx';
 	import { loadSettings, saveSettings, PALETTES, type Settings as Prefs, type PaletteName } from './settings';
@@ -68,10 +69,18 @@
 		resize();
 	}
 
+	let hallDone = false;
+	let retired = false;
+	const seedText = takePendingSeed();
 	async function persist() {
+		if (retired) return;
 		const meta = JSON.parse(api.meta());
 		if (frame.dead) {
 			await recordDeeds(api, meta.seed);
+			if (!hallDone) {
+				hallDone = true;
+				await recordHall(api, `${meta.seed}|${Date.now()}`, false, seedText);
+			}
 			await deleteRun(meta.seed);
 			return;
 		}
@@ -79,6 +88,18 @@
 		worldPending = null;
 		// deeds go to the chronicle store and, when opened from Realmforge, back to it live
 		void recordDeeds(api, meta.seed);
+	}
+
+	/** End the run honourably: it enters the hall as retired and the save is removed. */
+	async function retire() {
+		if (!confirm('Retire this character? The run ends and enters the Hall of Fame.')) return;
+		const meta = JSON.parse(api.meta());
+		await recordDeeds(api, meta.seed);
+		hallDone = true;
+		retired = true;
+		await recordHall(api, `${meta.seed}|${Date.now()}`, !frame.dead, seedText);
+		await deleteRun(meta.seed);
+		onquit();
 	}
 
 	async function quit() {
@@ -264,6 +285,7 @@
 {/if}
 <div class="chrome">
 	<button class="gear" bind:this={gear} onclick={() => (settingsOpen = true)} title="Settings (`)" aria-label="Settings">⚙</button>
+	<button class="quit" onclick={retire} title="End this life honourably and enter the Hall of Fame">Retire</button>
 	<button class="quit" onclick={quit} title="Save and return to the title screen">Save &amp; quit</button>
 </div>
 {#if settingsOpen}

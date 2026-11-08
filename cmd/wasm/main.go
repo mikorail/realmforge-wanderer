@@ -126,6 +126,19 @@ func main() {
 		}
 		return game.PendingDeeds()
 	})
+	api["hall"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if game == nil {
+			return "{}"
+		}
+		return game.HFSummary()
+	})
+	api["legends"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		var l []engine.HFLegend
+		if game != nil && json.Unmarshal([]byte(a[0].String()), &l) == nil {
+			game.HFSetLegends(l)
+		}
+		return nil
+	})
 	js.Global().Set("qud", js.ValueOf(api))
 	js.Global().Call("dispatchEvent", js.Global().Get("Event").New("qud-ready"))
 	select {}

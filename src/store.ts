@@ -20,13 +20,12 @@ export interface RunMeta {
 	saved: number;
 }
 
-function open(): Promise<IDBDatabase> {
+export function open(): Promise<IDBDatabase> {
 	return new Promise((res, rej) => {
-		const r = indexedDB.open(DB, 1);
+		const r = indexedDB.open(DB, 2);
+		// v2 only adds the hall store; existing stores and their data are kept
 		r.onupgradeneeded = () => {
-			r.result.createObjectStore('meta');
-			r.result.createObjectStore('save');
-			r.result.createObjectStore('world');
+			for (const st of ['meta', 'save', 'world', 'hall']) if (!r.result.objectStoreNames.contains(st)) r.result.createObjectStore(st);
 		};
 		r.onsuccess = () => res(r.result);
 		r.onerror = () => rej(r.error);

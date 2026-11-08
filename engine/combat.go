@@ -86,6 +86,7 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 		dmg += g.R.Dice(maxi(w.DN, 1), maxi(w.DS, 1)) + w.DB
 	}
 	dmg += g.categoryBonusDamage(w, d)
+	dmg += dmg * g.ssSneakBonus(a, d) / 100 // sneak attacks (stealth.go)
 	if a.St("mighty") > 0 {
 		dmg += 2
 	}
@@ -105,6 +106,7 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 		return
 	}
 	g.onHit(a, d, w, crit, sk)
+	g.alOnHit(a, d, w) // poisoned weapons (alchemy.go)
 }
 
 func (g *Game) onHit(a, d *Actor, w *Item, crit bool, sk int) {

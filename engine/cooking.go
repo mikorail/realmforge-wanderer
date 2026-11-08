@@ -259,7 +259,9 @@ func describeTags(m map[string]int) string {
 // cookCandidates: tagged ingredients and beast corpses carried or lying where you stand.
 func (g *Game) cookCandidates() []*Item {
 	var out []*Item
-	ok := func(it *Item) bool { return (it.Kind == "ingredient" || it.Kind == "corpse") && it.Effect != "" }
+	ok := func(it *Item) bool {
+		return (it.Kind == "ingredient" || it.Kind == "corpse" || it.Kind == "egg" && it.Extra["ntdead"] == 0 && it.Extra["ntbrood"] == 0) && it.Effect != "" && it.Extra["cl:rot"] == 0
+	}
 	for _, it := range g.P.Inv {
 		if ok(it) {
 			out = append(out, it)

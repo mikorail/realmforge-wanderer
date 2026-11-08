@@ -36,6 +36,10 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.mrAbilities()...)
 	out = append(out, g.tmAbilities()...)
 	out = append(out, g.bcAbilities()...)
+	out = append(out, g.alAbilities()...)
+	out = append(out, g.ssAbilities()...)
+	out = append(out, g.gmAbilities()...)
+	out = append(out, g.arAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
 	for _, bp := range g.P.Body {
 		if bp.Item != nil {
@@ -87,6 +91,22 @@ func (g *Game) powerLevel(id string, it *Item) int {
 
 // usePower resolves an active power at a target tile (or a direction for dir powers).
 func (g *Game) usePower(id string, it *Item, tx, ty int) {
+	if strings.HasPrefix(id, "ar_") { // researched powers, pacts (arcane.go)
+		g.arUse(id, tx, ty)
+		return
+	}
+	if strings.HasPrefix(id, "gm_") { // busking and instruments (games.go)
+		g.gmUse(id, tx, ty)
+		return
+	}
+	if strings.HasPrefix(id, "ss_") { // stealth abilities (stealth.go)
+		g.ssUse(id, tx, ty)
+		return
+	}
+	if id == "al_brew" { // brewing (alchemy.go)
+		g.alAbUse(id)
+		return
+	}
 	if strings.HasPrefix(id, "bc_") { // crafting from beasts (beastcraft.go)
 		g.bcUse(id, tx, ty)
 		return
@@ -381,6 +401,9 @@ func (g *Game) throw(it *Item, tx, ty int) {
 
 func (g *Game) useItem(it *Item) {
 	p := g.P
+	if g.alUseItem(it) { // brewed potions, poison vials (alchemy.go)
+		return
+	}
 	switch it.Kind {
 	case "food", "corpse":
 		g.Hunger = maxi(0, g.Hunger-maxi(it.Power, 300))

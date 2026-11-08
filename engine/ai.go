@@ -259,7 +259,7 @@ func (g *Game) aiAct(a *Actor) {
 	// pick a target: the player if hostile, else the nearest enemy actor
 	var tgt *Actor
 	best := 1 << 20
-	if g.Hostile(a) && a.AI != "follower" {
+	if g.Hostile(a) && a.AI != "follower" && g.ssNotices(a) { // stealth (stealth.go)
 		dd := dist(a, p)
 		if dd < 30 && (g.visible(a.X, a.Y) || dd < 6) {
 			tgt, best = p, dd

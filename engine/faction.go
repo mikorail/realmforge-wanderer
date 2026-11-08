@@ -117,6 +117,9 @@ func (g *Game) Hostile(a *Actor) bool {
 	if a.Angry || g.uwWanted(a) { // wanted by the law (crime.go)
 		return true
 	}
+	if g.ssDisguised(a.Faction) { // a disguise passes (stealth.go)
+		return false
+	}
 	rep := g.Rep[a.Faction]
 	if a.Religion > 0 {
 		if fr, ok := g.Rep[fmt.Sprintf("faith:%d", a.Religion)]; ok && fr < rep && a.Role == "priest" {

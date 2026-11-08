@@ -841,6 +841,7 @@ func (g *Game) stepTo(nx, ny int) {
 	cost = g.climbCost(nx, ny, cost)
 	cost = g.weatherStep(nx, ny, cost)
 	cost = g.tgStep(nx, ny, cost) // terrain hazards (tghazards.go)
+	cost = g.ssStep(nx, ny, cost) // sneaking (stealth.go)
 	p.X, p.Y = nx, ny
 	if z.Traps != nil {
 		if _, ok := z.Traps[ny*MW+nx]; ok {
@@ -1018,6 +1019,9 @@ func (g *Game) WorldMove(dx, dy int) {
 	if shWorldMove(g, dx, dy) { // your own ship (sailing.go)
 		return
 	}
+	if jyWorldMove(g, dx, dy) { // balloons, gliders, flying machines (journeys.go)
+		return
+	}
 	nx, ny := g.WX+dx, g.WY+dy
 	if !g.W.In(nx, ny) {
 		return
@@ -1027,12 +1031,17 @@ func (g *Game) WorldMove(dx, dy int) {
 		g.Msg("The sea stretches away. You need " + g.Sk.Gills() + ", or " + g.Sk.Ferry + " at a port.")
 		return
 	}
+	if b, why := g.jyBlocked(np); b { // floods, closed passes, fires (journeys.go)
+		g.Msg(why)
+		return
+	}
 	g.WX, g.WY = nx, ny
 	g.CX, g.CY = nx, ny
 	cost := g.travelWeather(np, g.tvMinutes(np)) // days at true scale (travel.go)
 	g.tvJourney(cost)
 	wsOnMove(g) // travellers, armies and events along the way (worldsim.go)
 	egOnMove(g)
+	tqOnMove(g) // caravan and customs events on the road (tradeways.go)
 	g.Known[np] = true
 	for _, d := range dirs8 {
 		if g.W.In(nx+d[0], ny+d[1]) {
