@@ -634,6 +634,15 @@ func (g *Game) interact(x, y int) {
 	if g.buBump(x, y) { // barrow stones, hatches (burials.go)
 		return
 	}
+	if ueBump(g, x, y) {
+		return
+	}
+	if cdBump(g, x, y) {
+		return
+	}
+	if teBump(g, x, y) {
+		return
+	}
 	z := g.Cur
 	t := z.At(x, y)
 	i := y*MW + x

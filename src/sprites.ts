@@ -193,6 +193,164 @@ export function drawProceduralCell(
 		return true;
 	}
 
+	// Barricade (X) & Ballista (Ψ)
+	if (g === "X" || g === "Ψ") {
+		ctx.save();
+		ctx.strokeStyle = fg;
+		ctx.fillStyle = fg;
+		if (g === "X") {
+			ctx.lineWidth = Math.max(1.5, cw * 0.14);
+			ctx.beginPath();
+			ctx.moveTo(x + cw * 0.15, y + chh * 0.15);
+			ctx.lineTo(x + cw * 0.85, y + chh * 0.85);
+			ctx.moveTo(x + cw * 0.85, y + chh * 0.15);
+			ctx.lineTo(x + cw * 0.15, y + chh * 0.85);
+			ctx.stroke();
+			ctx.lineWidth = Math.max(1, cw * 0.08);
+			ctx.strokeRect(x + cw * 0.1, y + chh * 0.45, cw * 0.8, chh * 0.1);
+		} else {
+			ctx.lineWidth = Math.max(1.2, cw * 0.1);
+			ctx.strokeRect(x + cw * 0.4, y + chh * 0.2, cw * 0.2, chh * 0.65);
+			ctx.beginPath();
+			ctx.arc(cx, y + chh * 0.35, cw * 0.35, Math.PI * 0.8, Math.PI * 0.2, true);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(cx, y + chh * 0.1);
+			ctx.lineTo(cx, y + chh * 0.7);
+			ctx.stroke();
+		}
+		ctx.restore();
+		return true;
+	}
+
+	// Paper Lantern (*), Bunting (~), and Chandelier (¤)
+	if (g === "*" || g === "~" || g === "¤") {
+		ctx.save();
+		ctx.strokeStyle = fg;
+		ctx.fillStyle = fg;
+		if (g === "*") {
+			// Glowing paper lantern
+			ctx.beginPath();
+			ctx.arc(cx, cy, Math.min(cw, chh) * 0.28, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.moveTo(cx, y);
+			ctx.lineTo(cx, cy - Math.min(cw, chh) * 0.28);
+			ctx.moveTo(cx, cy + Math.min(cw, chh) * 0.28);
+			ctx.lineTo(cx, y + chh * 0.95);
+			ctx.stroke();
+		} else if (g === "~") {
+			// Festival bunting curve
+			ctx.lineWidth = Math.max(1, cw * 0.08);
+			ctx.beginPath();
+			ctx.moveTo(x, y + chh * 0.2);
+			ctx.quadraticCurveTo(cx, y + chh * 0.7, x + cw, y + chh * 0.2);
+			ctx.stroke();
+			// Pennants
+			for (let k = 1; k <= 3; k++) {
+				const px = x + cw * (k * 0.25);
+				const py = y + chh * (0.35 + (k === 2 ? 0.15 : 0.05));
+				ctx.beginPath();
+				ctx.moveTo(px - cw * 0.08, py);
+				ctx.lineTo(px + cw * 0.08, py);
+				ctx.lineTo(px, py + chh * 0.2);
+				ctx.closePath();
+				ctx.fill();
+			}
+		} else {
+			// Chandelier
+			ctx.lineWidth = Math.max(1, cw * 0.08);
+			ctx.beginPath();
+			ctx.ellipse(cx, cy, cw * 0.35, chh * 0.15, 0, 0, Math.PI * 2);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(cx, y);
+			ctx.lineTo(cx, cy);
+			ctx.stroke();
+		}
+		ctx.restore();
+		return true;
+	}
+
+	// Skylight (◊), Chimney (∩), and Monument (Ω)
+	if (g === "◊" || g === "∩" || g === "Ω") {
+		ctx.save();
+		ctx.strokeStyle = fg;
+		ctx.fillStyle = fg;
+		if (g === "◊") {
+			ctx.lineWidth = Math.max(1, cw * 0.09);
+			ctx.beginPath();
+			ctx.moveTo(cx, y + chh * 0.15);
+			ctx.lineTo(x + cw * 0.85, cy);
+			ctx.lineTo(cx, y + chh * 0.85);
+			ctx.lineTo(x + cw * 0.15, cy);
+			ctx.closePath();
+			ctx.stroke();
+		} else if (g === "∩") {
+			ctx.lineWidth = Math.max(1.2, cw * 0.12);
+			ctx.strokeRect(x + cw * 0.2, y + chh * 0.3, cw * 0.6, chh * 0.6);
+			ctx.fillRect(x + cw * 0.35, y + chh * 0.45, cw * 0.3, chh * 0.45);
+		} else {
+			// Monument obelisk
+			ctx.lineWidth = Math.max(1, cw * 0.08);
+			ctx.strokeRect(x + cw * 0.15, y + chh * 0.75, cw * 0.7, chh * 0.18);
+			ctx.beginPath();
+			ctx.moveTo(x + cw * 0.3, y + chh * 0.75);
+			ctx.lineTo(x + cw * 0.38, y + chh * 0.18);
+			ctx.lineTo(cx, y + chh * 0.08);
+			ctx.lineTo(x + cw * 0.62, y + chh * 0.18);
+			ctx.lineTo(x + cw * 0.7, y + chh * 0.75);
+			ctx.closePath();
+			ctx.fill();
+		}
+		ctx.restore();
+		return true;
+	}
+
+	// Beehive (δ), Barrel (Θ), Silkworm Rack (§), Coral Dome (O)
+	if (g === "δ" || g === "Θ" || g === "§" || g === "O") {
+		ctx.save();
+		ctx.strokeStyle = fg;
+		ctx.fillStyle = fg;
+		if (g === "δ") {
+			// Teardrop beehive
+			ctx.beginPath();
+			ctx.arc(cx, y + chh * 0.5, cw * 0.3, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.fillRect(cx - 1, y + chh * 0.6, 2, chh * 0.15);
+		} else if (g === "Θ") {
+			// Oak barrel with hoops
+			ctx.lineWidth = Math.max(1, cw * 0.09);
+			ctx.beginPath();
+			ctx.ellipse(cx, cy, cw * 0.32, chh * 0.4, 0, 0, Math.PI * 2);
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.moveTo(x + cw * 0.2, y + chh * 0.32);
+			ctx.lineTo(x + cw * 0.8, y + chh * 0.32);
+			ctx.moveTo(x + cw * 0.2, y + chh * 0.68);
+			ctx.lineTo(x + cw * 0.8, y + chh * 0.68);
+			ctx.stroke();
+		} else if (g === "§") {
+			// Silkworm rack
+			ctx.lineWidth = Math.max(1, cw * 0.08);
+			for (let k = 0; k < 3; k++) {
+				ctx.strokeRect(x + cw * 0.15, y + chh * (0.2 + k * 0.25), cw * 0.7, chh * 0.18);
+			}
+		} else {
+			// Bioluminescent coral dome
+			ctx.beginPath();
+			ctx.arc(cx, y + chh * 0.7, cw * 0.38, Math.PI, 0, false);
+			ctx.closePath();
+			ctx.stroke();
+			ctx.beginPath();
+			ctx.arc(cx, y + chh * 0.55, cw * 0.15, 0, Math.PI * 2);
+			ctx.fill();
+		}
+		ctx.restore();
+		return true;
+	}
+
 	// 1. Ground & micro-flora scatter (., ∙, ·, :, ')
 	if (g === '.' || g === '∙' || g === '·' || g === ':' || g === ',') {
 		ctx.save();

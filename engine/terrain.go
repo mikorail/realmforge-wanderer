@@ -98,6 +98,22 @@ const (
 	TWoodFloor
 	TTileFloor
 	TScaffold
+	// expanded tactical & ecological features
+	TBarricade
+	TBallista
+	TLantern
+	TBunting
+	TSnowDrift
+	TMonument
+	TSkylight
+	TChimney
+	TBeehive
+	TBarrel
+	TChandelier
+	TTent
+	TAshBed
+	TSilkwormRack
+	TCoralDome
 	NTerrain
 )
 
@@ -207,6 +223,21 @@ var TDefs = [NTerrain]TDef{
 	TWoodFloor:    {"plank floor", '=', CBrown, CBg, true, false, 0, true, "Warm timber floorboards.", false},
 	TTileFloor:    {"tile floor", '·', CCyan, CBg, true, false, 0, false, "Glazed ceramic and mosaic tiles.", false},
 	TScaffold:     {"scaffold", '≡', CBrown, CBg, true, false, 0, true, "Raised timber platform and beams.", false},
+	TBarricade:    {"barricade", 'X', CBrown, CBgDark, false, false, 0, true, "A spiked timber barricade. Bump to assault or dismantle.", true},
+	TBallista:     {"siege ballista", 'Ψ', CDarkGray, CBgDark, false, false, 0, false, "A mounted siege ballista loaded with iron-tipped bolts. Bump to fire.", true},
+	TLantern:      {"paper lantern", '*', CYellow, CBg, true, false, 0, true, "A glowing paper lantern swaying on a cord.", true},
+	TBunting:      {"festival bunting", '~', CRed, CBg, true, false, 0, true, "Festive silk ribbons and autumn harvest bunting.", false},
+	TSnowDrift:    {"snow drift", '%', CWhite, CBgLight, true, false, 0, false, "Deep banked winter snow.", false},
+	TMonument:     {"victory monument", 'Ω', CYellow, CBgLight, false, false, 0, false, "A grand carved monument commemorating legendary deeds. Bump to inspect.", true},
+	TSkylight:     {"skylight", '◊', CCyan, CBgLight, true, false, 0, false, "A rooftop glass skylight. Bump to peer down or descend.", true},
+	TChimney:      {"chimney", '∩', CBrown, CBgDark, false, false, 0, false, "A soot-stained stone chimney. Bump to shimmy down.", true},
+	TBeehive:      {"wild beehive", 'δ', CYellow, CBg, false, false, 0, true, "A humming hive swollen with honey and stinging bees. Bump to knock down.", true},
+	TBarrel:       {"cask of oil & wine", 'Θ', CBrown, CBg, false, false, 0, true, "A heavy oak cask sloshing with liquid. Bump to puncture.", true},
+	TChandelier:   {"iron chandelier", '¤', CYellow, CBgDark, true, false, 0, false, "A tiered iron chandelier suspended by chains. Bump to leap and swing.", true},
+	TTent:         {"yurt felt wall", '#', COrange, CBgDark, false, true, 0, true, "Thick pressed felt and leather wall of a nomad yurt.", false},
+	TAshBed:       {"fertile ash bed", '.', CDarkGray, CBgDark, true, false, 0, false, "Deep volcanic and brush ash, rich with soil nutrients.", false},
+	TSilkwormRack: {"fungal silk rack", '§', CCyan, CBgDark, false, false, 0, false, "Trays of bioluminescent cavern silkworms spinning glowing thread. Bump to harvest.", true},
+	TCoralDome:    {"coral dome", 'O', CCyan, CDarkBlue, false, false, 1, false, "A living bioluminescent coral cultivation dome. Bump to harvest.", true},
 }
 
 func (t Terrain) D() *TDef { return &TDefs[t] }

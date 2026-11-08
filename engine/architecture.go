@@ -10,7 +10,7 @@ import (
 func isWallTerrain(t Terrain) bool {
 	switch t {
 	case TWall, TWoodWall, TBrickWall, TStoneWall, TMarbleWall, TObsidianWall,
-		TBoneWall, TAdobeWall, TBambooWall, TCoralWall, TMetalWall, THedgeWall, TIceWall:
+		TBoneWall, TAdobeWall, TBambooWall, TCoralWall, TMetalWall, THedgeWall, TIceWall, TTent:
 		return true
 	}
 	return false

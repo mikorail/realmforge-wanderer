@@ -67,32 +67,32 @@
 - Player settlements, accessibility work, a playtest bot and extra test suites, ruling a realm with decrees, founding a faith or order.
 
 
-## Brainstormed Future Ideas & Expansions
+## Brainstormed Future Ideas & Expansions (Completed)
 
-### 1. Architectural & Urban Evolution
-- Multi-story rooftops and subterranean cellar networks beneath every building with cat burglar skylights and chimney descents.
-- Destructible city gates, barricades, and siege ballistas during wartime and rebellions.
-- Seasonal urban dressing: lantern festivals with glowing paper lanterns, autumn harvest bunting, and winter snow drifts along roof cornices.
-- Player-commissioned guildhalls, custom estate construction, and commemorative victory monuments in city plazas.
+### 1. Architectural & Urban Evolution (`engine/urban_evolve.go`)
+- [x] Multi-story rooftops and subterranean cellar networks beneath every building with cat burglar skylights (`TSkylight`) and chimney descents (`TChimney`).
+- [x] Destructible city gates, barricades (`TBarricade`), and siege ballistas (`TBallista`) during wartime and rebellions.
+- [x] Seasonal urban dressing: lantern festivals with glowing paper lanterns (`TLantern`), autumn harvest bunting (`TBunting`), and winter snow drifts (`TSnowDrift`) along roof cornices.
+- [x] Player-commissioned guildhalls, custom estate construction, and commemorative victory monuments (`TMonument`) in city plazas via town elder dialogue hooks.
 
-### 2. Living Society & Emergent Drama
-- Dynamic crime scenes, town guard murder investigations, and public courtroom trials with jury verdicts.
-- Royal wedding processions, funeral corteges, and triumphant army marches parade down city high streets.
-- Labor guild strikes, bread-line riots, and spontaneous philosophical tavern debates that boil over into brawls.
-- Travelling theatre troupes staging satiric plays and epic ballads recounting the player's own past exploits and deeds.
-- Seasonal livestock drives and regional harvest trade fairs bringing exotic merchant caravans to town squares.
+### 2. Living Society & Emergent Drama (`engine/society_emergent.go`)
+- [x] Dynamic crime scenes with chalk outlines, town guard murder investigations, and public courtroom trials with jury verdicts.
+- [x] Royal wedding processions, funeral corteges, and triumphant army marches parade down city high streets.
+- [x] Labor guild strikes with picket lines, bread-line riots at civic granaries, and spontaneous philosophical tavern debates that boil over into brawls.
+- [x] Travelling theatre troupes staging satiric plays and epic ballads recounting the player's own past exploits and deeds.
+- [x] Seasonal livestock drives with drovers/sheepdogs and regional harvest trade fairs bringing exotic merchant caravans to town squares.
 
-### 3. Deep Ecology & Frontier Life
-- Dynamic lumberjack camps that physically fell forest tiles and float log rafts downriver to sawmills.
-- Nomadic shepherd flocks with sheepdogs migrating between high mountain pastures in summer and lowland valleys in winter.
-- Seasonal apex predator migrations and monster herd breeding seasons that displace local game.
-- Wind-driven wild grassfires and volcanic cinder storms that scorch biomes and leave fertile ash beds in subsequent years.
+### 3. Deep Ecology & Frontier Life (`engine/ecology_frontier.go`)
+- [x] Dynamic lumberjack camps that physically fell forest tiles and float log rafts downriver to sawmills.
+- [x] Nomadic shepherd flocks with sheepdogs migrating between high mountain pastures in summer and lowland valleys in winter.
+- [x] Seasonal apex predator migrations and monster herd breeding seasons with maternal alpha broods.
+- [x] Wind-driven wild grassfires and volcanic cinder storms that scorch biomes and leave fertile ash beds (`TAshBed`) yielding rare wild blooms.
 
-### 4. Cultural & Subrace Depth
-- Inter-tribal moots, grand martial kurultais, and ancestral memory shrines that unlock lost subrace combat stances.
-- Fully mobile nomadic tent-cities and wagon caravans that pack up and migrate across the world map with the seasons.
-- Subterranean mushroom-forest silkworm farms and bioluminescent coral cultivation domes on the sea floor.
+### 4. Cultural & Subrace Depth (`engine/culture_depth.go`)
+- [x] Inter-tribal moots, grand martial kurultais, and ancestral memory shrines that unlock lost subrace combat stances (`mountain_giant`, `desert_viper`, `steppe_hawk`, `deep_mole`).
+- [x] Fully mobile nomadic tent-cities (`TTent`) and wagon caravans that pack up and migrate across the world map with the seasons.
+- [x] Subterranean mushroom-forest silkworm farms (`TSilkwormRack`) and bioluminescent coral cultivation domes (`TCoralDome`) on the sea floor.
 
-### 5. Interactive Tactical Environment
-- Dynamic tavern brawls: flipping tables for cover, swinging from chandeliers, throwing tankards, and kicking foes into braziers.
-- Environmental combat hazards: cutting scaffold ropes to crush enemies, shooting beehives, and puncturing wine/oil barrels.
+### 5. Interactive Tactical Environment (`engine/tactical_env.go`)
+- [x] Dynamic tavern brawls: flipping tables for cover (`TCrate`/`TSeat` +4 DV), swinging from chandeliers (`TChandelier` flying drop-kick), throwing tankards, and kicking foes into braziers (`TBrazier` burning damage).
+- [x] Environmental combat hazards: cutting scaffold ropes to crush enemies (`TScaffold` collapse), shooting beehives (`TBeehive` enraged swarm), and puncturing wine/oil barrels (`TBarrel` slick/flammable pools).
