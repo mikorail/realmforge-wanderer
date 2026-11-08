@@ -1,5 +1,6 @@
 <script lang="ts">
 	/** Qud-style character creation: species → calling → attributes → powers → origin. Rules mirror engine/chargen.go. */
+	import Portrait from './Portrait.svelte';
 	let { options, onbegin, oncancel }: { options: any; onbegin: (spec: object) => void; oncancel: () => void } = $props();
 
 	let step = $state(0);
@@ -155,6 +156,7 @@
 			<div class="grid">
 				{#each options.species as s (s.ID)}
 					<button class="card" class:on={species?.ID === s.ID} onclick={() => pickSpecies(s)}>
+						<Portrait species={s.ID} calling={truekin ? '' : calling?.id} seed={11} size={72} />
 						<b>{s.Name}</b>
 						{#if s.Common}<em>{s.Common} culture{s.Common > 1 ? 's' : ''}</em>{:else}<em class="dim">a stranger here</em>{/if}
 						<small>{s.Desc}</small>
@@ -169,6 +171,7 @@
 			<div class="grid">
 				{#each callingList as c (c.id)}
 					<button class="card" class:on={calling?.id === c.id} onclick={() => (calling = c)}>
+						<Portrait species={species?.ID} calling={c.id} seed={11} size={72} />
 						<b>{c.name}</b>
 						<small>{c.desc}</small>
 						<small class="mods">

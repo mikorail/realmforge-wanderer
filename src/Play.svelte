@@ -8,6 +8,7 @@
 	import { createWeatherSfx, type SfxHandle } from './weathersfx';
 	import { loadSettings, saveSettings, PALETTES, type Settings as Prefs, type PaletteName } from './settings';
 	import { computeUiMask, drawProceduralCell } from './sprites';
+	import type { QudActor } from './actorsprites';
 	import Settings from './Settings.svelte';
 	import Touch from './Touch.svelte';
 
@@ -170,6 +171,8 @@
 		const glyphs = Array.from(f.g);
 		const useSprites = prefs.renderStyle === 'sprites';
 		const uiMask = useSprites ? computeUiMask(glyphs, f.b, f.w, f.h) : null;
+		const who = new Map<number, QudActor>();
+		if (useSprites) for (const a of f.actors ?? []) who.set(a.y * f.w + a.x, a);
 		const mainFont = `${Math.round(chh * 0.86)}px "Share Tech Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace`;
 		ctx.font = mainFont;
 		ctx.textAlign = 'center';
@@ -189,7 +192,7 @@
 			const bgIdx = f.b.charCodeAt(i) - 65;
 			const fg = palette[fgIdx];
 			if (useSprites && uiMask && !uiMask[i] && gx < 80 && gy < 25) {
-				if (drawProceduralCell(ctx, g, fgIdx, bgIdx, fg, palette, gx, gy, x, y, cw, chh)) {
+				if (drawProceduralCell(ctx, g, fgIdx, bgIdx, fg, palette, gx, gy, x, y, cw, chh, who.get(i))) {
 					ctx.font = mainFont;
 					ctx.textAlign = 'center';
 					ctx.textBaseline = 'middle';

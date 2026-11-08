@@ -13,6 +13,8 @@ export interface QudFrame {
 	mode: string;
 	/** what the soundtrack should play (engine/game.go MusicState) */
 	music: QudMusic;
+	/** who stands where on the map (engine/sprinfo.go), for sprite mode */
+	actors?: import('./actorsprites').QudActor[];
 }
 export interface QudMusic {
 	mood: 'town' | 'wild' | 'dungeon' | 'tower' | 'sky' | 'sea' | 'underdark' | 'crypt' | 'world' | 'dead';

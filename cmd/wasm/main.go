@@ -26,8 +26,31 @@ func frame(out engine.Out) any {
 	return map[string]any{
 		"w": engine.SW, "h": engine.SH, "g": string(s.G), "f": string(fg), "b": string(bg),
 		"save": out.Save, "exit": out.Exit, "dead": game.Dead, "mode": game.Mode,
-		"music": musicJS(game.MusicState()),
+		"music": musicJS(game.MusicState()), "actors": actorsJS(game.SpriteActors()),
 	}
+}
+
+func actorsJS(list []engine.SprActor) any {
+	out := make([]any, 0, len(list))
+	for _, a := range list {
+		m := map[string]any{"x": a.X, "y": a.Y, "i": a.ID}
+		for k, v := range map[string]string{"s": a.Species, "c": a.Calling, "r": a.Role, "t": a.Tpl, "b": a.Body, "gr": a.Group, "w": a.Weapon, "k": a.Caste} {
+			if v != "" {
+				m[k] = v
+			}
+		}
+		if a.Size > 0 {
+			m["z"] = a.Size
+		}
+		if a.Armor > 0 {
+			m["a"] = a.Armor
+		}
+		if a.Player {
+			m["p"] = true
+		}
+		out = append(out, m)
+	}
+	return out
 }
 
 func musicJS(m engine.Music) any {

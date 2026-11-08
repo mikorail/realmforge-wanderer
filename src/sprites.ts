@@ -4,6 +4,8 @@
  * miniatures while keeping UI boxes, sidebars, and logs in crisp monospace text.
  */
 
+import { drawPersonSprite, drawCreatureSprite2, type QudActor } from './actorsprites';
+
 const MAP_W = 80;
 const MAP_H = 25;
 
@@ -72,6 +74,7 @@ export function drawProceduralCell(
 	y: number,
 	cw: number,
 	chh: number,
+	actor?: QudActor,
 ): boolean {
 	if (gx >= MAP_W || gy >= MAP_H) return false;
 	const h = hashCell(gx, gy);
@@ -436,6 +439,13 @@ export function drawProceduralCell(
 		ctx.fillRect(x + cw * 0.62, y + chh * 0.46, cw * 0.14, chh * 0.38);
 		ctx.fillRect(x + cw * 0.1, y + chh * 0.8, cw * 0.8, chh * 0.1);
 		ctx.restore();
+		return true;
+	}
+
+	// 7a. Who is really standing here (species, calling, role, body plan: engine/sprinfo.go)
+	if (actor && (g === '@' || /[A-Za-zψ]/.test(g))) {
+		if (actor.s || g === '@') drawPersonSprite(ctx, actor, fg, palette, bgIdx, x, y, cw, chh);
+		else drawCreatureSprite2(ctx, actor, g, fg, palette, bgIdx, x, y, cw, chh);
 		return true;
 	}
 
