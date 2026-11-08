@@ -664,6 +664,71 @@ func (g *Game) jyAirEvents(np int, d *jyDef, next func()) {
 
 // ---- cliff gliders ----
 
+func (g *Game) jyCliffBump(nx, ny int) bool {
+	st := g.jy()
+	if !st.Glider || g.Cur == nil || g.Cur.Z != 0 || g.Cur.At(nx, ny) != TCliff {
+		return false
+	}
+	dx, dy := sign(nx-g.P.X), sign(ny-g.P.Y)
+	if dx == 0 && dy == 0 {
+		return false
+	}
+	nm := jyPick(jyGliderNames, g.jySkin())
+	cur := g.W.Idx(g.WX, g.WY)
+	dir, str := g.shWind(cur)
+	lines := []string{
+		"You stand at the lip of the cliff face with your " + nm + " rigged.",
+		"Wind: " + shWindName(dir, str) + ".",
+	}
+	opts := []Option{
+		jyOpt("{{B|Leap from the cliff and glide across the zone.}}", func() {
+			g.jyClose()
+			g.jyZoneGlide(dx, dy)
+		}),
+	}
+	if g.W.In(g.WX+dx, g.WY+dy) {
+		np := g.W.Idx(g.WX+dx, g.WY+dy)
+		if g.W.Biome[cur] != 0 && g.W.Biome[np] != 0 && (g.W.Height[cur] >= 60 || g.W.Height[cur]-g.W.Height[np] >= 8) {
+			opts = append(opts, jyOpt("{{C|Catch the high updraft and glide overland "+jyDirName(dx, dy)+".}}", func() {
+				g.jyGlide(dx, dy, cur)
+			}))
+		}
+	}
+	opts = append(opts, jyOpt("Step back from the edge.", g.jyClose))
+	g.jyMenu("Cliff launch", lines, opts, g.jyClose)
+	return true
+}
+
+func (g *Game) jyZoneGlide(dx, dy int) bool {
+	st := g.jy()
+	if !st.Glider || g.Cur == nil {
+		return false
+	}
+	z := g.Cur
+	lx, ly := -1, -1
+	for step := 2; step <= 14; step++ {
+		tx, ty := g.P.X+dx*step, g.P.Y+dy*step
+		if !z.In(tx, ty) {
+			break
+		}
+		if z.Walkable(tx, ty) && z.ActorAt(tx, ty) == nil && z.At(tx, ty) != TCliff {
+			lx, ly = tx, ty
+		}
+	}
+	if lx < 0 {
+		g.Msg("There is no clear landing beyond the cliff.")
+		return false
+	}
+	g.P.X, g.P.Y = lx, ly
+	st.Glides++
+	nm := jyPick(jyGliderNames, g.jySkin())
+	g.Msg(fmt.Sprintf("{{C|You leap from the cliff and soar across on your %s!}}", nm))
+	g.jyDeed("glide", "You launched yourself from a cliff and glided down on cloth and wind.")
+	g.recompute()
+	g.spend(1000)
+	return true
+}
+
 func (g *Game) jyGlideMenu(dx, dy, cur int) {
 	st := g.jy()
 	nm := jyPick(jyGliderNames, g.jySkin())

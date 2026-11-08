@@ -280,9 +280,10 @@ func NewGame(w *WorldData, spec CharSpec) *Game {
 
 func (g *Game) give(it *Item) {
 	if it.Stack() {
-		for _, o := range g.P.Inv {
-			if o.Kind == it.Kind && o.Name == it.Name && o.Effect == it.Effect {
-				o.Count += maxi(it.Count, 1)
+		for i, o := range g.P.Inv {
+			if o.Kind == it.Kind && o.Name == it.Name && o.Effect == it.Effect && uwIsStolen(o) == uwIsStolen(it) {
+				it.Count = o.Count + maxi(it.Count, 1)
+				g.P.Inv[i] = it
 				return
 			}
 		}
@@ -796,6 +797,9 @@ func (g *Game) MoveP(dx, dy int) {
 	}
 	if t.D().Interact || t == TStatue {
 		g.interact(nx, ny)
+		return
+	}
+	if t == TCliff && g.jyCliffBump(nx, ny) { // in-zone cliff launch for gliders (journeys.go)
 		return
 	}
 	if !t.D().Walk && g.flBump(nx, ny) { // fell / gather plants (flora.go)

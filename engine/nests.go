@@ -483,9 +483,9 @@ func ntTurn(g *Game) {
 
 func (g *Game) ntParents() {
 	p := g.P
-	rad := 6
+	rad := 10
 	if p.Has("sneak") || p.St("hidden") > 0 {
-		rad = 3
+		rad = 5
 	}
 	for _, a := range g.Cur.Actors {
 		if a.HP <= 0 || !a.Has("ntpar") || a.Angry || a.Has("ntavenge") || a.AI == "follower" {

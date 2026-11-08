@@ -48,12 +48,15 @@
 - Hidden and buried things: secret doors (`secrets.go`), locks, chests and traps (`locks.go`), real shipwrecks and drowned cities (`wrecks.go`), barrows, bunkers and pirate hoards (`burials.go`).
 - Life systems: clutter and collections (`clutter.go`), herbalism and alchemy (`alchemy.go`), stealth and assassination (`stealth.go`), trade routes and smuggling (`tradeways.go`), nests, living ruins and ghost towns (`nests.go`), family, titles, songs and duels (`family.go`), table games, arena betting and busking (`games.go`), spell research, pacts and masters (`arcane.go`), balloons, caravans, ferries and route closures (`journeys.go`), hall of fame and daily seeds (`halloffame.go`).
 
+- Wave wiring complete: rival adventurers racing to buried hoards (`buDigSites`, `buRivalLoot`) and endgame culling rivals (`rvCull`); merchants valuing trade goods in `price()` and honest merchants refusing banned goods (`uwNoSale`); in-zone cliff launch for gliders (`jyCliffBump`, `jyZoneGlide`); footprint and blood trail tiles on the map (`ssTrailAt`); night-sight reading `alnight`; researched arcane powers for companions and the sandbox (`ar_<id>`, `arSandboxGrant`); predator nest defense range raised to 10 tiles (5 when sneaking); `fmHeir` wired to legacy runs (`fmContinueAsHeir`).
+- Tactical combat and throwables (`tactics.go`): called shots at limbs (`head`, `arm`, `leg`, `wing`, `eye`), flanking, high ground, cover and weather ranged modifiers, special ammo (`bodkin`, `broadhead`, `fire`, `frost`, `poison`, `silver`, `emp`), tactical throwables (`net`, `bolas`, `caltrops`, `smokebomb`, `flashbang`), and squad morale (routs and boss rally cries).
+- Quality-of-life and exploration (`qol.go`): auto-explore (`AutoExplore`), configurable auto-pickup rules (`qlAutoPickup`), message-log search and category filter (`FilterMsgs`), and self-writing Markdown adventure diary export (`ExportDiary`).
+
 ## Planned / ideas
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
 
 ### Ideas, not started
 **Combat**
-- Called shots at a limb, flanking and cover (walls and furniture), special ammo (fire, poison, armour-piercing).
 - Smarter foes: archers keep their distance, packs surround you, wounded enemies flee and return.
 - Weather in combat: rain douses fire, fog helps archers, wind carries your scent to predators.
 
@@ -76,9 +79,6 @@
 
 **Presentation**
 - Sprite animation (idle, walk, hit flash), more tile variety per genre, combat and UI sound effects.
-
-### Wiring left from the latest waves
-- Rival adventurers racing you to buried hoards (`buDigSites`, `buRivalLoot`) and the endgame culling rivals (`rvCull`); merchants valuing trade goods in `price()` and honest merchants refusing banned goods (`uwNoSale`); the in-zone cliff launch for gliders; footprint tiles on the map (`ssTrailAt`); night-sight reading `alnight`; researched powers for companions and the sandbox; predator nest range (10 tiles instead of 6); `fmHeir` wired to a legacy run.
 
 ### Dropped on purpose
 - Player settlements, accessibility work, a playtest bot and extra test suites, ruling a realm with decrees, founding a faith or order.

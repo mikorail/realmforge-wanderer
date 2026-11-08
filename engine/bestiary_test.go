@@ -148,7 +148,7 @@ func TestBestiaryKeepsExistingZoneGeneration(t *testing.T) {
 		}
 		var na []string
 		for _, x := range a.Actors {
-			if !strings.HasPrefix(x.Tpl, "bs_") {
+			if !strings.HasPrefix(x.Tpl, "bs_") || x.Has("ntpar") || x.Has("ntyg") {
 				na = append(na, x.Tpl+"@"+x.Name)
 			}
 		}

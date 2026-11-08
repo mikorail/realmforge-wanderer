@@ -421,6 +421,12 @@ func (g *Game) rvStep(rv *rvRival, d int) {
 		}
 		g.rvResolveHunt(rv, d)
 		return
+	case "hoard":
+		if d < rv.End {
+			return
+		}
+		g.rvResolveHoard(rv, d)
+		return
 	}
 	u := int(g.rvHash("act", tag) % 100)
 	// hostile rivals stalk a player who is close
@@ -502,7 +508,24 @@ func (g *Game) rvStep(rv *rvRival, d int) {
 		rv.Kills++
 		rv.Wait = d + 2
 		g.rvLog(d, fmt.Sprintf("%s collected the bounty on %s.", g.rvName(rv), b.Name))
-	case u < 92:
+	case u < 90:
+		var hs []int
+		for _, hp := range g.buDigSites() {
+			if wsCheb(w, rv.Pos, hp) <= 28 {
+				hs = append(hs, hp)
+			}
+		}
+		if len(hs) > 0 {
+			hp := hs[int(g.rvHash("hoard", tag)%uint64(len(hs)))]
+			rv.Act, rv.From, rv.Dest, rv.Depart = "hoard", rv.Pos, hp, d
+			rv.Arrive = d + rvDays(w, rv.Pos, hp)
+			rv.End = rv.Arrive + 1
+			rv.Target = "a buried hoard near " + g.wsPlace(hp)
+			g.rvLog(d, fmt.Sprintf("%s is racing toward a buried hoard near %s.", g.rvName(rv), g.wsPlace(hp)))
+			return
+		}
+		rv.Wait = d + 1
+	case u < 95:
 		if rv.Group == "" && rv.Level >= 4 {
 			var names []string
 			for _, o := range g.Orders() {
@@ -573,6 +596,19 @@ func (g *Game) rvResolveDelve(rv *rvRival, d int) {
 	g.rvGain(rv, 10)
 	rv.Wait = d + 3
 	g.rvLog(d, fmt.Sprintf("%s fled %s, wounded.", g.rvName(rv), s.Name))
+}
+
+func (g *Game) rvResolveHoard(rv *rvRival, d int) {
+	rv.Act, rv.Pos = "idle", rv.Dest
+	if g.buRivalLoot(rv.Dest) {
+		rv.Clears++
+		rv.Gold += 120 + rv.Level*25
+		g.rvGain(rv, 45+rv.Level*10)
+		rv.Wait = d + 2
+		g.rvLog(d, fmt.Sprintf("%s dug up the buried hoard near %s before you could.", g.rvName(rv), g.wsPlace(rv.Dest)))
+		return
+	}
+	rv.Wait = d + 1
 }
 
 func (g *Game) rvResolveHunt(rv *rvRival, d int) {

@@ -173,7 +173,16 @@ func (g *Game) uwStolenFactor(it *Item, buy bool) float64 {
 
 // uwNoSale: optional hook in tradeAct's sell branch; honest merchants refuse goods that are illegal in their realm.
 func (g *Game) uwNoSale(it *Item, a *Actor) bool {
-	if a == nil || !g.uwIllegal(it, a.State) {
+	if a == nil {
+		return false
+	}
+	state := a.State
+	if state <= 0 {
+		if bd := g.localBurg(); bd != nil {
+			state = bd.State
+		}
+	}
+	if !g.uwIllegal(it, state) {
 		return false
 	}
 	g.Msg("{{R|\"I won't touch that. Take it away before the watch sees.\"}}")

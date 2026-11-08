@@ -547,6 +547,87 @@ type fmHeirData struct {
 	Parent    string
 }
 
+// fmContinueAsHeir hands the run to the eldest grown child (from F7 retirement or upon death).
+func (g *Game) fmContinueAsHeir() bool {
+	h := g.fmHeir()
+	if h == nil {
+		return false
+	}
+	st := g.fm()
+	cause := "retired"
+	if g.Dead && g.DeathText != "" {
+		cause = Plain(g.DeathText)
+	}
+	place := ""
+	if g.Cur != nil {
+		place = g.Cur.Name
+	}
+	g.hf().Legends = append(g.hf().Legends, HFLegend{
+		Name:    g.P.Name,
+		Species: g.P.Species,
+		Calling: g.Calling,
+		Year:    g.W.DateOf(nil, g.Day()).Year,
+		Cause:   cause,
+		Place:   place,
+		Level:   g.P.Level,
+		Score:   g.hfScore(),
+	})
+	// Remove the heir from st.Kids and any zone actor
+	var rest []*fmChild
+	var heirChild *fmChild
+	for _, k := range st.Kids {
+		if k.Name == h.Name && heirChild == nil {
+			heirChild = k
+			continue
+		}
+		rest = append(rest, k)
+	}
+	st.Kids = rest
+	if heirChild != nil {
+		if a, z := g.fmKidActor(heirChild); a != nil && z != nil {
+			g.removeActor(z, a)
+		}
+	}
+	st.Spouse = nil
+	st.Worn = ""
+	for id := range st.Fame {
+		st.Fame[id] = maxi(st.Fame[id]/2, h.Fame)
+	}
+	g.P.Name = h.Name
+	if h.Species != "" {
+		g.P.Species = h.Species
+	}
+	if h.Calling != "" {
+		g.Calling = strings.ToLower(h.Calling)
+	}
+	if heirChild != nil {
+		g.P.Attr = heirChild.Attr
+	}
+	g.P.Level = maxi(1, int(float64(g.P.Level)*h.LevelFrac))
+	g.XP = 0
+	g.P.MaxHP = 14 + g.P.Level*4 + g.P.Attr[TOU]
+	g.P.HP = g.P.MaxHP
+	g.P.Status = map[string]int{}
+	g.Hunger, g.Thirst = 0, 0
+	g.Dead = false
+	g.DeathText = ""
+	g.P.Inv = nil
+	for i := range g.P.Body {
+		g.P.Body[i].Item = nil
+	}
+	for _, it := range h.Items {
+		cp := *it
+		cp.ID = g.newID()
+		g.give(&cp)
+		g.equip(&cp)
+	}
+	g.Mode = "main"
+	g.recompute()
+	g.deed("kinship", fmt.Sprintf("%s took up the mantle of %s and continued the long road.", h.Name, h.Parent), 0, 0)
+	g.Msg(fmt.Sprintf("{{Y|You now walk as %s, %s of %s (level %d).}}", h.Name, map[bool]string{true: "daughter", false: "son"}[h.Female], h.Parent, g.P.Level))
+	return true
+}
+
 // fmHeir picks the eldest grown, living child; nil if none.
 func (g *Game) fmHeir() *fmHeirData {
 	st := g.fm()
@@ -2617,6 +2698,9 @@ func (g *Game) fmTabFamily(w int) ([]string, []fmAct) {
 	if r := st.Rescue; r != nil {
 		ls = append(ls, "", fmt.Sprintf("{{R|%s is held by %s. Ransom %s, or rescue them in the wilds, within %d days.}}", r.Name, r.Kidnapper, g.fmCoin(r.Ransom), maxi(0, r.Deadline-g.Day())))
 		acts = append(acts, fmAct{"Pay the ransom (" + g.fmCoin(r.Ransom) + ")", g.fmPayRansom})
+	}
+	if h := g.fmHeir(); h != nil {
+		acts = append(acts, fmAct{"Retire and hand the torch to " + h.Name, func() { g.fmContinueAsHeir() }})
 	}
 	if len(st.Log) > 0 {
 		ls = append(ls, "", "{{K|Recent:}}")

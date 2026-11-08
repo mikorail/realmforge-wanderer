@@ -49,7 +49,7 @@ func (g *Game) skillLv(a *Actor, s string) int {
 func (g *Game) swing(a, d *Actor, w *Item) {
 	sk := g.skillLv(a, w.Skill)
 	roll := g.R.Int(1, 20)
-	hit := roll + a.M(AGI) + sk + skStatusToHit(a) + wpHitMod(a, d, w)
+	hit := roll + a.M(AGI) + sk + skStatusToHit(a) + wpHitMod(a, d, w) + g.tcFlankBonus(a, d) + g.tcHighGroundBonus(a, d)
 	if a.St("confused") > 0 {
 		hit -= 4
 	}
@@ -414,7 +414,7 @@ func (g *Game) shoot(a *Actor, tx, ty int, w *Item) {
 			continue
 		}
 		roll := g.R.Int(1, 20)
-		hit := roll + a.M(AGI) + g.skillLv(a, wpShotSkill(w)) - i/4 - g.weatherMissile(a) + wpShotHit(a, w)
+		hit := roll + a.M(AGI) + g.skillLv(a, wpShotSkill(w)) - i/4 - g.weatherMissile(a) + wpShotHit(a, w) + g.tcHighGroundBonus(a, d) + g.tcWeatherRangedMod() - g.tcCoverBonus(d, a)
 		if roll != 20 && hit < d.DV() {
 			if a == g.P || d == g.P {
 				g.Msg(fmt.Sprintf("%s %s %s.", g.The(a), verb(a == g.P, "miss", "misses"), g.the(d)))

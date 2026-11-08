@@ -63,6 +63,9 @@ func (g *Game) Key(k string) Out {
 	}
 	switch g.Mode {
 	case "dead":
+		if (k == "h" || k == "H") && g.fmContinueAsHeir() {
+			return out
+		}
 		if k == "Escape" || k == "Enter" {
 			out.Exit = true
 		}

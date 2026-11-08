@@ -26,7 +26,7 @@ const sbFrozenEnergy = -1000000000
 var sbItemKinds = []string{"longblade", "shortblade", "axe", "cudgel", "ranged", "armor", "backpack", "oddity", "tonic", "light", "random loot"}
 
 var sbMenu = []string{"God mode", "Reveal map", "Teleport (world map)", "Spawn creature", "Spawn item", "Level up", "Attributes & skills",
-	"Give gold (+1000)", "Freeze time", "Kill all hostiles", "Full heal & cure", "Jump to nearest dungeon", "Jump to nearest tower", "Jump to nearest city"}
+	"Give gold (+1000)", "Freeze time", "Kill all hostiles", "Full heal & cure", "Jump to nearest dungeon", "Jump to nearest tower", "Jump to nearest city", "Grant researched power (ar_)"}
 
 func init() {
 	mainKeys["F2"] = sbOpen
@@ -236,6 +236,9 @@ func sbRun(g *Game, i int) {
 			return
 		}
 		g.sbJump(p, 1, 1, 0)
+	case 14:
+		pw := g.arSandboxGrant()
+		g.Msg(fmt.Sprintf("{{M|[Sandbox]}} Learned researched power %s (ar_%s).", pw.Name, pw.ID))
 	}
 	if cheat {
 		st.Used = true

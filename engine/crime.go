@@ -116,6 +116,9 @@ func (g *Game) uwIllegal(it *Item, state int) bool {
 	if it == nil {
 		return false
 	}
+	if d := tqItemGood(it); d != nil && g.tqBanned(state, d) {
+		return true
+	}
 	if uwIsStolen(it) && uwStolenFrom(it) == state {
 		return true
 	}

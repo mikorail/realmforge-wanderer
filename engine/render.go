@@ -128,6 +128,9 @@ func (g *Game) drawMap() {
 			if fz != nil && z.Fire[i] == 0 {
 				gl, f = feastTile(fz, x, y, t, gl, f, anim)
 			}
+			if gl2, f2, ok := g.ssTrailAt(x, y); ok && z.Fire[i] == 0 {
+				gl, f = gl2, f2
+			}
 			if its := z.ItemsAt(x, y); len(its) > 0 {
 				it := its[len(its)-1]
 				gl, f = it.Glyph, it.F
@@ -976,7 +979,11 @@ func (g *Game) drawDead() {
 	s := g.sc
 	lines := Wrap(g.DeathText, 60)
 	lines = append(lines, "", fmt.Sprintf("Level %d · %d kills · %d secrets learned · %d quests", g.P.Level, g.Kills, len(g.Secrets), len(g.Quests)), "",
-		"Your death has been written into the chronicle.", "", "{{W|[Enter] return to Realmforge}}")
+		"Your death has been written into the chronicle.")
+	if h := g.fmHeir(); h != nil {
+		lines = append(lines, "", "{{Y|[H] continue the run as your heir, "+h.Name+"}}")
+	}
+	lines = append(lines, "", "{{W|[Enter] return to Realmforge}}")
 	h := len(lines) + 4
 	y0 := (MH - h) / 2
 	s.Box(8, y0, 64, h, CRed, "You died")

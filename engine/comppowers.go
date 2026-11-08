@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // Companions using their own active powers in combat (prefix cp). Powers come from installed
@@ -45,6 +46,21 @@ func (g *Game) cpPowers(a *Actor) []cpPower {
 	for _, id := range ids {
 		add(id, g.Sk.PowerName(id))
 	}
+	if st := g.ar(); len(st.Powers) > 0 {
+		var aids []string
+		for id := range st.Powers {
+			aids = append(aids, id)
+		}
+		sort.Strings(aids)
+		for _, id := range aids {
+			pw := st.Powers[id]
+			arID := "ar_" + id
+			if !seen[arID] && (a.Powers[arID] > 0 || a.AI == "follower") {
+				seen[arID] = true
+				out = append(out, cpPower{ID: arID, Name: pw.Name, Lv: maxi(1, pw.Mag)})
+			}
+		}
+	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out
 }
@@ -61,6 +77,12 @@ func (g *Game) cpSetCool(a *Actor, pw cpPower) {
 	cool := 40
 	if pd := powerByID[pw.ID]; pd != nil && pd.Cool > 0 {
 		cool = pd.Cool
+	} else if strings.HasPrefix(pw.ID, "ar_") {
+		if ap := g.ar().Powers[strings.TrimPrefix(pw.ID, "ar_")]; ap != nil && ap.Cool > 0 {
+			cool = ap.Cool
+		} else {
+			cool = 20
+		}
 	}
 	a.Cool[pw.ID] = maxi(8, cool-pw.Lv*2)
 }
@@ -160,6 +182,39 @@ func (g *Game) cpCast(a *Actor) bool {
 
 func (g *Game) cpUse(a *Actor, pw cpPower, foes []*Actor, adj int, hurt, fleeing bool) bool {
 	lv := pw.Lv
+	if strings.HasPrefix(pw.ID, "ar_") {
+		ap := g.ar().Powers[strings.TrimPrefix(pw.ID, "ar_")]
+		if ap == nil {
+			return false
+		}
+		if ap.Form == "mend" || ap.Form == "ward" {
+			if hurt {
+				h := g.R.Dice(maxi(1, ap.Mag), 6) + lv
+				a.HP = mini(a.MaxHP, a.HP+h)
+				a.AddSt("shielded", 6+ap.Mag)
+				g.cpSay(a, fmt.Sprintf("{{G|%s invokes %s and mends %d.}}", a.Name, ap.Name, h))
+				return true
+			}
+			if g.P.HP*100 < g.P.MaxHP*50 && dist(a, g.P) <= 4 {
+				h := g.R.Dice(maxi(1, ap.Mag), 6) + lv
+				g.P.HP = mini(g.P.MaxHP, g.P.HP+h)
+				g.Msg(fmt.Sprintf("{{G|%s weaves %s over you: +%d HP.}}", a.Name, ap.Name, h))
+				return true
+			}
+			return false
+		}
+		if fleeing && a.Order == OrdPassive {
+			return false
+		}
+		t := g.cpBlastTarget(a, foes, 6+lv, ap.Form == "nova" || ap.Form == "cloud")
+		if t == nil {
+			return false
+		}
+		dmg := g.R.Dice(maxi(1, ap.Mag), 6) + lv
+		g.cpSay(a, fmt.Sprintf("{{M|%s casts %s at %s for %d!}}", a.Name, ap.Name, g.the(t), dmg))
+		g.hurt(t, dmg, a, ap.Name)
+		return true
+	}
 	switch pw.ID {
 	case "heal":
 		p := g.P

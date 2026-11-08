@@ -722,6 +722,17 @@ func (g *Game) dig(x, y int) {
 
 func (g *Game) price(it *Item, buy bool) int {
 	v := maxi(it.Value, 1)
+	if d := tqItemGood(it); d != nil {
+		n := maxi(it.Count, 1)
+		if bd := g.localBurg(); bd != nil {
+			u := g.tqPrice(bd, d, buy)
+			if !buy {
+				u = maxi(1, int(float64(u)*g.uwStolenFactor(it, buy)))
+			}
+			return maxi(1, u*n)
+		}
+		v = maxi(1, d.Base*n)
+	}
 	v = maxi(1, int(float64(v)*g.wsItemMul(it)))  // regional market (worldsim.go)
 	v = maxi(1, int(float64(v)*g.egPriceMod(it))) // the world-scale threat (endgame.go)
 	if g.Talk != nil {

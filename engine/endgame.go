@@ -680,6 +680,7 @@ func (g *Game) egSpread(day int) {
 		n := d.Per + len(st.Occ)/40
 		for i := 0; i < n && i < len(cs); i++ {
 			st.add(cs[i].p)
+			g.rvCull(cs[i].p, 1, 0.35, "cut down by "+st.Name)
 		}
 		return
 	}
@@ -694,6 +695,7 @@ func (g *Game) egTowns(day int) {
 				st.Fallen = append(st.Fallen, b.ID)
 				st.logf(fmt.Sprintf("Day %d: %s has fallen.", day, b.Name))
 				g.Msg("{{R|News: " + b.Name + " has fallen to " + st.Name + ".}}")
+				g.rvCull(b.P, 2, 0.5, "lost when "+b.Name+" fell to "+st.Name)
 			}
 			continue
 		}

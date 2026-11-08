@@ -38,6 +38,9 @@ func (g *Game) recompute() {
 	if l := p.Pow("darkvision"); l > 0 {
 		dv = 7 + l*2
 	}
+	if p.St("alnight") > 0 {
+		dv = maxi(dv, 12)
+	}
 	if p.Species == "dwarf" || p.Species == "goblin" || p.Species == "orc" || p.Species == "void_elf" || p.Species == "ratfolk" {
 		dv = maxi(dv, 5)
 	}

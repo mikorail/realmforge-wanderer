@@ -646,6 +646,41 @@ func (g *Game) arRefine(pw *arPower, mode string) string {
 
 // ---- casting ----
 
+func (g *Game) arSandboxGrant() *arPower {
+	st := g.ar()
+	n := len(st.Powers) + 1
+	elems := []string{"fire", "frost", "shock", "void", "light", "blood"}
+	forms := []string{"bolt", "beam", "cone", "nova", "mend"}
+	el := elems[(n-1)%len(elems)]
+	fm := forms[(n-1)%len(forms)]
+	id := fmt.Sprintf("sb%d", n)
+	pw := &arPower{
+		ID:   id,
+		Name: fmt.Sprintf("Synthesized %s %s", titleCase(el), titleCase(fm)),
+		Elem: el,
+		Form: fm,
+		Mag:  3 + g.P.Level/3,
+		Cool: 14,
+		Qual: 3,
+	}
+	st.Powers[id] = pw
+	if g.P.Powers == nil {
+		g.P.Powers = map[string]int{}
+	}
+	g.P.Powers["ar_"+id] = 1
+	if g.Cur != nil {
+		for _, a := range g.Cur.Actors {
+			if a.AI == "follower" {
+				if a.Powers == nil {
+					a.Powers = map[string]int{}
+				}
+				a.Powers["ar_"+id] = 1
+			}
+		}
+	}
+	return pw
+}
+
 func (g *Game) arAbilities() []Ability {
 	st := g.ar()
 	var out []Ability
