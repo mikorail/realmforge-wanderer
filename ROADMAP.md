@@ -42,5 +42,43 @@
 - Wave 3: two new genres from Realmforge, wasteland (post-apocalypse) and twilight (fallen golden age), skinned across every genre table, with sample worlds Zotbozdiv and Sirati; multi-currency realms with money changers (`currency.go`); living world: caravans, travellers, armies, plague, invasion, desertion, bandits, regional prices, captives you can only free, news screen `N` (`worldsim.go`); underworld: laws, contraband, gate searches, stealing `X`, bounties and jail, fences, black market, fight pit with betting, ledger `U` (`crime.go`, `underworld.go`); mod saloons and mutation houses (`parlors.go`); treasure maps `B`/digging `D` and bounty boards with capture (`hunts.go`); thought cabinet `J`, traits, Luck/Composure/Fame/Perception (`thoughts.go`, `traits.go`); Insight, hearts, stat gates `U`-adjacent (`insight.go`, `gates.go`); cultural soundtrack with synthesised instruments, scales and feels per sphere, combat and feast layers (`src/music.ts`, `instruments.ts`, `scales.ts`). Cross-feature links in `engine/wiring.go`.
 - Social world (`socialworld.go`): Realmforge social orders, genre forces, reforms, persecutions, famine ethics, intermarriage and prestige exported and used in towns and talk: unfree workers and constructs, notices, bound strata, reform movements with pamphlet / captive quests, refugee camps outside haven towns, hostile guards and markups for the persecuted, pickets, corp offices, vat clinics, commons gardens, smog, fallout and ley nodes, mixed households.
 
+- Multiple planets and rifts (`planets.go`), slain beasts and broods (`slain.go`), villains with hideouts (`villains.go`), murim sects, clans and cults (`murim.go`), true-scale overland travel and 5x5 great cities (`travel.go`, `city.go`).
+- Taming and beast mounts (`taming.go`), court politics (`politics.go`), world-scale endgame with five endings (`endgame.go`), auto-aim and calling prerequisites (`autoaim.go`), sprite mode per species, calling and creature (`actorsprites.ts`).
+- Starting scenarios (`starts.go`), personal nemesis (`nemesis.go`), rival adventurers (`rival.go`), crafting from beasts (`beastcraft.go`).
+- Hidden and buried things: secret doors (`secrets.go`), locks, chests and traps (`locks.go`), real shipwrecks and drowned cities (`wrecks.go`), barrows, bunkers and pirate hoards (`burials.go`).
+- Life systems: clutter and collections (`clutter.go`), herbalism and alchemy (`alchemy.go`), stealth and assassination (`stealth.go`), trade routes and smuggling (`tradeways.go`), nests, living ruins and ghost towns (`nests.go`), family, titles, songs and duels (`family.go`), table games, arena betting and busking (`games.go`), spell research, pacts and masters (`arcane.go`), balloons, caravans, ferries and route closures (`journeys.go`), hall of fame and daily seeds (`halloffame.go`).
+
 ## Planned / ideas
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
+
+### Ideas, not started
+**Combat**
+- Called shots at a limb, flanking and cover (walls and furniture), special ammo (fire, poison, armour-piercing).
+- Smarter foes: archers keep their distance, packs surround you, wounded enemies flee and return.
+- Weather in combat: rain douses fire, fog helps archers, wind carries your scent to predators.
+
+**World and story**
+- Planet traits (low gravity, toxic air, tidally locked day/night, dead ruin worlds), rift storms that swap creatures or close a rift for a season, a star-map screen, goods from other planets selling dear.
+- Libraries whose books tell real events and reveal dungeon locations, wrong or out-of-date rumours, dreams that replay the world's history and hint at relics.
+- A prophecy given at the start that resolves differently by what you do and feeds the endgame endings; an epilogue for every NPC you met when the run ends; companion arcs that can end in betrayal, sacrifice or departure.
+- Legacy runs: your heir starts in the same world years later (`fmHeir` already exports the heir), your deeds are legends and your hideout is a ruin.
+- Detective mysteries (solve a murder from clues, accuse in a courtroom), city jobs for coin (porter, scribe, guard shift), night-life in cities (night guilds, smugglers, ghosts).
+
+**Murim**
+- Hidden masters disguised as beggars, grudges where a killed disciple's master hunts you years later, martial lineage passed to an heir, seclusion for a season, forbidden demonic arts that corrupt.
+
+**Taming and beasts**
+- Breeding two tamed animals, teaching tricks (fetch, guard, hunt), pack animals that carry your gear, animal reputation (wildlife remembers you).
+
+**Crafting and exploring**
+- Inventions designed from scrap and saved at the workbench, enchanting and cursed items, fishing and diving as sports.
+- Cartography: draw your own map and sell it; auto-travel and auto-explore that stop at danger, a quest arrow on the map, message-log search, a self-writing diary, a photo mode.
+
+**Presentation**
+- Sprite animation (idle, walk, hit flash), more tile variety per genre, combat and UI sound effects.
+
+### Wiring left from the latest waves
+- Rival adventurers racing you to buried hoards (`buDigSites`, `buRivalLoot`) and the endgame culling rivals (`rvCull`); merchants valuing trade goods in `price()` and honest merchants refusing banned goods (`uwNoSale`); the in-zone cliff launch for gliders; footprint tiles on the map (`ssTrailAt`); night-sight reading `alnight`; researched powers for companions and the sandbox; predator nest range (10 tiles instead of 6); `fmHeir` wired to a legacy run.
+
+### Dropped on purpose
+- Player settlements, accessibility work, a playtest bot and extra test suites, ruling a realm with decrees, founding a faith or order.
