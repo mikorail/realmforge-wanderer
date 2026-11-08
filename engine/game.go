@@ -762,6 +762,9 @@ func (g *Game) MoveP(dx, dy int) {
 		return
 	}
 	t := z.At(nx, ny)
+	if sxBump(g, nx, ny) { // secret doors, panels, hollow things (secrets.go)
+		return
+	}
 	if t == TDoor {
 		z.Set(nx, ny, TDoorOpen)
 		g.Msg("You open the door.")
@@ -770,7 +773,9 @@ func (g *Game) MoveP(dx, dy int) {
 	}
 	switch t {
 	case TLocked:
-		g.unlock(nx, ny)
+		if !g.lkBumpLocked(nx, ny) { // lockpicking, magic and trapped locks (locks.go)
+			g.unlock(nx, ny)
+		}
 		return
 	case TOre:
 		g.mineOre(nx, ny)
@@ -784,6 +789,9 @@ func (g *Game) MoveP(dx, dy int) {
 		return
 	case TThrone:
 		g.Msg("A throne of state. Sitting on it would not be wise.")
+		return
+	}
+	if g.lkBumpChest(nx, ny) { // chests (locks.go)
 		return
 	}
 	if t.D().Interact || t == TStatue {

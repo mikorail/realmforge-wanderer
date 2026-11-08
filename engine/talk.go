@@ -619,6 +619,9 @@ func (g *Game) interact(x, y int) {
 	if tgBump(g, x, y) { // obsidian, sulfur (tghazards.go)
 		return
 	}
+	if g.buBump(x, y) { // barrow stones, hatches (burials.go)
+		return
+	}
 	z := g.Cur
 	t := z.At(x, y)
 	i := y*MW + x

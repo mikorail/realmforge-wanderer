@@ -858,6 +858,7 @@ func (g *Game) shMenu() {
 	}
 	if sp.Aboard && g.W.IsWater(sp.At) {
 		add("Fish over the side (2 hours).", func() { g.shFish() })
+		g.Opts = append(g.Opts, g.wrShipOpts()...) // sounding line (wrecks.go)
 		for i := range st.Wrecks {
 			wr := &st.Wrecks[i]
 			if wr.P == sp.At && !wr.Salvaged {

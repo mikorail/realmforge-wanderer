@@ -264,6 +264,8 @@ func (g *Game) keyMain(k string) Out {
 	case "s":
 		g.Msg("You search carefully.")
 		g.noticeTraps(4)
+		sxSearch(g) // secret doors and hollow things (secrets.go)
+		buSearch(g) // bunker hatches (burials.go)
 		g.spend(1000)
 	case "d":
 		if g.Cur.WaterAt(g.P.X, g.P.Y) > 0 && !g.Cur.Underwater || g.adjacent(TWell) || g.adjacent(TShallow) {

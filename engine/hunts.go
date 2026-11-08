@@ -391,6 +391,9 @@ func bhDig(g *Game) {
 		g.Msg("You cannot dig here.")
 		return
 	}
+	if g.buDig(g.P.X, g.P.Y) { // barrows, bunker hatches, pirate hoards (burials.go)
+		return
+	}
 	st := bhSt(g)
 	c := bhZoneCache(g)
 	here := c != nil && c.X == g.P.X && c.Y == g.P.Y

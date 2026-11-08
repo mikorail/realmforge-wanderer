@@ -432,6 +432,9 @@ func (g *Game) useItem(it *Item) {
 		}
 		g.consume(it)
 	case "map": // treasure maps (hunts.go)
+		if buRead(g, it) { // split pirate charts (burials.go)
+			return
+		}
 		bhRead(g, it)
 		return
 	case "book":
@@ -463,6 +466,9 @@ func (g *Game) useItem(it *Item) {
 		g.mrUseItem(it)
 		return
 	default:
+		if g.wrUse(it) { // wreck strongboxes, diving gear, salvage (wrecks.go)
+			return
+		}
 		g.Msg("You can't use that.")
 		return
 	}
