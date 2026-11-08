@@ -80,6 +80,24 @@ const (
 	TSalt
 	TObsidian
 	TSulfur
+	// architecture & unique materials
+	TWoodWall
+	TBrickWall
+	TStoneWall
+	TMarbleWall
+	TObsidianWall
+	TBoneWall
+	TAdobeWall
+	TBambooWall
+	TCoralWall
+	TMetalWall
+	THedgeWall
+	TWindow
+	TGateArch
+	TGateClosed
+	TWoodFloor
+	TTileFloor
+	TScaffold
 	NTerrain
 )
 
@@ -172,6 +190,23 @@ var TDefs = [NTerrain]TDef{
 	TSalt:         {"salt flat", '.', CWhite, CBgLight, true, false, 0, false, "A blinding crust of salt, cracked into plates.", false},
 	TObsidian:     {"obsidian", '%', CDarkMagenta, CBgDark, false, true, 0, false, "Black volcanic glass. Bump to knap shards.", true},
 	TSulfur:       {"sulfur crust", '%', CYellow, CBgDark, false, true, 0, false, "A crust of yellow sulfur, reeking of rotten eggs. Bump to scrape some.", true},
+	TWoodWall:     {"timber wall", '#', CBrown, CBgDark, false, true, 0, true, "Hewn timber logs notched at the corners.", false},
+	TBrickWall:    {"brick wall", '#', CRed, CBgDark, false, true, 0, false, "Kiln-fired clay bricks laid in mortar.", false},
+	TStoneWall:    {"stone wall", '#', CGray, CBgLight, false, true, 0, false, "Courses of dressed ashlar stone.", false},
+	TMarbleWall:   {"marble wall", '#', CWhite, CBgLight, false, true, 0, false, "Polished marble veined with mineral grain.", false},
+	TObsidianWall: {"obsidian wall", '#', CDarkMagenta, CBgDark, false, true, 0, false, "Glassy black volcanic stone.", false},
+	TBoneWall:     {"bone wall", '#', CYellow, CBgDark, false, true, 0, false, "Ribs, tusks, and hides lashed together.", false},
+	TAdobeWall:    {"adobe wall", '#', COrange, CBgDark, false, true, 0, false, "Thick sun-baked mudbrick and ochre plaster.", false},
+	TBambooWall:   {"bamboo wall", '#', CGreen, CBgDark, false, true, 0, true, "Joined bamboo canes and lacquered timber.", false},
+	TCoralWall:    {"coral wall", '#', CCyan, CBgDark, false, true, 0, false, "Living reef-stone and nacreous shell.", false},
+	TMetalWall:    {"riveted wall", '#', CDarkCyan, CBgDark, false, true, 0, false, "Heavy riveted iron plates.", false},
+	THedgeWall:    {"thorn hedge", '#', CDarkGreen, CBg, false, true, 0, true, "Interwoven boughs and iron-hard briars.", false},
+	TWindow:       {"latticed window", '⊞', CCyan, CBg, false, false, 0, false, "A casement window letting light and sight through.", false},
+	TGateArch:     {"gatehouse arch", '∏', CYellow, CBgLight, true, false, 0, false, "A towering stone archway beneath the gatehouse.", false},
+	TGateClosed:   {"portcullis", '╫', CDarkGray, CBgDark, false, false, 0, false, "An iron-shod portcullis gate. Bump to open.", true},
+	TWoodFloor:    {"plank floor", '=', CBrown, CBg, true, false, 0, true, "Warm timber floorboards.", false},
+	TTileFloor:    {"tile floor", '·', CCyan, CBg, true, false, 0, false, "Glazed ceramic and mosaic tiles.", false},
+	TScaffold:     {"scaffold", '≡', CBrown, CBg, true, false, 0, true, "Raised timber platform and beams.", false},
 }
 
 func (t Terrain) D() *TDef { return &TDefs[t] }

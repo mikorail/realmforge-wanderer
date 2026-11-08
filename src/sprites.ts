@@ -81,6 +81,118 @@ export function drawProceduralCell(
 	const cx = x + cw * 0.5;
 	const cy = y + chh * 0.5;
 
+	// Walls & unique architectural materials (#)
+	if (g === "#") {
+		ctx.save();
+		ctx.fillStyle = fg;
+		ctx.strokeStyle = fg;
+		if (fgIdx === 14) {
+			// Timber / Wood wall (notched horizontal logs)
+			ctx.lineWidth = Math.max(1, cw * 0.1);
+			for (let k = 0; k < 3; k++) {
+				const ly = y + chh * (0.2 + k * 0.3);
+				ctx.beginPath();
+				ctx.moveTo(x + cw * 0.05, ly);
+				ctx.lineTo(x + cw * 0.95, ly);
+				ctx.stroke();
+			}
+			ctx.fillRect(x + cw * 0.45, y + chh * 0.05, cw * 0.1, chh * 0.9);
+		} else if (fgIdx === 4 || fgIdx === 5) {
+			// Brick & Adobe wall (staggered courses)
+			ctx.lineWidth = 1;
+			for (let k = 0; k < 4; k++) {
+				const by = y + chh * (k * 0.25);
+				ctx.fillRect(x + cw * 0.05, by, cw * 0.9, chh * 0.2);
+				ctx.fillStyle = palette[18] || "#041312";
+				ctx.fillRect(x + cw * (0.25 + ((k % 2) * 0.3)), by, 1, chh * 0.2);
+				ctx.fillStyle = fg;
+			}
+		} else if (fgIdx === 6 || fgIdx === 7) {
+			// Bamboo / Thorn hedge
+			ctx.lineWidth = Math.max(1, cw * 0.12);
+			for (let k = 0; k < 3; k++) {
+				const bx = x + cw * (0.2 + k * 0.3);
+				ctx.beginPath();
+				ctx.moveTo(bx, y + chh * 0.95);
+				ctx.lineTo(bx, y + chh * 0.05);
+				ctx.stroke();
+			}
+		} else {
+			// Dressed stone / marble / metal ashlar block
+			ctx.lineWidth = Math.max(1, cw * 0.08);
+			ctx.strokeRect(x + cw * 0.1, y + chh * 0.08, cw * 0.8, chh * 0.84);
+			ctx.fillRect(x + cw * 0.2, y + chh * 0.18, cw * 0.6, chh * 0.64);
+		}
+		ctx.restore();
+		return true;
+	}
+
+	// Latticed Window (⊞)
+	if (g === "⊞") {
+		ctx.save();
+		ctx.fillStyle = fg;
+		ctx.strokeStyle = fg;
+		ctx.lineWidth = Math.max(1, cw * 0.1);
+		ctx.strokeRect(x + cw * 0.15, y + chh * 0.15, cw * 0.7, chh * 0.7);
+		ctx.beginPath();
+		ctx.moveTo(cx, y + chh * 0.15);
+		ctx.lineTo(cx, y + chh * 0.85);
+		ctx.moveTo(x + cw * 0.15, cy);
+		ctx.lineTo(x + cw * 0.85, cy);
+		ctx.stroke();
+		ctx.restore();
+		return true;
+	}
+
+	// Gate Arch (∏) & Portcullis (╫)
+	if (g === "∏" || g === "╫") {
+		ctx.save();
+		ctx.fillStyle = fg;
+		ctx.strokeStyle = fg;
+		ctx.lineWidth = Math.max(1.2, cw * 0.12);
+		ctx.beginPath();
+		ctx.moveTo(x + cw * 0.15, y + chh * 0.95);
+		ctx.lineTo(x + cw * 0.15, y + chh * 0.35);
+		ctx.quadraticCurveTo(cx, y + chh * 0.05, x + cw * 0.85, y + chh * 0.35);
+		ctx.lineTo(x + cw * 0.85, y + chh * 0.95);
+		ctx.stroke();
+		if (g === "╫") {
+			// Portcullis bars
+			ctx.lineWidth = 1;
+			for (let k = 0; k < 3; k++) {
+				const bx = x + cw * (0.3 + k * 0.2);
+				ctx.beginPath();
+				ctx.moveTo(bx, y + chh * 0.25);
+				ctx.lineTo(bx, y + chh * 0.95);
+				ctx.stroke();
+			}
+		}
+		ctx.restore();
+		return true;
+	}
+
+	// Timber plank floor (=) & Scaffolding (≡)
+	if (g === "=" || g === "≡") {
+		ctx.save();
+		ctx.strokeStyle = fg;
+		ctx.lineWidth = Math.max(1, cw * 0.09);
+		for (let k = 0; k < 3; k++) {
+			const py = y + chh * (0.22 + k * 0.28);
+			ctx.beginPath();
+			ctx.moveTo(x + cw * 0.1, py);
+			ctx.lineTo(x + cw * 0.9, py);
+			ctx.stroke();
+		}
+		if (g === "≡") {
+			ctx.beginPath();
+			ctx.moveTo(x + cw * 0.25, y + chh * 0.1);
+			ctx.lineTo(x + cw * 0.75, y + chh * 0.9);
+			ctx.stroke();
+		}
+		ctx.restore();
+		return true;
+	}
+
 	// 1. Ground & micro-flora scatter (., ∙, ·, :, ')
 	if (g === '.' || g === '∙' || g === '·' || g === ':' || g === ',') {
 		ctx.save();

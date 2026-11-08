@@ -763,6 +763,10 @@ func (g *Game) placeSimMonster(zn *Zone, r *Rng, m *MonsterData) {
 }
 
 func (g *Game) building(zn *Zone, x0, y0, w, h int, wall, floor Terrain) (int, int) {
+	return g.acBuilding(zn, x0, y0, w, h, wall, floor, "generic")
+}
+
+func (g *Game) buildingOld(zn *Zone, x0, y0, w, h int, wall, floor Terrain) (int, int) {
 	for y := y0; y < y0+h; y++ {
 		for x := x0; x < x0+w; x++ {
 			if y == y0 || y == y0+h-1 || x == x0 || x == x0+w-1 {

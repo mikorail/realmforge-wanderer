@@ -57,8 +57,42 @@
 - Planet traits, rift storms, star-map and story arcs (`world_story.go`, `city_life.go`): planet traits (`low_gravity`, `toxic_air`, `tidally_locked`, `dead_ruin`), seasonal rift storms, interactive Star-Map screen (`starmap`), off-world goods selling dear, historical library books revealing dungeons, twisted/outdated rumours, historical dreams on rest, 3-verse start-of-run prophecies feeding endgame endings, companion personal arcs and lethal-blow sacrifice, NPC epilogues, detective murder mysteries and courtroom accusations, city shift jobs, and city night-life (night guilds, smugglers, ghosts).
 - Deep murim, taming, crafting and presentation (`murim_deep.go`, `taming_deep.go`, `craft_explore.go`, `src/actorsprites.ts`, `src/weathersfx.ts`): hidden masters disguised as beggars, sect grudges and avengers, martial lineage passed to heirs, closed-door seclusion breakthroughs, forbidden demonic arts and qi-deviation, breeding tamed animals, teaching tricks (`fetch`, `guard`, `hunt`), pack animals with saddlebags, wildlife animal reputation, workbench scrap inventions, item enchanting and cursed items, sport fishing and free-diving, cartography survey maps, HUD quest compass arrow, ASCII photo mode, sprite animation (idle/walk/hit flash), and procedural WebAudio combat/UI sound effects.
 
+- Unique architecture and monumental gates (engine/architecture.go, engine/terrain.go, src/sprites.ts): 11 culturally distinct wall materials (TWoodWall, TBrickWall, TStoneWall, TMarbleWall, TObsidianWall, TBoneWall, TAdobeWall, TBambooWall, TCoralWall, TMetalWall, THedgeWall), authentic non-square floor plans (yurts/rotundas, L-shaped manors, courtyard riads/siheyuan, octagonal dwarven keeps, partitioned multi-room homes, apsidal longhouses, colonnaded pavilions), and monumental dual-towered gatehouses with bastion crenellations, archways (TGateArch), portcullises (TGateClosed), and latticed windows (TWindow).
+- Living world & public life (engine/living_world.go): packed inns and taverns (innkeepers, servers, tavern bards, dice gamblers, buying rounds for the tavern), live plaza spectacles (gallows executions with heralds and pardons/rescues, street/field honor duels with clashing blades and wagering/mediation), and actively working citizens (field farmers tending crop rows, blacksmiths at anvils, street hawkers, guard patrol pairs, forest woodcutters, wildland hunters/trappers, miners, and fishers).
+
 ## Planned / ideas
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
 
 ### Dropped on purpose
 - Player settlements, accessibility work, a playtest bot and extra test suites, ruling a realm with decrees, founding a faith or order.
+
+
+## Brainstormed Future Ideas & Expansions
+
+### 1. Architectural & Urban Evolution
+- Multi-story rooftops and subterranean cellar networks beneath every building with cat burglar skylights and chimney descents.
+- Destructible city gates, barricades, and siege ballistas during wartime and rebellions.
+- Seasonal urban dressing: lantern festivals with glowing paper lanterns, autumn harvest bunting, and winter snow drifts along roof cornices.
+- Player-commissioned guildhalls, custom estate construction, and commemorative victory monuments in city plazas.
+
+### 2. Living Society & Emergent Drama
+- Dynamic crime scenes, town guard murder investigations, and public courtroom trials with jury verdicts.
+- Royal wedding processions, funeral corteges, and triumphant army marches parade down city high streets.
+- Labor guild strikes, bread-line riots, and spontaneous philosophical tavern debates that boil over into brawls.
+- Travelling theatre troupes staging satiric plays and epic ballads recounting the player's own past exploits and deeds.
+- Seasonal livestock drives and regional harvest trade fairs bringing exotic merchant caravans to town squares.
+
+### 3. Deep Ecology & Frontier Life
+- Dynamic lumberjack camps that physically fell forest tiles and float log rafts downriver to sawmills.
+- Nomadic shepherd flocks with sheepdogs migrating between high mountain pastures in summer and lowland valleys in winter.
+- Seasonal apex predator migrations and monster herd breeding seasons that displace local game.
+- Wind-driven wild grassfires and volcanic cinder storms that scorch biomes and leave fertile ash beds in subsequent years.
+
+### 4. Cultural & Subrace Depth
+- Inter-tribal moots, grand martial kurultais, and ancestral memory shrines that unlock lost subrace combat stances.
+- Fully mobile nomadic tent-cities and wagon caravans that pack up and migrate across the world map with the seasons.
+- Subterranean mushroom-forest silkworm farms and bioluminescent coral cultivation domes on the sea floor.
+
+### 5. Interactive Tactical Environment
+- Dynamic tavern brawls: flipping tables for cover, swinging from chandeliers, throwing tankards, and kicking foes into braziers.
+- Environmental combat hazards: cutting scaffold ropes to crush enemies, shooting beehives, and puncturing wine/oil barrels.

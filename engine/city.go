@@ -149,7 +149,7 @@ func (g *Game) genDistrict(zn *Zone, r *Rng, bd *BurgData, cp *cityPlan, kind st
 	}
 	// city walls along edges that face open country
 	if cp.walled && zn.Z == 0 {
-		g.cityWalls(zn, cp)
+		g.acCityWalls(zn, cp, bd)
 	}
 	add := func(role, title string, x, y int) *Actor {
 		a := g.makeNPC(role, bd, cu, r)
@@ -166,7 +166,8 @@ func (g *Game) genDistrict(zn *Zone, r *Rng, bd *BurgData, cp *cityPlan, kind st
 	}
 	shop := func(role, title string) {
 		if rc, ok := g.lot(zn, r, 7, 11, 4, 6); ok {
-			dx, dy := g.building(zn, rc[0], rc[1], rc[2], rc[3], TWall, TFloor)
+			wm, fm := g.acMaterials(bd, cu, role)
+			dx, dy := g.acBuilding(zn, rc[0], rc[1], rc[2], rc[3], wm, fm, role)
 			_ = dx
 			_ = dy
 			zn.Set(rc[0]+1, rc[1]+1, TStall)
