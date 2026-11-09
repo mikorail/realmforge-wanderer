@@ -123,6 +123,10 @@ type Option struct {
 }
 
 func (g *Game) Msg(s string) {
+	if s == "" {
+		return
+	}
+	s = tidyMsg(s)
 	if n := len(g.Msgs); n > 0 && g.Msgs[n-1].T == s && g.Msgs[n-1].Turn == g.Turn {
 		g.Msgs[n-1].Rep++
 		return
@@ -133,11 +137,40 @@ func (g *Game) Msg(s string) {
 	}
 }
 
+func tidyMsg(s string) string {
+	for strings.Contains(s, "  ") {
+		s = strings.ReplaceAll(s, "  ", " ")
+	}
+	s = strings.ReplaceAll(s, "the the ", "the ")
+	s = strings.ReplaceAll(s, "The the ", "The ")
+	s = strings.ReplaceAll(s, "The The ", "The ")
+	s = strings.ReplaceAll(s, "a the ", "the ")
+	s = strings.ReplaceAll(s, "A the ", "The ")
+	s = strings.ReplaceAll(s, "the a ", "a ")
+	s = strings.ReplaceAll(s, "The a ", "A ")
+	s = strings.ReplaceAll(s, "a an ", "an ")
+	s = strings.ReplaceAll(s, "a a ", "a ")
+	s = strings.ReplaceAll(s, " .", ".")
+	s = strings.ReplaceAll(s, " ,", ",")
+	s = strings.ReplaceAll(s, " !", "!")
+	s = strings.ReplaceAll(s, " ?", "?")
+	s = strings.ReplaceAll(s, " :", ":")
+	s = strings.ReplaceAll(s, " ;", ";")
+	return strings.TrimSpace(s)
+}
+
 func (g *Game) the(a *Actor) string {
+	if a == nil {
+		return "something"
+	}
 	if a == g.P {
 		return "you"
 	}
 	if a.Proper {
+		return a.Name
+	}
+	low := strings.ToLower(a.Name)
+	if strings.HasPrefix(low, "the ") {
 		return a.Name
 	}
 	return "the " + a.Name
@@ -145,6 +178,9 @@ func (g *Game) the(a *Actor) string {
 
 func (g *Game) The(a *Actor) string {
 	s := g.the(a)
+	if s == "" {
+		return "Something"
+	}
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 

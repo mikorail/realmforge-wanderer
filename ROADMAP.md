@@ -96,3 +96,11 @@
 ### 5. Interactive Tactical Environment (`engine/tactical_env.go`)
 - [x] Dynamic tavern brawls: flipping tables for cover (`TCrate`/`TSeat` +4 DV), swinging from chandeliers (`TChandelier` flying drop-kick), throwing tankards, and kicking foes into braziers (`TBrazier` burning damage).
 - [x] Environmental combat hazards: cutting scaffold ropes to crush enemies (`TScaffold` collapse), shooting beehives (`TBeehive` enraged swarm), and puncturing wine/oil barrels (`TBarrel` slick/flammable pools).
+
+### 6. High-Seas, Deep Caverns & Dynastic Faith Systems
+- [x] **Naval Sailing, Flagships & High-Seas Piracy** (`engine/naval.go`): Sailing caravels, war longships, and submarine bathyspheres; mounted swivel cannon grapeshot; gangplank boarding; and multi-tile Abyssal Kraken encounters.
+- [x] **Dynastic Bloodline Curses, Heirs & Pretender Quests** (`engine/dynasties_rogue.go`): Ancestral traits ('Dragon-Heart', 'Red Miasma', 'Giant Stature', 'Seer Lunacy'), deed-accruing family heirlooms, generational heir continuation, and royal pretender citadel infiltration quests.
+- [x] **Subterranean Verticality, Spore Canopies & Acoustic Stealth** (`engine/subterranean.go`): Giant mushroom canopy leaping and drop ambushes, spore blindness clouds, vibration acoustic stealth, and blind abyssal predators tracking footstep sound.
+- [x] **Thaumaturgical Smog, Spell Backfires & Crystalline Mutations** (`engine/thaumaturgy.go`): Ambient arcane smog, spell research backfires (temporal echoes, localized gravity inversion, warp cascades), mana sickness, and crystalline skin mutations attracting mana leeches.
+- [x] **Living Faiths: Divine Oaths, Inquisitors & Shrines** (`engine/saints_faith.go`): Sacred vows (Oath of the Iron Fist, Oath of the Sunken Eye), taboo violation apostasy, inquisitor hit squads, and living saint shrine prayers.
+- [x] **Trans-Continental Banking, Loans & Commodity Arbitrage** (`engine/banking_economy.go`): Weightless promissory notes, bank credit and loan sharks, regional commodity arbitrage across biomes, debt default bounties, and debt enforcers.

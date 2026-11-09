@@ -226,6 +226,7 @@ func TestStormShelter(t *testing.T) {
 		}
 	}
 	for i := 0; i < 120; i++ {
+		g.Turn++
 		for _, a := range g.Cur.Actors {
 			if a.HP > 0 && a != g.P {
 				g.aiAct(a)
@@ -244,6 +245,7 @@ func TestStormShelter(t *testing.T) {
 	// clear weather: they walk home
 	g.wxForce = &Weather{Kind: WeatherByID("clear"), Temp: 15}
 	for i := 0; i < 200; i++ {
+		g.Turn++
 		for _, a := range g.Cur.Actors {
 			if a.HP > 0 && a != g.P {
 				g.aiAct(a)

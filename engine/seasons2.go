@@ -393,7 +393,7 @@ func (g *Game) snShelterMap(beast bool) []int {
 		d[i] = 1 << 20
 		x, y := i%MW, i/MW
 		t := z.T[i]
-		src := roofed(t)
+		src := roofed(t) && t.D().Walk
 		if beast {
 			src = t == TTree || t == TBush || t == TDeadTree || t == TMushroom
 		}

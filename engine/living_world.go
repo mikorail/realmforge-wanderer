@@ -139,7 +139,8 @@ func lwSpawnSpectacle(g *Game, zn *Zone, sr *Rng) {
 			pris.Name = "condemned prisoner"
 			pris.Role = "lw_condemned"
 			pris.Desc = "Bound in chains: " + crimes[sr.Int(0, len(crimes)-1)] + "."
-			pris.Faction = "outlaws"
+			pris.Faction = "condemned"
+			pris.Set("bound")
 			pris.X, pris.Y, pris.HomeX, pris.HomeY = cx-1, cy+1, cx-1, cy+1
 			pris.F = CGray
 			pris.AI = "still"
@@ -152,8 +153,8 @@ func lwSpawnSpectacle(g *Game, zn *Zone, sr *Rng) {
 					spec := g.Spawn("bandit", 1, sr)
 					spec.Name = "spectator"
 					spec.Role = "lw_spectator"
-					spec.Faction = "citizens"
-					spec.AI = "town"
+					spec.Faction = zn.Faction
+					spec.AI = "still"
 					spec.X, spec.Y, spec.HomeX, spec.HomeY = sx, sy, sx, sy
 					spec.F = CDarkGray
 					zn.Actors = append(zn.Actors, spec)
@@ -169,7 +170,7 @@ func lwSpawnSpectacle(g *Game, zn *Zone, sr *Rng) {
 			d1.Name = "brave duellist"
 			d1.Role = "lw_duellist"
 			d1.Title = "duellist of the iron school"
-			d1.Faction = "citizens"
+			d1.Faction = zn.Faction
 			d1.X, d1.Y, d1.HomeX, d1.HomeY = dx-1, dy, dx-1, dy
 			d1.F = CRed
 			d1.AI = "still"
@@ -179,7 +180,7 @@ func lwSpawnSpectacle(g *Game, zn *Zone, sr *Rng) {
 			d2.Name = "errant knight"
 			d2.Role = "lw_duellist"
 			d2.Title = "wandering blade"
-			d2.Faction = "citizens"
+			d2.Faction = zn.Faction
 			d2.X, d2.Y, d2.HomeX, d2.HomeY = dx+1, dy, dx+1, dy
 			d2.F = CBlue
 			d2.AI = "still"
@@ -188,7 +189,7 @@ func lwSpawnSpectacle(g *Game, zn *Zone, sr *Rng) {
 			sec := g.Spawn("bandit", 2, sr)
 			sec.Name = "duel umpire"
 			sec.Role = "lw_second"
-			sec.Faction = "citizens"
+			sec.Faction = zn.Faction
 			sec.X, sec.Y, sec.HomeX, sec.HomeY = dx, dy+1, dx, dy+1
 			sec.F = CYellow
 			sec.AI = "still"
@@ -202,7 +203,8 @@ func lwSpawnSpectacle(g *Game, zn *Zone, sr *Rng) {
 					spec := g.Spawn("bandit", 1, sr)
 					spec.Name = "wagerer"
 					spec.Role = "lw_spectator"
-					spec.AI = "town"
+					spec.Faction = zn.Faction
+					spec.AI = "still"
 					spec.X, spec.Y, spec.HomeX, spec.HomeY = sx, sy, sx, sy
 					spec.F = CDarkGray
 					zn.Actors = append(zn.Actors, spec)
@@ -241,6 +243,7 @@ func lwPopulateWorkers(g *Game, zn *Zone, sr *Rng) {
 			hw := g.Spawn("bandit", 1, sr)
 			hw.Name = "street hawker"
 			hw.Role = "lw_hawker"
+			hw.Faction = zn.Faction
 			hw.AI = "town"
 			hw.X, hw.Y, hw.HomeX, hw.HomeY = x, y, x, y
 			hw.F = COrange

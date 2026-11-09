@@ -30,6 +30,8 @@ func wpFoeAt(g *Game, dx, dy int) *Actor {
 	g.Cur.Set(a.X, a.Y, TFloor)
 	a.MaxHP, a.HP = 500, 500
 	a.DVNat, a.AVNat = -20, 0
+	a.Faction = "target"
+	a.AI = "still"
 	g.recompute()
 	return a
 }
@@ -162,7 +164,7 @@ func TestWpFirearmNeedsAmmoAndReload(t *testing.T) {
 	g.give(g.MakeWpAmmo(gun.Effect, 6))
 	g.wpTarget("fire", foe.X, foe.Y)
 	if gun.Extra["load"] != gun.Extra["mag"] || foe.HP != 500 {
-		t.Fatalf("empty fire should reload, not shoot: load %d", gun.Extra["load"])
+		t.Fatalf("empty fire should reload, not shoot: load %d foe.HP=%d mag=%d", gun.Extra["load"], foe.HP, gun.Extra["mag"])
 	}
 	hits := 0
 	for i := 0; i < 12; i++ {

@@ -276,7 +276,7 @@ func outdoors(z *Zone) bool {
 
 // roofed tiles: interiors of buildings keep the weather out.
 func roofed(t Terrain) bool {
-	return t == TFloor || t == TCarpet || t == TBed || t == TSeat || t == TShelf || t == TThrone
+	return t == TFloor || t == TCarpet || t == TBed || t == TThrone || t == TWoodFloor || t == TTileFloor
 }
 
 func (g *Game) exposedAt(x, y int) bool {
