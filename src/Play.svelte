@@ -248,7 +248,9 @@
 		const ctx = canvas?.getContext('2d');
 		if (!ctx) return;
 		const glyphs = Array.from(f.g);
-		const useSprites = prefs.renderStyle === 'sprites';
+		const spritesOn = prefs.renderStyle === 'sprites';
+		// menus, dialogue and overlays are text: never paint creature sprites over their letters
+		const useSprites = spritesOn && ['main', 'target', 'look', 'dir', 'world'].includes(f.mode);
 		const uiMask = useSprites ? computeUiMask(glyphs, f.b, f.w, f.h) : null;
 		uiMaskNow = uiMask;
 		actorCells = [];
@@ -290,7 +292,7 @@
 			else if (g === '│') ctx.fillRect(x + cw / 2, y, 1, chh + 0.5);
 			else ctx.fillText(g, x + cw / 2, y + chh / 2 + 1);
 		}
-		if (useSprites && f.portrait) drawPortrait(ctx, f);
+		if (spritesOn && f.portrait) drawPortrait(ctx, f);
 	}
 
 	/** The engine reserves a blank rectangle on talk, trade and the character sheet: paint the speaker or the player there, large and framed. */

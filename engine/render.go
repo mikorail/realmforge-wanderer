@@ -858,7 +858,7 @@ func (g *Game) drawHelp() {
 		"Cities are several zones wide: market, harbor, temple, scholars, barracks, arena, forges. Trainers teach skills for coin; the arena master pays for bouts.",
 		"",
 		"{{Y|Screens}}  {{W|i}} inventory  {{W|c}} character  {{W|j}} journal  {{W|r}} reputation  {{W|m}} log  {{W|x}} look  {{W|T}} craft  {{W|g}} pick up",
-		"{{W|T}} workbench  {{W|C}} cook  {{W|o}} companions  {{W|O}} orders  {{W|W}} war  {{W|H}} home/stash  {{W|F3}} return home  {{W|F2}} sandbox  {{W|`}} settings",
+		"{{W|T}} workbench  {{W|C}} cook  {{W|o}} companions  {{W|O}} orders  {{W|W}} war  {{W|H}} home/stash  {{W|F3}} return home  {{W|F2}} sandbox  {{W|/}} cheat console  {{W|`}} settings",
 		"{{W|S}} save · {{W|Esc}} save and return to the chronicle. Slain legends and recovered relics are written into Realmforge's history.",
 	}
 	for _, l := range help {
@@ -879,8 +879,19 @@ func (g *Game) drawTalk() {
 	if a.Title != "" {
 		title += ", " + a.Title
 	}
-	h := len(g.Popup) + len(g.Opts) + 5 + g.ptBandH() // room for the speaker portrait (portraits.go)
+	// long menus (many systems add options) scroll in a window around the selection
+	fixed := len(g.Popup) + 5 + g.ptBandH()
+	room := maxi(4, SH-3-fixed)
+	first, shown := 0, len(g.Opts)
+	if shown > room {
+		shown = room
+		first = clampi(g.Sel-shown/2, 0, len(g.Opts)-shown)
+	}
+	h := fixed + shown
 	y0 := maxi(1, (MH-h)/2)
+	if y0+h > SH-1 {
+		y0 = maxi(0, SH-1-h)
+	}
 	// dialogue covers the whole screen width so long lines and skill checks fit
 	s.Box(2, y0, SW-4, h, CDarkCyan, title)
 	s.Put(4, y0+1, a.Glyph, a.F, CBgDark)
@@ -890,14 +901,25 @@ func (g *Game) drawTalk() {
 		y++
 	}
 	y++
-	for i, o := range g.Opts {
+	for i := first; i < first+shown; i++ {
+		o := g.Opts[i]
 		bg := CBgDark
 		if i == g.Sel {
 			bg = CBgSel
 		}
 		s.Fill(4, y, SW-8, 1, bg)
-		s.TextB(4, y, fmt.Sprintf("{{W|%c)}} %s", 'a'+i, o.Text), CGray, bg, SW-3)
+		label := string(rune('a' + i))
+		if i >= 26 {
+			label = "·"
+		}
+		s.TextB(4, y, fmt.Sprintf("{{W|%s)}} %s", label, o.Text), CGray, bg, SW-3)
 		y++
+	}
+	if first > 0 {
+		s.TextB(SW-8, y0, "{{K|▲ more}}", CGray, CBgDark, SW-3)
+	}
+	if first+shown < len(g.Opts) {
+		s.TextB(SW-8, y0+h-1, "{{K|▼ more}}", CGray, CBgDark, SW-3)
 	}
 }
 
