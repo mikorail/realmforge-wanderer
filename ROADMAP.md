@@ -63,6 +63,37 @@
 ## Planned / ideas
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
 
+### Ideas, not started
+**Genre signature systems** (each genre gets one rule only it has)
+- Cyberpunk: hacking terminals, doors, turrets, cameras and ads, with a heat meter that brings corporate security.
+- Wasteland: radiation zones, decontamination, salvage runs, water purifiers as survival currency.
+- Biopunk: a breeding vat that grows companions, organs and crops from samples with unpredictable mutations.
+- Solarpunk: gardens and energy: tend crops, wind and sun power for machines, seed trading.
+- Steampunk and dieselpunk: boiler and fuel management for vehicles and automatons you build.
+- Fantasy and mythic: gods that answer prayer with real effects, omens read from the sky.
+- Twilight: a decay clock where everything worsens unless you restore ruins and relics.
+
+**Decisions and events**
+- Dilemma events (short choice cards at crossroads with consequences that stack, in the style of Four Seas), oaths and vows with a bonus and a lasting enforceable penalty, a karma ledger that shapes how the world answers.
+
+**Tools for players**
+- World editor-lite (tweak a species, name a culture, place a landmark, re-export), challenge modifiers at creation (no healing, permanent injuries, one companion, double prices, no fast travel), a run recap page that tells the life as a short story with a map, a gentle scripted tutorial first hour.
+
+**Depth in existing systems**
+- Permanent injuries and scars (healers, prosthetics, augments fix them), sleep and fatigue with inns, tents and dreams, noise and smell as stealth inputs, time-sensitive quests with real deadlines, rival factions offering the same prize.
+
+**Combat, world, murim, taming, crafting** (from earlier brainstorms)
+- Called shots, flanking and cover, special ammo, smarter foes, weather in combat.
+- Planet traits, rift storms, a star-map screen, goods from other planets, libraries that reveal real events, wrong rumours, dreams, a prophecy, NPC epilogues, companion arcs, legacy runs (`fmHeir` exports the heir), detective mysteries, city jobs, night life.
+- Hidden masters, grudges, martial lineage, seclusion, forbidden arts; breeding, tricks, pack animals, animal reputation.
+- Inventions, enchanting and cursed items, fishing and diving, cartography, auto-travel and auto-explore, quest arrow, log search, diary, photo mode; sprite animation, more tile variety, combat sound effects.
+
+**Under the hood**
+- Smaller saves (drop unvisited zone data), faster zone generation on slow machines, shareable world cards.
+
+**Wiring left from the life-systems wave**
+- Rivals racing you to buried hoards (`buDigSites`, `buRivalLoot`) and the endgame culling rivals (`rvCull`); merchants valuing trade goods in `price()` and honest merchants refusing banned goods; the in-zone cliff launch for gliders; footprint tiles on the map (`ssTrailAt`); night-sight reading `alnight`; researched powers for companions and the sandbox; predator nest range; `fmHeir` wired to a legacy run.
+
 ### Dropped on purpose
 - Player settlements, accessibility work, a playtest bot and extra test suites, ruling a realm with decrees, founding a faith or order.
 
