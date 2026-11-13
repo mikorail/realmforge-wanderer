@@ -762,6 +762,9 @@ func (g *Game) canSwim() bool {
 // MoveP is a bump: attack, talk, open, interact or step.
 func (g *Game) MoveP(dx, dy int) {
 	p := g.P
+	if cnNoclip(g, dx, dy) { // console noclip (console.go)
+		return
+	}
 	if !g.canMoveLoad() {
 		g.Msg("{{R|You are overloaded; drop something first.}}")
 		return
