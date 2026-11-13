@@ -197,6 +197,7 @@ func (a *Actor) Score(i int) int {
 	if i == INT || i == WIL {
 		v += 2 * a.mealLv("keen")
 	}
+	v += ijScoreMod(a, i) // injuries (injuries.go)
 	return v
 }
 
@@ -221,6 +222,7 @@ func (a *Actor) AV() int {
 	av += shieldAV(a)
 	av += a.mealLv("thick")
 	av += skStatusAV(a)
+	av += ggArmourAV(a) // heirloom armour (gearlore.go)
 	return av
 }
 
@@ -238,6 +240,7 @@ func (a *Actor) DV() int {
 		dv -= 6
 	}
 	dv += skStatusDV(a)
+	dv += ggArmourDV(a)
 	return dv
 }
 

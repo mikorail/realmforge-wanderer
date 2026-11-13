@@ -4,6 +4,7 @@
  */
 import type { QudApi } from './qud';
 import { open } from './store';
+import { loadSaga, type SagaData } from './saga';
 
 export interface HallEntry {
 	id: string;
@@ -33,6 +34,8 @@ export interface HallEntry {
 	/** daily / shared seed text when the life began from one */
 	seedText: string;
 	date: number;
+	/** the life's saga (engine/saga.go), written when the life ended */
+	saga?: SagaData | null;
 }
 
 /** seed text for the run being played, set by the title screen when a seeded life begins */
@@ -95,7 +98,8 @@ export async function recordHall(api: QudApi, id: string, retired: boolean, seed
 			score: h.score ?? 0,
 			place: meta.place ?? '',
 			seedText,
-			date: Date.now()
+			date: Date.now(),
+			saga: loadSaga(api)
 		};
 		const db = await open();
 		const tx = db.transaction('hall', 'readwrite');
@@ -135,7 +139,10 @@ export function exportHall(list: HallEntry[]) {
 
 export function shareText(e: HallEntry): string {
 	const code = e.seedText ? `Seed ${e.seedText} · ` : '';
-	return `Wanderer: ${code}${e.name}, level ${e.level} ${e.species} ${e.calling}, ${e.world} · score ${e.score} (${e.retired ? 'retired' : 'fell'} after ${e.days} days)`;
+	const base = `Wanderer: ${code}${e.name}, level ${e.level} ${e.species} ${e.calling}, ${e.world} · score ${e.score} (${e.retired ? 'retired' : 'fell'} after ${e.days} days)`;
+	if (!e.saga) return base;
+	const ep = e.saga.epitaph.split('\n').pop()?.replace(/^"|"$/g, '') ?? '';
+	return `${base}\n${e.saga.title}${ep ? `: "${ep}"` : ''}`;
 }
 
 // ---- daily / shared seeds ----

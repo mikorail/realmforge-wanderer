@@ -483,6 +483,9 @@ func (g *Game) InstallAugOn(who *Actor, it *Item) string {
 	}
 	p := augFreePartOf(who, d)
 	p.Aug = it
+	if who == g.P {
+		g.ijAugmentCures(p.Slot) // installing a limb or eye cures the injury (injuries.go)
+	}
 	g.removeInv(it)
 	return ""
 }

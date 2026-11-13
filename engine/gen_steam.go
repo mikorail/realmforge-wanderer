@@ -274,7 +274,7 @@ func gdWorkBuild(g *Game, u *gdUI) {
 		u.line("Cost: " + gdCostLine(cost))
 		if !g.gdHasBits(cost) {
 			u.off("Assemble the automaton (not enough bits)")
-		} else if g.companionCount() >= maxCompanions {
+		} else if g.companionCount() >= g.ijMaxCompanions(maxCompanions) {
 			u.off("Assemble the automaton (you lead as many companions as you can)")
 		} else {
 			u.row("{{W|Assemble the automaton.}}", func() {

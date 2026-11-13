@@ -310,6 +310,7 @@ func NewGame(w *WorldData, spec CharSpec) *Game {
 	g.Msg("Press {{W|?}} for help. Walk off the edge to explore; {{W|<}} on the surface opens the world map.")
 	g.Mode = "main"
 	g.stApply(spec) // starting scenario (starts.go)
+	g.ijApply(spec) // challenge modifiers (challenges.go)
 	g.recompute()
 	return g
 }
@@ -508,7 +509,7 @@ func (g *Game) turn() {
 	if regen < 6 {
 		regen = 6
 	}
-	if g.Turn%regen == 0 && p.HP < p.MaxHP && p.St("bleeding") == 0 && g.Hunger < 2400 && g.Thirst < 1800 {
+	if g.Turn%regen == 0 && !g.ijNoRegen() && p.HP < p.MaxHP && p.St("bleeding") == 0 && g.Hunger < 2400 && g.Thirst < 1800 {
 		p.HP++
 	}
 	if p.Pow("regen") >= 3 && g.Turn%200 == 0 {
@@ -1089,6 +1090,7 @@ func (g *Game) WorldMove(dx, dy int) {
 	egOnMove(g)
 	tqOnMove(g)  // caravan and customs events on the road (tradeways.go)
 	lsAdvance(g) // catch up the people's lives after days on the road (lifesim.go)
+	crOnMove(g)  // crossroads cards at road junctions (crossroads.go)
 	g.Known[np] = true
 	for _, d := range dirs8 {
 		if g.W.In(nx+d[0], ny+d[1]) {

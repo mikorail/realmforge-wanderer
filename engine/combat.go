@@ -49,7 +49,7 @@ func (g *Game) skillLv(a *Actor, s string) int {
 func (g *Game) swing(a, d *Actor, w *Item) {
 	sk := g.skillLv(a, w.Skill)
 	roll := g.R.Int(1, 20)
-	hit := roll + a.M(AGI) + sk + skStatusToHit(a) + wpHitMod(a, d, w) + g.tcFlankBonus(a, d) + g.tcHighGroundBonus(a, d)
+	hit := roll + a.M(AGI) + sk + skStatusToHit(a) + wpHitMod(a, d, w) + g.tcFlankBonus(a, d) + g.tcHighGroundBonus(a, d) + g.ggHitBonus(a, w)
 	if a.St("confused") > 0 {
 		hit -= 4
 	}
@@ -86,6 +86,7 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 		dmg += g.R.Dice(maxi(w.DN, 1), maxi(w.DS, 1)) + w.DB
 	}
 	dmg += g.categoryBonusDamage(w, d)
+	dmg += g.ggDamageBonus(a, w)            // heirloom gear (gearlore.go)
 	dmg += dmg * g.ssSneakBonus(a, d) / 100 // sneak attacks (stealth.go)
 	if a.St("mighty") > 0 {
 		dmg += 2
@@ -157,6 +158,7 @@ func (g *Game) onHit(a, d *Actor, w *Item, crit bool, sk int) {
 		a.HP = mini(a.MaxHP, a.HP+2)
 	}
 	g.wpOnHit(a, d, w, crit, sk)
+	g.ggOnHit(a, d, w) // heirloom powers (gearlore.go)
 }
 
 // penetrate: up to three PV rolls vs AV per round; three successes chain into another round at -2 PV.
@@ -234,6 +236,9 @@ func (g *Game) hurt(d *Actor, n int, src *Actor, cause string) {
 		return
 	}
 	d.HP -= n
+	if d == g.P {
+		g.ijOnHurt(d, n, src, cause) // permanent injuries (injuries.go)
+	}
 	if src == g.P && d != g.P && !g.Hostile(d) {
 		g.provoke(d)
 	}

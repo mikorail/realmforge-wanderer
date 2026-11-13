@@ -188,6 +188,7 @@ func (g *Game) AddRep(f string, n int, why string) {
 	if f == "" || f == "player" {
 		return
 	}
+	n = int(float64(n) * g.ijRepMul()) // famous (challenges.go)
 	g.Rep[f] += n
 	g.compRep(f, n)
 	col := "G"

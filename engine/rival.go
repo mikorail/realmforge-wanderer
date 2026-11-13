@@ -1303,7 +1303,7 @@ func rvTalk(g *Game, a *Actor) []Option {
 			}})
 		}
 	}
-	if mood != "hostile" && rv.Rel >= 10 && g.companionCount() < maxCompanions {
+	if mood != "hostile" && rv.Rel >= 10 && g.companionCount() < g.ijMaxCompanions(maxCompanions) {
 		out = append(out, Option{"{{G|Propose to clear a dungeon together.}}", func() {
 			for _, o := range g.Cur.Actors {
 				if o == a {

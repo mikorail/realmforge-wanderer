@@ -1379,7 +1379,7 @@ func (g *Game) fmHomeRec(key string) *homeRec {
 }
 
 func (g *Game) fmSpouseFollow(a *Actor) {
-	if g.companionCount() >= maxCompanions {
+	if g.companionCount() >= g.ijMaxCompanions(maxCompanions) {
 		g.Msg("You already travel with all the companions you can look after.")
 		return
 	}
@@ -1672,7 +1672,7 @@ func (g *Game) fmChildOpts(a *Actor) []Option {
 }
 
 func (g *Game) fmKidJoin(a *Actor, k *fmChild) {
-	if g.companionCount() >= maxCompanions {
+	if g.companionCount() >= g.ijMaxCompanions(maxCompanions) {
 		g.talkMenu("You travel with as many companions as you can look after.")
 		return
 	}

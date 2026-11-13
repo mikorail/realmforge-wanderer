@@ -246,6 +246,9 @@ func jyOpt(t string, f func()) Option { return Option{t, f} }
 
 // jyWorldMove is the one-line hook at the top of WorldMove. It returns true when it took the step.
 func jyWorldMove(g *Game, dx, dy int) bool {
+	if g.ijNoFastTravel() { // a vow against fast travel (challenges.go)
+		return false
+	}
 	st := g.jy()
 	w := g.W
 	cur := w.Idx(g.WX, g.WY)

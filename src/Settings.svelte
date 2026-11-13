@@ -182,6 +182,14 @@
 			<input type="checkbox" checked={settings.animations} onchange={(e) => set('animations', e.currentTarget.checked)} />
 		</label>
 		<label class="row">
+			<span>Weather and light effects (sprite mode)</span>
+			<input type="checkbox" checked={settings.weatherFx} onchange={(e) => set('weatherFx', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Reduce motion</span>
+			<input type="checkbox" checked={settings.reduceMotion} onchange={(e) => set('reduceMotion', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
 			<span>Show hints</span>
 			<input type="checkbox" checked={settings.showHints} onchange={(e) => set('showHints', e.currentTarget.checked)} />
 		</label>

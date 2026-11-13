@@ -124,7 +124,7 @@ func (g *Game) tvPass(cost int) (ate, drank, hurt int) {
 			g.Hunger++
 			g.Thirst++
 		}
-		if g.Turn%30 == 0 && g.P.HP < g.P.MaxHP {
+		if g.Turn%30 == 0 && g.P.HP < g.P.MaxHP && !g.ijNoRegen() {
 			g.P.HP++
 		}
 		if g.Turn%120 == 0 {

@@ -10,17 +10,28 @@
 	import { loadSettings, saveSettings, PALETTES, type Settings as Prefs, type PaletteName } from './settings';
 	import { computeUiMask, drawProceduralCell } from './sprites';
 	import { drawActorSprite, type QudActor } from './actorsprites';
+	import { createEffects, drawActorShadow, bobOffset, type FxHandle } from './effects';
+	import Tooltip, { describe, type Tip } from './Tooltip.svelte';
 	import Settings from './Settings.svelte';
+	import Saga from './Saga.svelte';
+	import { loadSaga, type SagaData } from './saga';
 	import Touch from './Touch.svelte';
 
 	let { api, first, world, onquit }: { api: QudApi; first: QudFrame; world: string | null; onquit: () => void } = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
+	let fxCanvas = $state<HTMLCanvasElement | null>(null);
+	let fxh: FxHandle | null = null;
+	let actorCells: { g: string; fgIdx: number; bgIdx: number; fg: string; gx: number; gy: number; a: QudActor }[] = [];
+	let uiMaskNow: Uint8Array | null = null;
+	let reducedMq: MediaQueryList | null = null;
 	let wrap = $state<HTMLDivElement | null>(null);
 	let gear = $state<HTMLButtonElement | null>(null);
 	const enginePalette: string[] = JSON.parse(api.palette());
 	let prefs = $state<Prefs>(loadSettings());
 	let settingsOpen = $state(false);
+	let saga = $state<SagaData | null>(null);
+	let dead = $state(first.dead);
 	let palette: string[] = paletteFor(prefs.palette);
 	let frame: QudFrame = first;
 	let cw = 9;
@@ -58,6 +69,40 @@
 		api.pref('hints', prefs.showHints);
 		api.pref('autoaim', prefs.autoAim);
 		api.pref('sprites', prefs.renderStyle === 'sprites');
+	}
+
+	function fxOn(): boolean {
+		return prefs.renderStyle === 'sprites' && prefs.weatherFx;
+	}
+	function applyFx() {
+		fxh?.setOptions({ enabled: fxOn(), reduced: prefs.reduceMotion || !!reducedMq?.matches });
+		fxh?.setFrame(frame);
+	}
+	/** Redraw the sprite actors a pixel or so off: idle bob, and a shake for the player when hit. */
+	function bobTick(t: number) {
+		const ctx = canvas?.getContext('2d');
+		if (!ctx || !fxOn() || !actorCells.length || prefs.reduceMotion || reducedMq?.matches) return;
+		const sh = fxh?.shake() ?? { x: 0, y: 0 };
+		const mainFont = `${Math.round(chh * 0.86)}px "Share Tech Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace`;
+		for (const c of actorCells) {
+			const x = c.gx * cw, y = c.gy * chh;
+			ctx.save();
+			ctx.beginPath();
+			ctx.rect(x, y, cw, chh);
+			ctx.clip();
+			ctx.fillStyle = palette[c.bgIdx];
+			ctx.fillRect(x, y, cw + 0.5, chh + 0.5);
+			if (frame.fx) drawActorShadow(ctx, x, y, cw, chh, frame.fx);
+			ctx.translate(c.a.p ? sh.x : 0, bobOffset(c.a.i, t) * Math.max(0.6, chh / 18));
+			drawProceduralCell(ctx, c.g, c.fgIdx, c.bgIdx, c.fg, palette, c.gx, c.gy, x, y, cw, chh, c.a);
+			ctx.restore();
+		}
+		ctx.font = mainFont;
+	}
+	function lookup(gx: number, gy: number): Tip | null {
+		if (prefs.renderStyle !== 'sprites' || frame.mode !== 'main' || gx >= 80 || gy >= 25) return null;
+		if (uiMaskNow && uiMaskNow[gy * frame.w + gx]) return null;
+		return describe(Array.from(frame.g), frame.w, frame.actors, gx, gy);
 	}
 
 	/** Called by the settings pane on every change: store it, then re-apply what it touches. */
@@ -111,7 +156,12 @@
 	const NUMPAD: Record<string, string> = { Numpad1: 'N1', Numpad2: 'N2', Numpad3: 'N3', Numpad4: 'N4', Numpad5: 'N5', Numpad6: 'N6', Numpad7: 'N7', Numpad8: 'N8', Numpad9: 'N9' };
 	function onkey(e: KeyboardEvent) {
 		// while the settings pane is open it owns the keyboard
-		if (settingsOpen) return;
+		if (settingsOpen || saga) return;
+		if (frame.dead && (e.key === 'S' || e.key === 's')) {
+			e.preventDefault();
+			readSaga();
+			return;
+		}
 		if (e.metaKey || e.ctrlKey || e.altKey) return;
 		if (e.code === 'Backquote' || e.key === '`') {
 			e.preventDefault();
@@ -123,13 +173,18 @@
 		e.preventDefault();
 		send(k);
 	}
+	function readSaga() {
+		saga = loadSaga(api);
+	}
 	function send(k: string) {
 		const f = api.key(k);
 		if (!f || 'error' in f) return;
 		frame = f;
+		dead = f.dead;
 		music.setState(f.music);
 		sfx.setState(f.music);
 		draw();
+		fxh?.setFrame(f);
 		keys++;
 		if (f.save || keys % prefs.autosaveEvery === 0) void persist();
 		if (f.exit) void quit();
@@ -183,6 +238,8 @@
 		canvas.style.width = `${frame.w * cw}px`;
 		canvas.style.height = `${frame.h * chh}px`;
 		canvas.getContext('2d')?.setTransform(dpr, 0, 0, dpr, 0, 0);
+		fxh?.layout(cw, chh, dpr);
+		applyFx();
 		draw();
 	}
 
@@ -193,6 +250,9 @@
 		const glyphs = Array.from(f.g);
 		const useSprites = prefs.renderStyle === 'sprites';
 		const uiMask = useSprites ? computeUiMask(glyphs, f.b, f.w, f.h) : null;
+		uiMaskNow = uiMask;
+		actorCells = [];
+		const shadows = fxOn() && f.mode === 'main';
 		const who = new Map<number, QudActor>();
 		if (useSprites) for (const a of f.actors ?? []) who.set(a.y * f.w + a.x, a);
 		const mainFont = `${Math.round(chh * 0.86)}px "Share Tech Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace`;
@@ -214,7 +274,10 @@
 			const bgIdx = f.b.charCodeAt(i) - 65;
 			const fg = palette[fgIdx];
 			if (useSprites && uiMask && !uiMask[i] && gx < 80 && gy < 25) {
+				const who1 = who.get(i);
+				if (who1 && shadows && f.fx) drawActorShadow(ctx, x, y, cw, chh, f.fx);
 				if (drawProceduralCell(ctx, g, fgIdx, bgIdx, fg, palette, gx, gy, x, y, cw, chh, who.get(i))) {
+					if (who1 && shadows) actorCells.push({ g, fgIdx, bgIdx, fg, gx, gy, a: who1 });
 					ctx.font = mainFont;
 					ctx.textAlign = 'center';
 					ctx.textBaseline = 'middle';
@@ -281,6 +344,13 @@
 		const mq = window.matchMedia('(pointer: coarse), (max-width: 900px)');
 		touch = mq.matches;
 		const onmq = () => (touch = mq.matches);
+		reducedMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+		const onred = () => applyFx();
+		reducedMq.addEventListener('change', onred);
+		if (fxCanvas) {
+			fxh = createEffects(fxCanvas);
+			fxh.onTick(bobTick);
+		}
 		mq.addEventListener('change', onmq);
 		applyAudio();
 		applyEngine();
@@ -294,6 +364,9 @@
 		// fonts load after first paint: redraw once they are in
 		void document.fonts?.ready.then(draw);
 		return () => {
+			reducedMq?.removeEventListener('change', onred);
+			fxh?.dispose();
+			fxh = null;
 			mq.removeEventListener('change', onmq);
 			ro.disconnect();
 		};
@@ -309,16 +382,26 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 <div class="screen" bind:this={wrap} onclick={onclick} {onpointerdown} {onpointermove} onpointerup={clearPress} onpointercancel={clearPress} oncontextmenu={(e) => touch && e.preventDefault()} style:bottom={touch ? `${ctlH}px` : '0'}>
-	<canvas bind:this={canvas} aria-label="Game screen"></canvas>
+	<div class="stack">
+		<canvas bind:this={canvas} aria-label="Game screen"></canvas>
+		<canvas class="fx" bind:this={fxCanvas} aria-hidden="true"></canvas>
+	</div>
 </div>
+{#if !touch}
+	<Tooltip {canvas} cell={() => ({ cw, chh })} {lookup} />
+{/if}
 {#if touch}
 	<Touch {send} bind:height={ctlH} />
 {/if}
 <div class="chrome">
+	{#if dead}<button class="quit" style:opacity="1" onclick={readSaga} title="Read the saga of this life (S)">Read your saga</button>{/if}
 	<button class="gear" bind:this={gear} onclick={() => (settingsOpen = true)} title="Settings (`)" aria-label="Settings">⚙</button>
 	<button class="quit" onclick={retire} title="End this life honourably and enter the Hall of Fame">Retire</button>
 	<button class="quit" onclick={quit} title="Save and return to the title screen">Save &amp; quit</button>
 </div>
+{#if saga}
+	<Saga {saga} onclose={() => (saga = null)} />
+{/if}
 {#if settingsOpen}
 	<Settings settings={prefs} onchange={applyPrefs} onclose={closeSettings} />
 {/if}
@@ -335,6 +418,16 @@
 		align-items: safe center;
 		justify-content: safe center;
 		overflow: auto;
+	}
+	.stack {
+		position: relative;
+		flex: none;
+	}
+	.fx {
+		position: absolute;
+		left: 0;
+		top: 0;
+		pointer-events: none;
 	}
 	canvas {
 		display: block;

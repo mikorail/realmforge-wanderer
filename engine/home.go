@@ -312,6 +312,7 @@ func stashAdd(hs *homeState, it *Item) {
 }
 
 func (g *Game) sleepHome() {
+	g.ijOnHomeSleep() // fatigue (fatigue.go)
 	p := g.P
 	p.HP = p.MaxHP
 	g.Hunger, g.Thirst = 0, 0

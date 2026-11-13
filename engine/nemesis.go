@@ -650,7 +650,7 @@ func nxSpare(g *Game, n *nxNem, a *Actor, how string) {
 	delete(a.Flags, "nxy")
 	nxDropEscorts(g, g.Cur)
 	g.Msg("{{G|" + nxFill(Pick(NewRng(g.W.Seed+":nx:spare"), nxSpareLines), g, n) + "}}")
-	if g.companionCount() < maxCompanions {
+	if g.companionCount() < g.ijMaxCompanions(maxCompanions) {
 		g.joinCompanion(a)
 		if a.Comp != nil {
 			a.Comp.Loyalty = 85
@@ -699,7 +699,7 @@ func nxTalk(g *Game, a *Actor) []Option {
 				g.talkMenu("{{R|[Persuasion: Failure]}}\n\n\"Some things are not mended with talk.\" The truce ends at dusk.")
 			}})
 		case n.Status == "spared" && a.AI != "follower":
-			if g.companionCount() < maxCompanions {
+			if g.companionCount() < g.ijMaxCompanions(maxCompanions) {
 				out = append(out, Option{"{{G|Travel with me.}}", func() { g.joinCompanion(a); g.Mode = "main"; g.Talk = nil }})
 			}
 		}

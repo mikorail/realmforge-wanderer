@@ -407,7 +407,7 @@ func (g *Game) lgLearnPower(a *Actor, id string) {
 }
 
 func (g *Game) lgRecruit(a *Actor, need int) {
-	if g.companionCount() >= maxCompanions {
+	if g.companionCount() >= g.ijMaxCompanions(maxCompanions) {
 		g.lgKinMenu(a, "\"You've enough company already.\"")
 		return
 	}

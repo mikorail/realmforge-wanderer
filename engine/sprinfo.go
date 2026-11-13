@@ -29,6 +29,11 @@ type SprActor struct {
 	Hands  string `json:"hn,omitempty"`
 	Torso  string `json:"bi,omitempty"`
 	Shield bool   `json:"sh,omitempty"`
+	// tooltip data (fxinfo): display name and title, health percent, hostile
+	Nm string `json:"nm,omitempty"`
+	Ti string `json:"ti,omitempty"`
+	Hp int    `json:"hp,omitempty"`
+	Ho bool   `json:"ho,omitempty"`
 }
 
 func sprArmor(a *Actor) int {
@@ -45,6 +50,13 @@ func sprArmor(a *Actor) int {
 
 func (g *Game) sprOf(a *Actor) SprActor {
 	s := SprActor{X: a.X, Y: a.Y, ID: a.ID, Species: a.Species, Role: a.Role, Tpl: a.Tpl, Caste: a.Caste, Armor: sprArmor(a)}
+	s.Nm, s.Ti = a.Name, a.Title
+	if a.MaxHP > 0 {
+		s.Hp = maxi(1, a.HP*100/a.MaxHP)
+	}
+	if a != g.P {
+		s.Ho = g.Hostile(a)
+	}
 	for _, w := range a.Weapons() {
 		if w.Skill != "" && w.Skill != "natural" {
 			s.Weapon = w.Skill
@@ -67,7 +79,7 @@ func (g *Game) sprOf(a *Actor) SprActor {
 
 // SpriteActors lists the actors currently drawn in the map area, and the player last.
 func (g *Game) SpriteActors() []SprActor {
-	if g.Cur == nil || g.Mode == "world" || g.OnWorld {
+	if g.Cur == nil || g.Mode == "world" || g.OnWorld || !(g.Mode == "main" || g.Mode == "target" || g.Mode == "look" || g.Mode == "dir") {
 		return nil
 	}
 	var out []SprActor

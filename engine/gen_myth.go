@@ -154,6 +154,9 @@ func (g *Game) gdAddFav(id, n int, why string) {
 	if id <= 0 || n == 0 {
 		return
 	}
+	if n > 0 { // karma colours how gods see you (karma.go)
+		n = maxi(1, n+g.KarmaDivineMod())
+	}
 	f := g.gdFaithOf(id)
 	f.Fav = clampi(f.Fav+n, -100, 100)
 	if why != "" {

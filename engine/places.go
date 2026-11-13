@@ -242,6 +242,10 @@ func (g *Game) wplRouteFor(p *wpPlace) ([][2]int, int, bool) {
 
 // wplTravel auto-walks the world map to a place, stopping on anything out of the ordinary.
 func (g *Game) wplTravel(p *wpPlace) {
+	if g.ijNoFastTravel() { // a vow against fast travel (challenges.go)
+		g.Msg("Not in this vow.")
+		return
+	}
 	if p.Planet != g.PlanetIndex() {
 		g.Msg("{{R|That place lies on another world.}}")
 		return

@@ -87,7 +87,7 @@ func (g *Game) greeting(a *Actor) string {
 
 func (g *Game) talkMenu(text string) {
 	a := g.Talk
-	g.Popup = Wrap(text, 100)
+	g.Popup = Wrap(g.lxFilter(a, text), 100) // partial understanding of foreign speech (languages.go)
 	if vs := g.innerVoices(a); len(vs) > 0 {
 		g.Popup = append(Wrap(strings.Join(vs, "\n\n"), 100), append([]string{""}, g.Popup...)...)
 	}
@@ -166,6 +166,7 @@ func (g *Game) talkMenu(text string) {
 	for _, h := range talkHooks {
 		g.Opts = append(g.Opts, h(g, a)...)
 	}
+	g.lxTrimOpts(a) // a foreign tongue limits what you can say (languages.go)
 	add("Goodbye.", func() { g.Mode = "main"; g.Talk = nil })
 	g.Sel = 0
 }
@@ -203,6 +204,9 @@ func (g *Game) aboutNPC(a *Actor) string {
 
 // gossip pulls real events from the simulation near this place.
 func (g *Game) gossip(a *Actor) string {
+	if !g.lxGossipOK(a) { // you barely understand them (languages.go)
+		return g.lxGossipGarble(a)
+	}
 	if s := g.arGossip(a); s != "" { // masters and patrons (arcane.go)
 		return s
 	}
@@ -379,7 +383,7 @@ func (g *Game) shareSecret(a *Actor) {
 }
 
 func (g *Game) recruit(a *Actor) {
-	if g.companionCount() >= maxCompanions {
+	if g.companionCount() >= g.ijMaxCompanions(maxCompanions) {
 		g.talkMenu("\"You've enough company already.\"")
 		return
 	}
@@ -670,7 +674,7 @@ func (g *Game) interact(x, y int) {
 			}
 			g.addSecret(Plain(note), "inscription", g.W.Idx(z.WX, z.WY), g.W.Year)
 		}
-		g.showPopup(t.D().Name, note)
+		g.showPopup(t.D().Name, g.lxText(g.lxHereID(), note)) // foreign inscriptions (languages.go)
 		if t == TSarcophagus && z.Kind == "crypt" && g.R.Chance(0.25) && !g.Read[k+"risen"] {
 			g.Read[k+"risen"] = true
 			a := g.Spawn("wight", z.Level, g.R)
@@ -775,7 +779,8 @@ func (g *Game) price(it *Item, buy bool) int {
 		if g.Talk.Has("markup") {
 			f += 0.15
 		}
-		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk) * g.swPriceMod(g.Talk, it, true) * g.poPriceMod(g.Talk) * g.fmPriceMod(g.Talk)
+		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk) * g.swPriceMod(g.Talk, it, true) * g.poPriceMod(g.Talk) * g.fmPriceMod(g.Talk) * g.lxPriceMod(g.Talk, true)
+		f *= g.ijPriceMod() // double prices (challenges.go)
 		if f < 0.75 {
 			f = 0.75
 		}
@@ -784,7 +789,8 @@ func (g *Game) price(it *Item, buy bool) int {
 	f := 0.4 + ego + per + rep
 	f *= g.uwStolenFactor(it, buy) // honest merchants pay half for stolen goods (crime.go)
 	f /= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk)
-	f /= g.fmPriceMod(g.Talk) // title perks (family.go)
+	f /= g.fmPriceMod(g.Talk)        // title perks (family.go)
+	f *= g.lxPriceMod(g.Talk, false) // language (languages.go)
 	f *= g.swPriceMod(g.Talk, it, false) * g.poPriceMod(g.Talk)
 	if f > 0.8 {
 		f = 0.8

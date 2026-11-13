@@ -10,6 +10,11 @@
 	const truekin = $derived(genotype === 'truekin');
 	let power = $state<string>('');
 	let twist = $state<string>('');
+	const challenges: any[] = options.challenges ?? [];
+	let mods = $state<string[]>([]);
+	function toggleMod(id: string) {
+		mods = mods.includes(id) ? mods.filter((m) => m !== id) : [...mods, id];
+	}
 	const scenarios: any[] = options.scenarios ?? [];
 	const mirror = $derived(twist === 'mirror');
 	const scenario = $derived([power, twist].filter(Boolean).join('+'));
@@ -144,7 +149,7 @@
 		}
 	}
 	function begin() {
-		onbegin({ name: name || 'Wanderer', species: species.ID, calling: calling.id, attr, powers: truekin ? {} : powers, start, genotype, morph: truekin ? '' : morph, gameMode, scenario });
+		onbegin({ name: name || 'Wanderer', species: species.ID, calling: calling.id, attr, powers: truekin ? {} : powers, start, genotype, morph: truekin ? '' : morph, gameMode, scenario, mods });
 	}
 	function onkey(e: KeyboardEvent) {
 		if (e.target instanceof HTMLInputElement) return;
@@ -195,6 +200,18 @@
 					</button>
 				{/each}
 			</div>
+			{#if challenges.length}
+				<p class="hint" style="margin-top:12px">Challenge (optional, raises your score)</p>
+				<div class="grid">
+					{#each challenges as c (c.ID)}
+						<label class="card" class:on={mods.includes(c.ID)}>
+							<input type="checkbox" checked={mods.includes(c.ID)} onchange={() => toggleMod(c.ID)} />
+							<b>{c.Name} <small>x{c.Mul}</small></b>
+							<small>{c.Desc}</small>
+						</label>
+					{/each}
+				</div>
+			{/if}
 			{#if mirror}
 				<p class="hint" style="margin-top:12px">
 					Fate dealt you: <b>{species?.Name} {calling?.name}</b>, {Object.keys(powers).length} {options.powersName.toLowerCase()}.

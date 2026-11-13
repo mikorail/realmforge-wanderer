@@ -81,6 +81,7 @@ func (g *Game) hfScore() int {
 	case "wander":
 		s *= 0.7
 	}
+	s *= g.ijScoreMul() // challenge modifiers (challenges.go)
 	return int(s)
 }
 

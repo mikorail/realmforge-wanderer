@@ -259,6 +259,7 @@ func (it *Item) Describe(g *Game) []string {
 	if it.Lore != "" {
 		l = append(l, "", it.Lore)
 	}
+	l = append(l, g.ggDescribe(it)...) // heirloom block and provenance (gearlore.go)
 	if it.Text != "" && it.Kind != "book" {
 		l = append(l, it.Text)
 	}

@@ -494,6 +494,10 @@ var trPassengers = []string{"a travelling clerk", "a soldier on leave", "a pilgr
 
 // trRide pays the fare, passes the hours, rolls one light event and sets you down in the destination town.
 func (g *Game) trRide(from *BurgData, t trTrip) bool {
+	if g.ijNoFastTravel() { // a vow against fast travel (challenges.go)
+		g.Msg("Not in this vow.")
+		return false
+	}
 	fare := g.trFare(t)
 	if !g.cuSpend(fare) {
 		g.Msg("{{y|\"No ticket, no ride.\" You cannot pay the fare.}}")

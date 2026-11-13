@@ -414,7 +414,7 @@ func (g *Game) tmPick(lines []string, a *Actor, salt int) string {
 	return fmt.Sprintf(Pick(r, lines), g.The(a))
 }
 
-func (g *Game) tmSlotFree() bool { return g.companionCount() < maxCompanions }
+func (g *Game) tmSlotFree() bool { return g.companionCount() < g.ijMaxCompanions(maxCompanions) }
 
 func (g *Game) tmFeed(a *Actor, s *bsSp, it *Item, q int) {
 	p := g.tmProgOf(a)

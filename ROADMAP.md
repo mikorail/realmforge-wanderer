@@ -64,34 +64,23 @@
 - Portraits in dialogue and trade, a paper doll on the character sheet, Places (F10: waypoints, notes, distances, auto-travel), 83 achievements with titles, a death obituary (`portraits.go`, `places.go`, `achievements.go`).
 - Genre signature systems: cyberpunk hacking and heat (`gen_cyber.go`), wasteland radiation and water (`gen_waste.go`), twilight decay clock (`gen_twilight.go`), biopunk breeding vat (`gen_bio.go`), solarpunk gardens and energy (`gen_solar.go`), steampunk/dieselpunk boilers and automaton (`gen_steam.go`), fantasy/mythic gods and omens (`gen_myth.go`).
 
+- Crossroads dilemma cards, karma ledger and oaths (`crossroads.go`, `karma.go`); end-of-life saga with journey map (`saga.go`, `src/Saga.svelte`); languages per culture (`languages.go`); heirloom gear, provenance and reforging (`gearlore.go`); weather, light, shadows and tooltips in sprite mode (`fxinfo.go`, `src/effects.ts`, `src/Tooltip.svelte`); challenge modifiers, permanent injuries and sleep and fatigue (`challenges.go`, `injuries.go`, `fatigue.go`).
+
 ## Planned / ideas
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
 
 ### Ideas, not started
-**Decisions and events**
-- Dilemma events (short choice cards at crossroads with consequences that stack, in the style of Four Seas), oaths and vows with a bonus and a lasting enforceable penalty, a karma ledger that shapes how the world answers.
-
 **Tools for players**
-- World editor-lite (tweak a species, name a culture, place a landmark, re-export), challenge modifiers at creation (no healing, permanent injuries, one companion, double prices, no fast travel), a run recap page that tells the life as a short story with a map, a gentle scripted tutorial first hour.
+- World editor-lite (tweak a species, name a culture, place a landmark, re-export) and a gentle scripted tutorial first hour.
 
 **Depth in existing systems**
-- Permanent injuries and scars (healers, prosthetics, augments fix them), sleep and fatigue with inns, tents and dreams, noise and smell as stealth inputs, time-sensitive quests with real deadlines, rival factions offering the same prize.
+- Noise and smell as stealth inputs, time-sensitive quests with real deadlines, rival factions offering the same prize.
 
 **Combat, world, murim, taming, crafting** (from earlier brainstorms)
 - Called shots, flanking and cover, special ammo, smarter foes, weather in combat.
 - Planet traits, rift storms, a star-map screen, goods from other planets, libraries that reveal real events, wrong rumours, dreams, a prophecy, NPC epilogues, companion arcs, legacy runs (`fmHeir` exports the heir), detective mysteries, city jobs, night life.
 - Hidden masters, grudges, martial lineage, seclusion, forbidden arts; breeding, tricks, pack animals, animal reputation.
 - Inventions, enchanting and cursed items, fishing and diving, cartography, auto-travel and auto-explore, quest arrow, log search, diary, photo mode; sprite animation, more tile variety, combat sound effects.
-
-**Talking to people**
-- Languages: Realmforge already generates a language per culture; signs, books and speech stay unreadable until you learn some of it (from locals, teachers, books, a translator companion or gadget).
-- NPCs who remember what you did to them (gifts, favours, insults) and spread it by gossip; moods and personalities that change daily talk options.
-
-**Gear that grows**
-- Named weapons and armour that level up from your deeds (a title, a history line, a new power); item provenance for any item found; reforging two items into one.
-
-**Look and feel**
-- Weather and light in sprite mode (rain and snow streaks, torch glow, shadows, day-night tint); hover tooltips naming what a sprite is; footstep sounds by terrain and a short voice blip per species.
 
 **Playing it**
 - Key rebinding, right-click action menus, gamepad support; replay and sharing a run as a keystroke list (the engine is deterministic); a run map image showing your path, key deeds and graves.

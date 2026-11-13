@@ -1,6 +1,7 @@
 <script lang="ts">
 	/** Title-screen hall of fame: past lives by score, filter by world, delete, export, share. */
 	import { onMount } from 'svelte';
+	import Saga from './Saga.svelte';
 	import { listHall, deleteHall, exportHall, shareText, type HallEntry } from './halloffame';
 
 	let { onclose }: { onclose: () => void } = $props();
@@ -8,6 +9,7 @@
 	let world = $state('');
 	let open = $state('');
 	let note = $state('');
+	let reading = $state<HallEntry | null>(null);
 	const worlds = $derived([...new Set(all.map((e) => e.world))]);
 	const shown = $derived(world ? all.filter((e) => e.world === world) : all);
 
@@ -30,6 +32,7 @@
 		}
 	}
 	function onkey(ev: KeyboardEvent) {
+		if (reading) return;
 		if (ev.key === 'Escape') onclose();
 	}
 </script>
@@ -56,6 +59,7 @@
 				<span class="rank">{i + 1}.</span> <b>{e.name}</b> · <span class="score">{e.score}</span> · level {e.level} {e.species} {e.calling}
 				<span class="dim">— {e.world}, {e.retired ? 'retired' : 'fell'} year {e.yearEnd}{e.seedText ? ` · seed ${e.seedText}` : ''}</span>
 			</button>
+			{#if e.saga}<button onclick={() => (reading = e)} title="Read the saga of {e.name}">Saga</button>{/if}
 			<button onclick={() => share(e)} title="Copy seed and score" aria-label="Share {e.name}">Share</button>
 			<button class="x" onclick={() => del(e)} aria-label="Remove {e.name}">✕</button>
 		</div>
@@ -74,6 +78,9 @@
 		{/if}
 	{/each}
 </section>
+{#if reading?.saga}
+	<Saga saga={reading.saga} onclose={() => (reading = null)} />
+{/if}
 
 <style>
 	.hof {

@@ -41,8 +41,11 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.gmAbilities()...)
 	out = append(out, g.arAbilities()...)
 	out = append(out, g.lvAbilities()...)
+	out = append(out, g.crAbilities()...)
+	out = append(out, g.ggAbilities()...)
 	out = append(out, g.knAbilities()...)
 	out = append(out, g.wpAbilities()...)
+	out = append(out, g.lxAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
 	for _, bp := range g.P.Body {
 		if bp.Item != nil {
@@ -106,8 +109,20 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 		g.ssUse(id, tx, ty)
 		return
 	}
+	if strings.HasPrefix(id, "lx_") { // tongues (languages.go)
+		g.lxUse(id, tx, ty)
+		return
+	}
 	if strings.HasPrefix(id, "wp_") { // your places (places.go)
 		g.wpUse(id, tx, ty)
+		return
+	}
+	if strings.HasPrefix(id, "cr_") { // karma ledger (karma.go)
+		g.crAbUse(id)
+		return
+	}
+	if id == "gg_forge" { // reforging (gearlore.go)
+		g.ggUse(id)
 		return
 	}
 	if id == "lv_people" { // who you know (lives.go)
@@ -416,6 +431,9 @@ func (g *Game) throw(it *Item, tx, ty int) {
 
 func (g *Game) useItem(it *Item) {
 	p := g.P
+	if g.ijUseItem(it) { // tents (fatigue.go)
+		return
+	}
 	if g.alUseItem(it) { // brewed potions, poison vials (alchemy.go)
 		return
 	}
@@ -479,12 +497,15 @@ func (g *Game) useItem(it *Item) {
 		bhRead(g, it)
 		return
 	case "book":
+		if g.lxRead(it) { // foreign books and phrasebooks (languages.go)
+			return
+		}
 		k := fmt.Sprintf("book:%s", it.Name)
 		if !g.Read[k] {
 			g.Read[k] = true
 			g.gainXP(15 + g.Skills["lore"]*15)
 		}
-		g.showPopup(it.Name, it.Text)
+		g.showPopup(it.Name, g.lxBookText(it))
 		return
 	case "light":
 		if it.Extra == nil {

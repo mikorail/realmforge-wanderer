@@ -295,6 +295,10 @@ func (g *Game) keyMain(k string) Out {
 	case "T":
 		mainKeys["T"](g) // the workbench (crafting.go)
 	case "S":
+		if g.ijNoManualSave() {
+			g.Msg("Iron man: no manual saves.")
+			break
+		}
 		out.Save = true
 		g.Msg("{{G|Game saved.}}")
 	case "Escape":
@@ -493,6 +497,12 @@ func (g *Game) keyItem(k string) {
 		g.ItemSel = nil
 	}
 	switch k {
+	case "l": // look closer at the history (gearlore.go)
+		g.ggLook(it)
+		return
+	case "n": // rename an heirloom (gearlore.go)
+		g.ggRenameStart(it)
+		return
 	case "e":
 		g.toggleEquip(it)
 		back()

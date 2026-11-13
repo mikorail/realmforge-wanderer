@@ -988,7 +988,7 @@ func (g *Game) drawDead() {
 	lines := Wrap(g.DeathText, 60)
 	lines = append(lines, g.acObituary()...) // obituary (achievements.go)
 	lines = append(lines, "", fmt.Sprintf("Level %d · %d kills · %d secrets learned · %d quests", g.P.Level, g.Kills, len(g.Secrets), len(g.Quests)), "",
-		"Your death has been written into the chronicle.")
+		"Your death has been written into the chronicle.", "{{Y|[S] read your saga}}")
 	if h := g.fmHeir(); h != nil {
 		lines = append(lines, "", "{{Y|[H] continue the run as your heir, "+h.Name+"}}")
 	}

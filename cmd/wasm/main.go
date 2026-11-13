@@ -31,7 +31,31 @@ func frame(out engine.Out) any {
 	if pi := game.Portrait(); pi != nil { // speaker or paper doll rectangle (engine/portraits.go)
 		fr["portrait"] = map[string]any{"x": pi.X, "y": pi.Y, "w": pi.W, "h": pi.H, "kind": pi.Kind, "actor": actorsJS([]engine.SprActor{pi.Actor}).([]any)[0]}
 	}
+	if fx := game.FxInfo(); fx != nil {
+		fr["fx"] = fxJS(fx)
+	}
 	return fr
+}
+
+func fxJS(f *engine.FxInfo) any {
+	lights := make([]any, 0, len(f.Lights))
+	for _, l := range f.Lights {
+		lights = append(lights, map[string]any{"x": l.X, "y": l.Y, "r": l.R, "k": l.Kind, "fl": l.Flicker})
+	}
+	m := map[string]any{"wind": f.Wind, "ph": f.Phase, "dl": f.Daylight, "lights": lights}
+	if f.Wx != "" {
+		m["wx"], m["ov"], m["in"] = f.Wx, f.Overlay, f.Intensity
+	}
+	if f.Indoors {
+		m["ind"] = true
+	}
+	if f.Dark {
+		m["dk"] = true
+	}
+	if f.Depth > 0 {
+		m["d"] = f.Depth
+	}
+	return m
 }
 
 func actorsJS(list []engine.SprActor) any {
@@ -42,6 +66,18 @@ func actorsJS(list []engine.SprActor) any {
 			if v != "" {
 				m[k] = v
 			}
+		}
+		if a.Nm != "" {
+			m["nm"] = a.Nm
+		}
+		if a.Ti != "" {
+			m["ti"] = a.Ti
+		}
+		if a.Hp > 0 {
+			m["hp"] = a.Hp
+		}
+		if a.Ho {
+			m["ho"] = true
 		}
 		if a.Size > 0 {
 			m["z"] = a.Size
@@ -141,6 +177,12 @@ func main() {
 			return "{}"
 		}
 		return game.HFSummary()
+	})
+	api["saga"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if game == nil {
+			return "{}"
+		}
+		return game.Saga()
 	})
 	api["legends"] = js.FuncOf(func(this js.Value, a []js.Value) any {
 		var l []engine.HFLegend

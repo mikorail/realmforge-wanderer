@@ -27,6 +27,10 @@ export interface QudActor {
 	hn?: string; // worn handwear name
 	bi?: string; // worn body item name
 	sh?: boolean; // carries a shield
+	nm?: string; // display name (tooltips)
+	ti?: string; // title
+	hp?: number; // health percent
+	ho?: boolean; // hostile to the player
 }
 
 type Head = 'round' | 'long' | 'wide' | 'skull';

@@ -15,6 +15,8 @@ export interface QudFrame {
 	music: QudMusic;
 	/** who stands where on the map (engine/sprinfo.go), for sprite mode */
 	actors?: import('./actorsprites').QudActor[];
+	/** weather, daylight and lights for the sprite-mode effects layer (engine/fxinfo.go) */
+	fx?: QudFx;
 	/** a rectangle of grid cells the engine blanked for a large sprite: the speaker (talk, trade) or the paper doll (character sheet) */
 	portrait?: { x: number; y: number; w: number; h: number; kind: 'talk' | 'trade' | 'sheet'; actor: import('./actorsprites').QudActor };
 }
@@ -36,6 +38,18 @@ export interface QudMusic {
 	combat?: boolean; // a hostile is in sight
 	shore?: boolean; // open water fills much of this outdoor zone (surf SFX)
 }
+export interface QudFx {
+	wx?: string; // weather kind id (outdoors only)
+	ov?: string; // overlay: rain storm snow fog dust ash spore none
+	in?: number; // intensity 0..1
+	wind: number; // -1 | 0 | 1
+	ph: number; // 0..1 through the day, 0 = midnight
+	dl: number; // daylight 0..1
+	ind?: boolean; // indoors or underground
+	dk?: boolean; // dark zone
+	d?: number; // depth underground
+	lights: { x: number; y: number; r: number; k: string; fl: number }[];
+}
 type Err = { error: string };
 export interface QudApi {
 	palette(): string;
@@ -51,6 +65,8 @@ export interface QudApi {
 	deeds(): string;
 	/** life summary + score (engine/halloffame.go) */
 	hall(): string;
+	/** the end-of-life saga as JSON (engine/saga.go SagaData) */
+	saga(): string;
 	/** past lives of this world, JSON array (engine HFLegend) */
 	legends(json: string): void;
 }

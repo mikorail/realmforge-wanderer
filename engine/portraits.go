@@ -87,6 +87,9 @@ func (g *Game) ptBandH() int {
 	if g.Talk == nil || !g.ptOn() {
 		return 0
 	}
+	if len(g.Popup)+len(g.Opts)+5+ptTalkH+1 > SH-3 { // a crowded menu keeps its whole box on screen: no portrait
+		return 0
+	}
 	return ptTalkH + 1
 }
 
@@ -95,7 +98,7 @@ func (g *Game) ptBandH() int {
 // Hook: drawTalk, `y := y0 + 1 + g.ptTalkBand(y0)`.
 func (g *Game) ptTalkBand(y0 int) int {
 	a := g.Talk
-	if a == nil || !g.ptOn() {
+	if a == nil || !g.ptOn() || g.ptBandH() == 0 {
 		return 0
 	}
 	s := g.sc

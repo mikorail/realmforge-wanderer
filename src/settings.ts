@@ -27,6 +27,10 @@ export interface Settings {
 	/** 'sprites' draws procedural character/creature/environment miniatures on the map; 'ascii' draws classic glyphs */
 	renderStyle: RenderStyle;
 	animations: boolean;
+	/** sprite mode: rain, snow, fog, day-night tint, torch glow, shadows (src/effects.ts) */
+	weatherFx: boolean;
+	/** no animated effects; defaults to the system prefers-reduced-motion */
+	reduceMotion: boolean;
 	/** keys between autosaves */
 	autosaveEvery: number;
 	showHints: boolean;
@@ -46,6 +50,8 @@ export const DEFAULT_SETTINGS: Settings = {
 	palette: 'qud',
 	renderStyle: 'sprites',
 	animations: true,
+	weatherFx: true,
+	reduceMotion: false,
 	autosaveEvery: 150,
 	showHints: true,
 	autoAim: true,
@@ -78,6 +84,15 @@ function clean(raw: unknown): Settings {
 	const rs = r.renderStyle;
 	if (rs === 'sprites' || rs === 'ascii') s.renderStyle = rs;
 	if (typeof r.animations === 'boolean') s.animations = r.animations;
+	if (typeof r.weatherFx === 'boolean') s.weatherFx = r.weatherFx;
+	if (typeof r.reduceMotion === 'boolean') s.reduceMotion = r.reduceMotion;
+	else {
+		try {
+			s.reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		} catch {
+			// no matchMedia: leave motion on
+		}
+	}
 	const a = r.autosaveEvery;
 	if (typeof a === 'number' && (AUTOSAVE_OPTIONS as readonly number[]).includes(a)) s.autosaveEvery = a;
 	if (typeof r.showHints === 'boolean') s.showHints = r.showHints;
