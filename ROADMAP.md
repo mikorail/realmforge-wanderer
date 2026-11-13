@@ -88,6 +88,25 @@
 - Hidden masters, grudges, martial lineage, seclusion, forbidden arts; breeding, tricks, pack animals, animal reputation.
 - Inventions, enchanting and cursed items, fishing and diving, cartography, auto-travel and auto-explore, quest arrow, log search, diary, photo mode; sprite animation, more tile variety, combat sound effects.
 
+**Talking to people**
+- Languages: Realmforge already generates a language per culture; signs, books and speech stay unreadable until you learn some of it (from locals, teachers, books, a translator companion or gadget).
+- NPCs who remember what you did to them (gifts, favours, insults) and spread it by gossip; moods and personalities that change daily talk options.
+
+**Gear that grows**
+- Named weapons and armour that level up from your deeds (a title, a history line, a new power); item provenance for any item found; reforging two items into one.
+
+**Look and feel**
+- Weather and light in sprite mode (rain and snow streaks, torch glow, shadows, day-night tint); hover tooltips naming what a sprite is; footstep sounds by terrain and a short voice blip per species.
+
+**Playing it**
+- Key rebinding, right-click action menus, gamepad support; replay and sharing a run as a keystroke list (the engine is deterministic); a run map image showing your path, key deeds and graves.
+
+**World events you take part in**
+- Disasters as scenes (pull people out of a quake, hold a bridge, fight a fire), pilgrimages and processions to join, monster migrations and territory fights to watch, join or exploit.
+
+**Aging and time**
+- Your character ages: species lifespans, prime years, old-age penalties, wisdom bonuses; ties into heirs and legacy runs.
+
 **Under the hood**
 - Smaller saves (drop unvisited zone data), faster zone generation on slow machines, shareable world cards.
 
