@@ -40,6 +40,9 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.ssAbilities()...)
 	out = append(out, g.gmAbilities()...)
 	out = append(out, g.arAbilities()...)
+	out = append(out, g.lvAbilities()...)
+	out = append(out, g.knAbilities()...)
+	out = append(out, g.wpAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
 	for _, bp := range g.P.Body {
 		if bp.Item != nil {
@@ -101,6 +104,18 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 	}
 	if strings.HasPrefix(id, "ss_") { // stealth abilities (stealth.go)
 		g.ssUse(id, tx, ty)
+		return
+	}
+	if strings.HasPrefix(id, "wp_") { // your places (places.go)
+		g.wpUse(id, tx, ty)
+		return
+	}
+	if id == "lv_people" { // who you know (lives.go)
+		g.lvAbUse(id)
+		return
+	}
+	if id == "kn_notes" { // case notes (knowledge.go)
+		g.knAbUse(id)
 		return
 	}
 	if id == "al_brew" { // brewing (alchemy.go)
@@ -402,6 +417,9 @@ func (g *Game) throw(it *Item, tx, ty int) {
 func (g *Game) useItem(it *Item) {
 	p := g.P
 	if g.alUseItem(it) { // brewed potions, poison vials (alchemy.go)
+		return
+	}
+	if g.gcUseItem(it) { // decks, geiger counters, purifiers and more (gen_cyber.go)
 		return
 	}
 	switch it.Kind {

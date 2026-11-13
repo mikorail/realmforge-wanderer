@@ -60,19 +60,14 @@
 - Unique architecture and monumental gates (engine/architecture.go, engine/terrain.go, src/sprites.ts): 11 culturally distinct wall materials (TWoodWall, TBrickWall, TStoneWall, TMarbleWall, TObsidianWall, TBoneWall, TAdobeWall, TBambooWall, TCoralWall, TMetalWall, THedgeWall), authentic non-square floor plans (yurts/rotundas, L-shaped manors, courtyard riads/siheyuan, octagonal dwarven keeps, partitioned multi-room homes, apsidal longhouses, colonnaded pavilions), and monumental dual-towered gatehouses with bastion crenellations, archways (TGateArch), portcullises (TGateClosed), and latticed windows (TWindow).
 - Living world & public life (engine/living_world.go): packed inns and taverns (innkeepers, servers, tavern bards, dice gamblers, buying rounds for the tavern), live plaza spectacles (gallows executions with heralds and pardons/rescues, street/field honor duels with clashing blades and wagering/mediation), and actively working citizens (field farmers tending crop rows, blacksmiths at anvils, street hawkers, guard patrol pairs, forest woodcutters, wildland hunters/trappers, miners, and fishers).
 
+- Life simulation (`lives_types.go`, `lives.go`, `lifesim.go`, `knowledge.go`): generated people with bios, families, goals, fears and secrets bound to town actors; a day-clock simulation (work, travel, marriage, births, crime, feuds, migration, illness, war, death, inheritance, shops changing hands) with change messages on entering a town; facts, rumours, questioning, case notes and accusations; People and Case notes screens.
+- Portraits in dialogue and trade, a paper doll on the character sheet, Places (F10: waypoints, notes, distances, auto-travel), 83 achievements with titles, a death obituary (`portraits.go`, `places.go`, `achievements.go`).
+- Genre signature systems: cyberpunk hacking and heat (`gen_cyber.go`), wasteland radiation and water (`gen_waste.go`), twilight decay clock (`gen_twilight.go`), biopunk breeding vat (`gen_bio.go`), solarpunk gardens and energy (`gen_solar.go`), steampunk/dieselpunk boilers and automaton (`gen_steam.go`), fantasy/mythic gods and omens (`gen_myth.go`).
+
 ## Planned / ideas
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
 
 ### Ideas, not started
-**Genre signature systems** (each genre gets one rule only it has)
-- Cyberpunk: hacking terminals, doors, turrets, cameras and ads, with a heat meter that brings corporate security.
-- Wasteland: radiation zones, decontamination, salvage runs, water purifiers as survival currency.
-- Biopunk: a breeding vat that grows companions, organs and crops from samples with unpredictable mutations.
-- Solarpunk: gardens and energy: tend crops, wind and sun power for machines, seed trading.
-- Steampunk and dieselpunk: boiler and fuel management for vehicles and automatons you build.
-- Fantasy and mythic: gods that answer prayer with real effects, omens read from the sky.
-- Twilight: a decay clock where everything worsens unless you restore ruins and relics.
-
 **Decisions and events**
 - Dilemma events (short choice cards at crossroads with consequences that stack, in the style of Four Seas), oaths and vows with a bonus and a lasting enforceable penalty, a karma ledger that shapes how the world answers.
 
@@ -111,7 +106,7 @@
 - Full NPC lives: a biography per notable person built from Realmforge's sim data (birth, family, career, rises and falls, rivals, loves, losses, a secret, a goal, a fear), ordinary townsfolk with a short bio (trade, a family fact, a gripe), a People page per person in the journal, and talk topics whose answers depend on trust.
 - Knowledge per person: each NPC knows only some facts (who they saw, where they have been, what they heard); you question and cross-check them like a detective, so gossip is a real information system.
 - A relationship web (who loves, hates, owes or works for whom) where your actions ripple (kill a rival and the baker owes you, the rival's family wants revenge).
-- **Heavy life simulation (planned, not started; classic agent simulation, no AI-model calls).** Plan, in three files that share one data model (`lvPerson` with stable key, traits, goal, fear, secret, family, friends, rivals, life events, memories of you, opinion, known facts; state `g.ext("lv")`, planet-local):
+- **Heavy life simulation (built; see Done; further depth planned).** Plan, in three files that share one data model (`lvPerson` with stable key, traits, goal, fear, secret, family, friends, rivals, life events, memories of you, opinion, known facts; state `g.ext("lv")`, planet-local):
   - `lives.go`: who people are. Realmforge notables plus about a dozen generated townsfolk per town with names from the culture, biography built from the sim's real events in their lifetime, family tree, personality, goals and fears; binds the actors of a town zone to the living people present; talk topics (their life, what they want, family, other people); memory of what you did to them; a People screen.
   - `lifesim.go`: what they do. A day-clock simulation with a per-call budget (full detail near the player and for notables, coarse yearly rates elsewhere, caught up when you arrive): work, travel between towns, courtship and marriage, births and growing up, careers, crime and punishment, feuds, migration, goals that succeed or fail, illness, war casualties, death and inheritance, shops changing hands; news lines for what happens.
   - `knowledge.go`: what they know. Facts (sightings, events, rumours that distort as they spread, secrets, locations), who knows what, questioning with trust and checks, cross-checking conflicting accounts, case notes, tie-in to crimes and the sim's events.
@@ -121,10 +116,6 @@
 - Content packs: a data-file layer to define new items, creatures, quests, NPCs and dialogue without recompiling, shared as packs.
 - Ghost runs: share a past life as a small file that another player meets in their world (builds on the hall of fame legends).
 - Dynasty play: play one family across centuries, choose an heir at death, your deeds become history (ties legacy runs, aging, marriage, hall of fame).
-
-**Cheap and visible (uses the sprites)**
-- NPC portraits beside the dialogue window, a paper doll on the character sheet showing your gear, illustrated bestiary and codex pages with the creature's sprite plate, wanted posters with a portrait of the target, an animated title screen with the world map scrolling behind it.
-- Waypoints and map notes you place yourself with quick-travel to bookmarks, a compass and mini-map for big cities, an easy-to-read clock and date line, a death screen with an obituary-style epitaph.
 
 **Realmforge exports that unlock planned features**
 - Language samples per culture (greetings, numbers, a few place and body words) for language learning; per-person life logs and family trees for NPC bios; creation myths and legends per culture and faith for dreams, prophecies and quests; price history per sector for trade routes; cuisine and dish names per culture for cooking.

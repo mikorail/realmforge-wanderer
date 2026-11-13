@@ -15,6 +15,8 @@ export interface QudFrame {
 	music: QudMusic;
 	/** who stands where on the map (engine/sprinfo.go), for sprite mode */
 	actors?: import('./actorsprites').QudActor[];
+	/** a rectangle of grid cells the engine blanked for a large sprite: the speaker (talk, trade) or the paper doll (character sheet) */
+	portrait?: { x: number; y: number; w: number; h: number; kind: 'talk' | 'trade' | 'sheet'; actor: import('./actorsprites').QudActor };
 }
 export interface QudMusic {
 	mood: 'town' | 'wild' | 'dungeon' | 'tower' | 'sky' | 'sea' | 'underdark' | 'crypt' | 'world' | 'dead';

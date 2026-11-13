@@ -9,7 +9,7 @@
 	import { createWeatherSfx, type SfxHandle } from './weathersfx';
 	import { loadSettings, saveSettings, PALETTES, type Settings as Prefs, type PaletteName } from './settings';
 	import { computeUiMask, drawProceduralCell } from './sprites';
-	import type { QudActor } from './actorsprites';
+	import { drawActorSprite, type QudActor } from './actorsprites';
 	import Settings from './Settings.svelte';
 	import Touch from './Touch.svelte';
 
@@ -57,6 +57,7 @@
 		api.pref('anim', prefs.animations);
 		api.pref('hints', prefs.showHints);
 		api.pref('autoaim', prefs.autoAim);
+		api.pref('sprites', prefs.renderStyle === 'sprites');
 	}
 
 	/** Called by the settings pane on every change: store it, then re-apply what it touches. */
@@ -226,6 +227,36 @@
 			else if (g === '│') ctx.fillRect(x + cw / 2, y, 1, chh + 0.5);
 			else ctx.fillText(g, x + cw / 2, y + chh / 2 + 1);
 		}
+		if (useSprites && f.portrait) drawPortrait(ctx, f);
+	}
+
+	/** The engine reserves a blank rectangle on talk, trade and the character sheet: paint the speaker or the player there, large and framed. */
+	function drawPortrait(ctx: CanvasRenderingContext2D, f: QudFrame) {
+		const p = f.portrait;
+		if (!p) return;
+		const px = p.x * cw, py = p.y * chh, pw = p.w * cw, ph = p.h * chh;
+		const bg = palette[f.b.charCodeAt(p.y * f.w + p.x) - 65] ?? '#101418';
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(px, py, pw, ph);
+		ctx.clip();
+		ctx.fillStyle = bg;
+		ctx.fillRect(px, py, pw, ph);
+		const gr = ctx.createRadialGradient(px + pw / 2, py + ph * 0.55, 2, px + pw / 2, py + ph * 0.55, Math.max(pw, ph) * 0.75);
+		gr.addColorStop(0, 'rgba(255,255,255,0.18)');
+		gr.addColorStop(1, 'rgba(255,255,255,0)');
+		ctx.fillStyle = gr;
+		ctx.fillRect(px, py, pw, ph);
+		ctx.fillStyle = 'rgba(0,0,0,0.3)';
+		ctx.fillRect(px, py + ph * 0.9, pw, ph * 0.1);
+		// a sprite is built for a cell about 0.6 as wide as it is tall: keep that shape, as large as fits
+		const sh = ph - 4;
+		const sw = Math.min(pw - 4, sh * 0.62);
+		drawActorSprite(ctx, p.actor, ' ', '#ffffff', palette, 0, px + (pw - sw) / 2, py + 2, sw, sh);
+		ctx.restore();
+		ctx.strokeStyle = palette[11] ?? '#3a8a9a';
+		ctx.lineWidth = 1;
+		ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
 	}
 
 	function closeSettings() {

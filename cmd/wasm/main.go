@@ -23,18 +23,22 @@ func frame(out engine.Out) any {
 		fg[i] = 'A' + s.F[i]
 		bg[i] = 'A' + s.B[i]
 	}
-	return map[string]any{
+	fr := map[string]any{
 		"w": engine.SW, "h": engine.SH, "g": string(s.G), "f": string(fg), "b": string(bg),
 		"save": out.Save, "exit": out.Exit, "dead": game.Dead, "mode": game.Mode,
 		"music": musicJS(game.MusicState()), "actors": actorsJS(game.SpriteActors()),
 	}
+	if pi := game.Portrait(); pi != nil { // speaker or paper doll rectangle (engine/portraits.go)
+		fr["portrait"] = map[string]any{"x": pi.X, "y": pi.Y, "w": pi.W, "h": pi.H, "kind": pi.Kind, "actor": actorsJS([]engine.SprActor{pi.Actor}).([]any)[0]}
+	}
+	return fr
 }
 
 func actorsJS(list []engine.SprActor) any {
 	out := make([]any, 0, len(list))
 	for _, a := range list {
 		m := map[string]any{"x": a.X, "y": a.Y, "i": a.ID}
-		for k, v := range map[string]string{"s": a.Species, "c": a.Calling, "r": a.Role, "t": a.Tpl, "b": a.Body, "gr": a.Group, "w": a.Weapon, "k": a.Caste} {
+		for k, v := range map[string]string{"s": a.Species, "c": a.Calling, "r": a.Role, "t": a.Tpl, "b": a.Body, "gr": a.Group, "w": a.Weapon, "k": a.Caste, "hd": a.Head, "bk": a.Back, "ft": a.Feet, "hn": a.Hands, "bi": a.Torso} {
 			if v != "" {
 				m[k] = v
 			}
@@ -47,6 +51,12 @@ func actorsJS(list []engine.SprActor) any {
 		}
 		if a.Player {
 			m["p"] = true
+		}
+		if a.Gear {
+			m["ge"] = true
+		}
+		if a.Shield {
+			m["sh"] = true
 		}
 		out = append(out, m)
 	}

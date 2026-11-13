@@ -802,6 +802,12 @@ func (g *Game) MoveP(dx, dy int) {
 	if sxBump(g, nx, ny) { // secret doors, panels, hollow things (secrets.go)
 		return
 	}
+	if gcBump(g, nx, ny) { // hacking, radiation machines, beacons (gen_cyber.go)
+		return
+	}
+	if gdBump(g, nx, ny) { // vats, plots, grids, workshops, altars (gen_common.go)
+		return
+	}
 	if t == TDoor {
 		z.Set(nx, ny, TDoorOpen)
 		g.Msg("You open the door.")
@@ -1081,7 +1087,8 @@ func (g *Game) WorldMove(dx, dy int) {
 	g.tvJourney(cost)
 	wsOnMove(g) // travellers, armies and events along the way (worldsim.go)
 	egOnMove(g)
-	tqOnMove(g) // caravan and customs events on the road (tradeways.go)
+	tqOnMove(g)  // caravan and customs events on the road (tradeways.go)
+	lsAdvance(g) // catch up the people's lives after days on the road (lifesim.go)
 	g.Known[np] = true
 	for _, d := range dirs8 {
 		if g.W.In(nx+d[0], ny+d[1]) {

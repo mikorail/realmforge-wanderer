@@ -1478,6 +1478,11 @@ func (g *Game) wsNewsLines() []wsLine {
 			out = append(out, wsLine{q, fmt.Sprintf("A %s, near %s.", t.Name, g.wsPlace(q))})
 		}
 	}
+	out = append(out, g.knNews()...)      // rumours and cases (knowledge.go)
+	out = append(out, g.lsNewsLines()...) // people's lives (lifesim.go)
+	for _, l := range g.gdOmenLines() {   // omens (gen_myth.go)
+		out = append(out, wsLine{g.gdParasang(), l})
+	}
 	return out
 }
 

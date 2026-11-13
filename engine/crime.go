@@ -242,6 +242,7 @@ func (g *Game) uwAddBounty(state, n int, why string) {
 		n = n * 3 / 4
 	}
 	st.Bounty[state] = mini(st.Bounty[state]+n, 6000)
+	g.knCrime(g.Cur.Burg, "player", why) // witnessed crimes become spreading facts (knowledge.go)
 	g.Msg(fmt.Sprintf("{{R|Crime witnessed%s! Bounty with %s: %d %s.}}", why, g.uwRealm(state), st.Bounty[state], g.Sk.Currency))
 	if state > 0 {
 		g.Rep[uwFac(state)] -= mini(n/5+1, 90)
@@ -951,6 +952,7 @@ func (g *Game) uwPickup(it *Item) {
 	g.uwMarkStolen(it, state)
 	g.uwSt().Stolen++
 	if g.uwSeen(nil) {
+		g.lvWitness("theft", "You stole from a home nearby.", -8) // neighbours remember (lives.go)
 		g.uwAddBounty(state, 15+it.Value/2, " (looting a home)")
 	}
 }

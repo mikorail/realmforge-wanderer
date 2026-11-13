@@ -20,6 +20,13 @@ export interface QudActor {
 	k?: string; // caste
 	tr?: string; // tribe/subrace color tag e.g. tr_hex:#skin:#accent
 	fl?: string[]; // optional actor flags
+	ge?: boolean; // gear below is authoritative (paper doll, portraits): no calling defaults
+	hd?: string; // worn head item name
+	bk?: string; // worn back item name (cloak, mantle)
+	ft?: string; // worn footwear name
+	hn?: string; // worn handwear name
+	bi?: string; // worn body item name
+	sh?: boolean; // carries a shield
 }
 
 type Head = 'round' | 'long' | 'wide' | 'skull';
@@ -122,6 +129,8 @@ interface Outfit {
 	back: 'none' | 'cloak' | 'pack' | 'quiver' | 'cape';
 	item: 'none' | 'sword' | 'dagger' | 'axe' | 'club' | 'bow' | 'spear' | 'staff' | 'wand' | 'book' | 'hammer' | 'purse' | 'wrench' | 'orb' | 'lantern' | 'knives';
 	shield?: boolean;
+	boots?: string; // footwear colour
+	gloves?: string; // handwear colour
 	armor?: number; // 0..3 when not given by the engine
 	fine?: boolean; // richer cloth
 }
@@ -165,6 +174,40 @@ function shade(col: string, amt: number): string {
 	return `#${[(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => f(v).toString(16).padStart(2, '0')).join('')}`;
 }
 
+/** Worn items from the engine (paper doll and portraits) replace the outfit's head, back, shield and feet. */
+function applyGear(out: Outfit, a: QudActor) {
+	const hd = (a.hd ?? '').toLowerCase();
+	out.head = !hd
+		? 'none'
+		: /crown|diadem|tiara/.test(hd)
+			? 'crown'
+			: /circlet|laurel|halo/.test(hd)
+				? 'circlet'
+				: /helm|kabuto|casque|sallet|armet|bascinet|visor|morion|shako/.test(hd)
+					? 'helm'
+					: /hood|cowl|cap-?hood/.test(hd)
+						? 'hood'
+						: /turban|pagri|kolah|keffiyeh|headcloth/.test(hd)
+							? 'turban'
+							: /goggle|lens|monocle/.test(hd)
+								? 'goggles'
+								: /mask|veil|face/.test(hd)
+									? 'mask'
+									: /hat|caping|malakhai|sedge|straw|brim/.test(hd)
+										? 'hat'
+										: 'cap';
+	const bk = (a.bk ?? '').toLowerCase();
+	if (bk) out.back = /cape|mantle|haori|shawl|sash/.test(bk) ? 'cape' : 'cloak';
+	else if (out.back === 'cape' || out.back === 'cloak') out.back = 'none';
+	out.shield = !!a.sh;
+	if (a.p && !a.w) out.item = 'none';
+	const ft = (a.ft ?? '').toLowerCase();
+	out.boots = ft ? (/greave|sabaton|plate|steel|iron|mail|armou?r/.test(ft) ? '#8a909a' : '#5a3a22') : undefined;
+	const hn = (a.hn ?? '').toLowerCase();
+	out.gloves = hn ? (/gauntlet|plate|steel|iron|mail/.test(hn) ? '#aeb4be' : '#6a4a2a') : undefined;
+	void a.bi;
+}
+
 function outfitFor(a: QudActor, h: number): Outfit {
 	let o: Outfit | undefined;
 	if (a.p && a.c) o = CALLINGS[a.c];
@@ -177,6 +220,7 @@ function outfitFor(a: QudActor, h: number): Outfit {
 		if (a.w === 'missile') out.back = 'quiver';
 	}
 	if (a.a !== undefined && a.a >= 0) out.armor = a.a;
+	if (a.ge) applyGear(out, a);
 	if (a.k && /high|noble|lord|elite/i.test(a.k)) out.fine = true;
 	void h;
 	return out;
@@ -426,6 +470,13 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 		c.fillStyle = shade(dark, -0.3);
 		c.fillRect(cx - W * 0.32 - lw * 0.7, base - v * 0.04, lw * 1.4, v * 0.04);
 		c.fillRect(cx + W * 0.32 - lw * 0.3, base - v * 0.04, lw * 1.4, v * 0.04);
+		if (o.boots) {
+			c.fillStyle = o.boots;
+			c.fillRect(cx - W * 0.32 - lw * 0.6, base - v * 0.2, lw * 1.2, v * 0.2);
+			c.fillRect(cx + W * 0.32 - lw * 0.6, base - v * 0.2, lw * 1.2, v * 0.2);
+			c.fillRect(cx - W * 0.32 - lw * 0.7, base - v * 0.04, lw * 1.4, v * 0.04);
+			c.fillRect(cx + W * 0.32 - lw * 0.3, base - v * 0.04, lw * 1.4, v * 0.04);
+		}
 	}
 
 	// torso
@@ -474,7 +525,7 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 		line(c, cx - W * 0.5, neckY + v * 0.04 + off, cx - W * 0.68, hipY - v * 0.0 + off * 0.5, aw);
 		line(c, cx + W * 0.5, neckY + v * 0.04 + off, cx + W * 0.66, hipY - v * 0.02 + off * 0.5, aw);
 	}
-	c.fillStyle = skin;
+	c.fillStyle = o.gloves ?? skin;
 	ell(c, cx - W * 0.68, hipY, u * 0.05, u * 0.05);
 	ell(c, cx + W * 0.66, hipY - v * 0.02, u * 0.05, u * 0.05);
 	if (o.shield) {

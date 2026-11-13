@@ -21,6 +21,14 @@ type SprActor struct {
 	Weapon  string `json:"w,omitempty"` // skill of the wielded weapon
 	Armor   int    `json:"a,omitempty"` // 0 none .. 3 heavy
 	Caste   string `json:"k,omitempty"`
+	// worn gear for the paper doll and portraits (portraits.go ptGear); Gear marks it authoritative
+	Gear   bool   `json:"ge,omitempty"`
+	Head   string `json:"hd,omitempty"`
+	Back   string `json:"bk,omitempty"`
+	Feet   string `json:"ft,omitempty"`
+	Hands  string `json:"hn,omitempty"`
+	Torso  string `json:"bi,omitempty"`
+	Shield bool   `json:"sh,omitempty"`
 }
 
 func sprArmor(a *Actor) int {

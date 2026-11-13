@@ -54,6 +54,9 @@ func (g *Game) greeting(a *Actor) string {
 	case rep <= -250:
 		return "\"...What do you want?\" They eye you warily."
 	}
+	if s := g.lvGreeting(a); s != "" { // what they remember of you (lives.go)
+		return s
+	}
 	if s := g.fmGreeting(a); s != "" { // titles (family.go)
 		return s
 	}
@@ -228,6 +231,9 @@ func (g *Game) gossip(a *Actor) string {
 		return s
 	}
 	if s := g.nxGossip(a); s != "" {
+		return s
+	}
+	if s := g.knGossip(a); s != "" { // what they have heard (knowledge.go)
 		return s
 	}
 	r := NewRng(fmt.Sprintf("%d:%d", a.ID, g.Turn/600))
@@ -743,13 +749,16 @@ func (g *Game) price(it *Item, buy bool) int {
 		v = maxi(1, d.Base*n)
 	}
 	v = maxi(1, int(float64(v)*g.wsItemMul(it)*g.wyOffworldPriceMul(it))) // regional market (worldsim.go) & off-world goods (world_story.go)
+	v = maxi(1, int(float64(v)*gcDecayPriceMod(g, g.Talk, it)))           // twilight decay (gen_twilight.go)
 	v = maxi(1, int(float64(v)*g.egPriceMod(it)))                         // the world-scale threat (endgame.go)
 	if g.Talk != nil {
 		tr := thTraitRep(g, g.Talk) // how your traits sit with them (traits.go)
 		if buy {
 			v = maxi(1, v*(100-3*tr)/100)
+			v = maxi(1, int(float64(v)*g.lvPriceMod(g.Talk))) // their opinion of you (lives.go)
 		} else {
 			v = maxi(1, v*(100+3*tr)/100)
+			v = maxi(1, int(float64(v)/g.lvPriceMod(g.Talk)))
 		}
 	}
 	if it.Count > 1 && it.Stack() {
@@ -824,6 +833,7 @@ func (g *Game) tradeAct() {
 		}
 		g.give(one)
 		g.Msg(fmt.Sprintf("You buy %s for %s.", one.Display(), g.cuFormat(pr)))
+		g.lvTrade(a, pr)
 	} else {
 		if g.Sel >= len(g.P.Inv) {
 			return
@@ -857,6 +867,7 @@ func (g *Game) tradeAct() {
 			g.deed("relic", fmt.Sprintf("The relic %s was sold by the wanderer %s to %s.", one.Name, g.P.Name, a.Name), 0, one.SimArt)
 		}
 		g.Msg(fmt.Sprintf("You sell %s for %s.", one.Display(), g.cuFormat(pr)))
+		g.lvTrade(a, pr)
 	}
 }
 

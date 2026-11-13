@@ -450,14 +450,20 @@ func (g *Game) drawWorld() {
 			if og, of, ob, ok := g.egOverlay(p); ok { // the world-scale threat (endgame.go)
 				gl, f, b = og, of, ob
 			}
+			if og, of, ob, ok := g.gcOverlay(p); ok { // twilight decay, wasteland fallout (gen_*.go)
+				gl, f, b = og, of, ob
+			}
 			if g.Tab == 1 && w.State[p] > 0 && !w.IsWater(p) {
 				b = statePal[w.State[p]%len(statePal)]
 				f = CBlack
 			}
 			if g.Known[p] {
-				gl, f = g.trWorldGlyph(p, gl, f) // rail track (transport.go)
-				gl, f = g.shWorldGlyph(p, gl, f) // your ship (sailing.go)
-				gl, f = g.wrWorldGlyph(p, gl, f) // found wrecks and drowned cities (wrecks.go)
+				gl, f = g.trWorldGlyph(p, gl, f)     // rail track (transport.go)
+				gl, f = g.shWorldGlyph(p, gl, f)     // your ship (sailing.go)
+				gl, f = g.wrWorldGlyph(p, gl, f)     // found wrecks and drowned cities (wrecks.go)
+				if gl2, f2, ok := g.wpGlyph(p); ok { // your own places (places.go)
+					gl, f = gl2, f2
+				}
 				if bd := w.burgByID[w.Burg[p]]; bd != nil {
 					switch {
 					case !bd.Alive:
@@ -679,6 +685,7 @@ func (g *Game) drawChar() {
 	if g.Tab == 0 {
 		s.TextB(x, y, fmt.Sprintf("{{W|Attribute points: %d   Skill points: %d}}", g.AP, g.SP), CGray, CBgDark, x+w)
 		y += 2
+		g.ptSheet(x+w-14, y, 14, 8) // paper doll (portraits.go)
 		for i := 0; i < 6; i++ {
 			bg := CBgDark
 			if g.Sel == i {
@@ -872,12 +879,12 @@ func (g *Game) drawTalk() {
 	if a.Title != "" {
 		title += ", " + a.Title
 	}
-	h := len(g.Popup) + len(g.Opts) + 5
+	h := len(g.Popup) + len(g.Opts) + 5 + g.ptBandH() // room for the speaker portrait (portraits.go)
 	y0 := maxi(1, (MH-h)/2)
 	// dialogue covers the whole screen width so long lines and skill checks fit
 	s.Box(2, y0, SW-4, h, CDarkCyan, title)
 	s.Put(4, y0+1, a.Glyph, a.F, CBgDark)
-	y := y0 + 1
+	y := y0 + 1 + g.ptTalkBand(y0)
 	for _, l := range g.Popup {
 		s.TextB(6, y, l, CGray, CBgDark, SW-3)
 		y++
@@ -898,6 +905,7 @@ func (g *Game) drawTrade() {
 	s := g.sc
 	a := g.Talk
 	x, y, w, _ := g.panel("Trade with " + a.Name)
+	g.ptTradeRect() // portrait corner (portraits.go)
 	half := w / 2
 	s.TextB(x, y, fmt.Sprintf("{{Y|%s}} {{W|%s}}", a.Name, g.cuFormat(a.Gold)), CGray, CBgDark, x+half)
 	s.TextB(x+half+1, y, "{{Y|You}} {{W|"+g.cuWallet()+"}}", CGray, CBgDark, x+w)
@@ -978,6 +986,7 @@ func (g *Game) drawCraft() {
 func (g *Game) drawDead() {
 	s := g.sc
 	lines := Wrap(g.DeathText, 60)
+	lines = append(lines, g.acObituary()...) // obituary (achievements.go)
 	lines = append(lines, "", fmt.Sprintf("Level %d · %d kills · %d secrets learned · %d quests", g.P.Level, g.Kills, len(g.Secrets), len(g.Quests)), "",
 		"Your death has been written into the chronicle.")
 	if h := g.fmHeir(); h != nil {
