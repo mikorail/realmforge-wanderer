@@ -122,6 +122,42 @@
 - Ghost runs: share a past life as a small file that another player meets in their world (builds on the hall of fame legends).
 - Dynasty play: play one family across centuries, choose an heir at death, your deeds become history (ties legacy runs, aging, marriage, hall of fame).
 
+**Cheap and visible (uses the sprites)**
+- NPC portraits beside the dialogue window, a paper doll on the character sheet showing your gear, illustrated bestiary and codex pages with the creature's sprite plate, wanted posters with a portrait of the target, an animated title screen with the world map scrolling behind it.
+- Waypoints and map notes you place yourself with quick-travel to bookmarks, a compass and mini-map for big cities, an easy-to-read clock and date line, a death screen with an obituary-style epitaph.
+
+**Realmforge exports that unlock planned features**
+- Language samples per culture (greetings, numbers, a few place and body words) for language learning; per-person life logs and family trees for NPC bios; creation myths and legends per culture and faith for dreams, prophecies and quests; price history per sector for trade routes; cuisine and dish names per culture for cooking.
+
+**Play modes and toy-box**
+- A weekly trial (the daily seed plus rule modifiers such as no healing or double enemies, with a shared score), an expedition mode (a timed descent through a generated dungeon with a score), achievements and titles ("Pacifist", "Never slept in a bed", "Visited every planet").
+- Pets that are not companions (a cat or dog that wanders with you, finds small items, sleeps at the hearth), weather gear (umbrellas and cloaks that change how rain and cold affect you), fireside stories (a companion or bard tells a real story from the world's history at an inn or campfire, with a small buff).
+
+## Heavy tasks (large, each a project of its own)
+**Overhauls**
+- Rendering: a real tile and sprite pipeline (WebGL or a layered canvas) with lighting, shadows, animation, particles for weather and spells, and a proper art-style pass per genre.
+- World and save architecture: persistent world state with streamed zones and a background generation worker, much smaller saves (store only what changed), fast load on slow machines, replay and rewind support.
+- Interface: a windowed, mouse-first UI with draggable panels, tooltips on everything, drag-and-drop inventory and equipment, context menus, full key rebinding and gamepad support.
+- Audio: a full sound-effects layer (combat, footsteps by terrain, UI, voices as species blips) and adaptive music layers that react to every system (stealth, endgame, pacts, weather).
+- Engine split: the simulation separated from rendering so it can run headless, serve a shared world, and record deterministic replays.
+- Progression: a talent web where callings unlock from deeds, with prerequisites, branches, respec costs and legendary capstones.
+
+**Heavy features**
+- The Realmforge simulation running inside Wanderer so wars, economies, plagues, dynasties and religions keep evolving while you play (today the world is a snapshot plus a link back), instead of a static export.
+- Asynchronous shared worlds: ghost runs, a shared hall of fame, rival players' characters appearing as NPCs, a seeded weekly leaderboard.
+- A modding SDK: data-file content packs and an embedded scripting layer (items, creatures, quests, dialogue, scenarios) with a validator and a pack browser.
+- Dynasty play across centuries, with family management, lineage traits, inheritance and a world that moves on between lives.
+- Empire-scale play: running an order, a guild, a mercenary company or a trade house with members, assets, rivals and a long arc (not a realm or a settlement).
+- The heavy life simulation (`lives.go`, `lifesim.go`, `knowledge.go`) described above.
+
+**Heavy story generation**
+- A narrative director that tracks tension and picks story beats (inciting incident, rising action, twist, crisis, climax, aftermath) from templates fed by the world's real data, runs several arcs at once, binds recurring characters (nemesis, rival, love interest, mentor) into the plots, and steers toward varied endings.
+- A mystery generator: a whodunit with suspects, motives, alibis, clues, red herrings, forensics and an accusation scene, built from the life simulation.
+- A moral dilemma engine: situations generated from faction ideologies and personal relationships, with consequences that compound across a run.
+- Generated literature: books in libraries written as histories, epics, sermons and satires of the world's events with an author's bias and a culture's voice, so reading them gives clues and lore.
+- Run to saga: at the end of a life, a generated saga in the voice of a skald, chronicler or bard with chapters, a map of the journey, quotes from NPCs, and the lasting legend of the character in the world.
+- Dreams, visions and prophecies that foreshadow real future events of the run and resolve in unexpected ways.
+
 **Under the hood**
 - Smaller saves (drop unvisited zone data), faster zone generation on slow machines, shareable world cards.
 
