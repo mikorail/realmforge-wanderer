@@ -107,6 +107,17 @@
 **Aging and time**
 - Your character ages: species lifespans, prime years, old-age penalties, wisdom bonuses; ties into heirs and legacy runs.
 
+**Big: people and stories**
+- Full NPC lives: a biography per notable person built from Realmforge's sim data (birth, family, career, rises and falls, rivals, loves, losses, a secret, a goal, a fear), ordinary townsfolk with a short bio (trade, a family fact, a gripe), a People page per person in the journal, and talk topics whose answers depend on trust.
+- Knowledge per person: each NPC knows only some facts (who they saw, where they have been, what they heard); you question and cross-check them like a detective, so gossip is a real information system.
+- A relationship web (who loves, hates, owes or works for whom) where your actions ripple (kill a rival and the baker owes you, the rival's family wants revenge).
+- Heavy life simulation (in progress, `lives.go`, `lifesim.go`, `knowledge.go`): key NPCs pursue goals on the day clock (a merchant travels, a priest founds a shrine, a knight rides to war, a thief robs a house), marry, have children, get promoted, fall ill, die; towns change visibly over the years (shops change hands, children grow up).
+- Generated campaigns: multi-act plots built from the world's history (a conspiracy for a throne, a lost heir, a curse from an old sin, a heist of a legendary vault) with clues scattered across towns and dungeons and several plots per world; full questline ladders for each faction, order and sect.
+- Cross-genre incursions: a cyberpunk raider or a fantasy knight arrives through a rift in the wrong world with strange gear.
+- Content packs: a data-file layer to define new items, creatures, quests, NPCs and dialogue without recompiling, shared as packs.
+- Ghost runs: share a past life as a small file that another player meets in their world (builds on the hall of fame legends).
+- Dynasty play: play one family across centuries, choose an heir at death, your deeds become history (ties legacy runs, aging, marriage, hall of fame).
+
 **Under the hood**
 - Smaller saves (drop unvisited zone data), faster zone generation on slow machines, shareable world cards.
 
