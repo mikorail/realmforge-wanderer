@@ -362,6 +362,9 @@ func deathVerb(a *Actor) string {
 }
 
 func (g *Game) die(cause string, src *Actor) {
+	if g.pqRevive(cause, src) { // story mode wakes at the inn (pets.go)
+		return
+	}
 	g.Dead = true
 	who := cause
 	if src != nil {
@@ -370,6 +373,7 @@ func (g *Game) die(cause string, src *Actor) {
 	g.DeathText = fmt.Sprintf("You were killed by %s in %s, %s.", who, g.Cur.Name, g.timeOfDay())
 	g.Msg("{{R|" + g.DeathText + "}}")
 	g.deed("death", fmt.Sprintf("The wanderer %s, %s, perished in %s, killed by %s.", g.P.Name, g.Sk.Calling(g.Calling), g.Cur.Name, who), 0, 0)
+	g.agOnDeath(false) // will and age note (aging.go)
 	g.Mode = "dead"
 	g.qcOnDeath() // roleplay mode offers the last town checkpoint (modes.go)
 }

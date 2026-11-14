@@ -553,6 +553,7 @@ func (g *Game) fmContinueAsHeir() bool {
 	if h == nil {
 		return false
 	}
+	g.agBeforeHeir() // run the will (aging.go)
 	st := g.fm()
 	cause := "retired"
 	if g.Dead && g.DeathText != "" {
@@ -626,6 +627,7 @@ func (g *Game) fmContinueAsHeir() bool {
 	g.Mode = "main"
 	g.recompute()
 	g.deed("kinship", fmt.Sprintf("%s took up the mantle of %s and continued the long road.", h.Name, h.Parent), 0, 0)
+	g.agAfterHeir()
 	g.Msg(fmt.Sprintf("{{Y|You now walk as %s, %s of %s (level %d).}}", h.Name, map[bool]string{true: "daughter", false: "son"}[h.Female], h.Parent, g.P.Level))
 	return true
 }

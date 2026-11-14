@@ -53,7 +53,9 @@ func (g *Game) comp(a *Actor) *Companion {
 	return a.Comp
 }
 
-func isFollower(a *Actor) bool { return a != nil && a.AI == "follower" && a.HP > 0 }
+func isFollower(a *Actor) bool {
+	return a != nil && a.AI == "follower" && a.HP > 0 && !a.Has("pqpet")
+}
 
 // localCompanions: followers in the current zone.
 func (g *Game) localCompanions() []*Actor {

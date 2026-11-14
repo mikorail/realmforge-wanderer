@@ -249,6 +249,9 @@ func (g *Game) aiAct(a *Actor) {
 		g.wander(a)
 		return
 	}
+	if g.pqAct(a) { // pet tricks (pets.go)
+		return
+	}
 	if g.bwAct(a) { // boss phases, tactics (foes.go)
 		return
 	}

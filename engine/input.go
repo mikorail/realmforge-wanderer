@@ -393,6 +393,8 @@ func (g *Game) keyWorld(k string) {
 		g.Tab = 1 - g.Tab
 	case "j":
 		g.Mode, g.Sel, g.Tab = "journal", 0, 0
+	case "q": // auto-travel (autotravel.go)
+		g.atOpen()
 	}
 }
 

@@ -309,8 +309,9 @@ func NewGame(w *WorldData, spec CharSpec) *Game {
 	g.Msg(g.describeStart())
 	g.Msg("Press {{W|?}} for help. Walk off the edge to explore; {{W|<}} on the surface opens the world map.")
 	g.Mode = "main"
-	g.stApply(spec) // starting scenario (starts.go)
-	g.ijApply(spec) // challenge modifiers (challenges.go)
+	g.stApply(spec)       // starting scenario (starts.go)
+	g.ijApply(spec)       // challenge modifiers (challenges.go)
+	pqApply(g, spec.Mods) // play modes (pets.go)
 	g.recompute()
 	return g
 }
@@ -502,7 +503,7 @@ func (g *Game) turn() {
 	g.mealTick()
 	g.companionsTick()
 	// regeneration
-	regen := 40 - p.M(TOU)*4 - p.Pow("regen")*8 - p.mealLv("mending")*10
+	regen := 40 - p.M(TOU)*4 - p.Pow("regen")*8 - p.mealLv("mending")*10 + g.agRegenAdd()
 	if p.Pow("albino") > 0 && g.Cur.Z == 0 && g.daylight() {
 		regen += 30
 	}
@@ -1147,6 +1148,7 @@ func XPFor(level int) int { return XPForLevel(level) }
 
 func (g *Game) gainXP(n int) {
 	n = g.qcXP(n) // wander mode (modes.go)
+	n = g.agXP(n) // wisdom of age (aging.go)
 	g.XP += n
 	for g.XP >= XPFor(g.P.Level) {
 		g.XP -= XPFor(g.P.Level)

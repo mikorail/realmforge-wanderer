@@ -109,7 +109,7 @@ func (g *Game) HFSummary() string {
 		"score": g.hfScore(), "days": days, "km": int(g.fm().Km), "kills": g.Kills, "deedCount": len(g.Deeds),
 		"goldPeak": st.GoldPeak, "deeds": deeds, "family": g.fmSummary(), "cause": cause, "dead": g.Dead,
 		"mode": g.GameMode, "scenario": scen, "genotype": g.Genotype, "sandbox": g.Sandboxed(),
-		"yearStart": y0, "yearEnd": y0 + days/365, "planet": g.unPlanetName(), "turns": g.Turn,
+		"yearStart": y0, "yearEnd": y0 + days/365, "planet": g.unPlanetName(), "turns": g.Turn, "legacy": g.agSummary(),
 	})
 	return string(b)
 }

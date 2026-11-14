@@ -16,6 +16,7 @@ func (g *Game) Render() *Screen {
 	case "journal":
 		g.drawMap()
 		g.drawJournal()
+		tuSeen(g, "journal")
 		return s
 	default:
 		g.drawMap()
@@ -1008,8 +1009,9 @@ func (g *Game) drawCraft() {
 func (g *Game) drawDead() {
 	s := g.sc
 	lines := Wrap(g.DeathText, 60)
-	lines = append(lines, g.acObituary()...) // obituary (achievements.go)
-	if s := g.ndStorySoFar(); s != "" {      // story so far (director.go)
+	lines = append(lines, g.acObituary()...)  // obituary (achievements.go)
+	lines = append(lines, g.agDeathNote()...) // age and legacy (aging.go)
+	if s := g.ndStorySoFar(); s != "" {       // story so far (director.go)
 		lines = append(lines, "", s)
 	}
 	lines = append(lines, "", fmt.Sprintf("Level %d · %d kills · %d secrets learned · %d quests", g.P.Level, g.Kills, len(g.Secrets), len(g.Quests)), "",

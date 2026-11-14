@@ -42,6 +42,7 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.gmAbilities()...)
 	out = append(out, g.arAbilities()...)
 	out = append(out, g.lvAbilities()...)
+	out = append(out, g.agAbilities()...)
 	out = append(out, g.lnAbilities()...)
 	out = append(out, g.hmAbilities()...)
 	out = append(out, g.crAbilities()...)
@@ -49,12 +50,16 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.knAbilities()...)
 	out = append(out, g.mxAbilities()...)
 	out = append(out, g.dlAbilities()...)
+	out = append(out, g.msAbilities()...)
 	out = append(out, g.ndAbilities()...)
 	out = append(out, g.vsAbilities()...)
 	out = append(out, g.cmpAbilities()...)
 	out = append(out, g.csAbilities()...)
 	out = append(out, g.wpAbilities()...)
+	out = append(out, g.atAbilities()...)
 	out = append(out, g.lxAbilities()...)
+	out = append(out, g.pqAbilities()...)
+	out = append(out, g.wedAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
 	for _, bp := range g.P.Body {
 		if bp.Item != nil {
@@ -110,6 +115,14 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 		g.csUse(id, tx, ty)
 		return
 	}
+	if strings.HasPrefix(id, "pq_") { // pets and play modes (pets.go)
+		g.pqAbUse(id)
+		return
+	}
+	if strings.HasPrefix(id, "wed_") { // world editor (tutorial_data.go)
+		g.wedUse(id)
+		return
+	}
 	if strings.HasPrefix(id, "ar_") { // researched powers, pacts (arcane.go)
 		g.arUse(id, tx, ty)
 		return
@@ -127,6 +140,10 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 	}
 	if strings.HasPrefix(id, "lx_") { // tongues (languages.go)
 		g.lxUse(id, tx, ty)
+		return
+	}
+	if strings.HasPrefix(id, "at_") { // auto-travel (autotravel.go)
+		g.atUse(id)
 		return
 	}
 	if strings.HasPrefix(id, "wp_") { // your places (places.go)
@@ -149,12 +166,20 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 		g.vsAbUse(id)
 		return
 	}
+	if id == "ag_legacy" { // aging and legacy (aging.go)
+		g.agAbUse(id)
+		return
+	}
 	if id == "cmp_plots" { // campaigns (campaigns.go)
 		g.cmpAbUse(id)
 		return
 	}
 	if id == "nd_story" { // narrative director (director.go)
 		g.ndAbUse(id)
+		return
+	}
+	if id == "ms_events" { // scenes and migrations (scenes.go)
+		g.msAbUse(id)
 		return
 	}
 	if id == "dl_view" { // deadlines (deadlines.go)
@@ -476,6 +501,9 @@ func (g *Game) throw(it *Item, tx, ty int) {
 func (g *Game) useItem(it *Item) {
 	p := g.P
 	if g.ijUseItem(it) { // tents (fatigue.go)
+		return
+	}
+	if g.agUseItem(it) { // draught of second spring (aging.go)
 		return
 	}
 	if g.alUseItem(it) { // brewed potions, poison vials (alchemy.go)
