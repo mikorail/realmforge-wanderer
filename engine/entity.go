@@ -198,6 +198,7 @@ func (a *Actor) Score(i int) int {
 		v += 2 * a.mealLv("keen")
 	}
 	v += ijScoreMod(a, i) // injuries (injuries.go)
+	v += hmScoreMod(a, i) // heirloom display bonus (display.go)
 	return v
 }
 

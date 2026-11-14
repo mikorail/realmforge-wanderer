@@ -12,5 +12,13 @@ func init() {
 	bhPlayerBounty = func(g *Game, state int) int {
 		return g.uwBounty(state) + g.nxBounty(state) + g.bkBounty(state) + gcCyberHeatBounty(g)
 	}
+	// delivered invitations (letters.go) become ceremonies you can attend (ceremonies.go)
+	fwInvites = func(g *Game) []fwInv {
+		var out []fwInv
+		for _, iv := range g.lnInvites() {
+			out = append(out, fwInv{From: iv.From, Burg: iv.Burg, Day: iv.Day, Kind: iv.Kind})
+		}
+		return out
+	}
 	nxRivalDossier = func(g *Game) []string { return g.rvDossier() } // rival section of the Hunters screen (nemesis.go)
 }

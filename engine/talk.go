@@ -636,6 +636,9 @@ func (g *Game) annalsBook(state int) *Item {
 }
 
 func (g *Game) interact(x, y int) {
+	if g.hmBump(x, y) { // display cases at home (display.go)
+		return
+	}
 	if inBump(g, x, y) { // stat gates, shrines, glyphs (gates.go / insight.go)
 		return
 	}
@@ -781,7 +784,9 @@ func (g *Game) price(it *Item, buy bool) int {
 			f += 0.15
 		}
 		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk) * g.swPriceMod(g.Talk, it, true) * g.poPriceMod(g.Talk) * g.fmPriceMod(g.Talk) * g.lxPriceMod(g.Talk, true)
-		f *= g.ijPriceMod() // double prices (challenges.go)
+		f *= g.ijPriceMod()              // double prices (challenges.go)
+		f *= g.cjPriceMod(g.Talk)        // staff discounts (cityjobs.go)
+		f *= hmPriceMod(g, g.Talk, true) // museum patron discount (museum.go)
 		if f < 0.75 {
 			f = 0.75
 		}
@@ -796,12 +801,16 @@ func (g *Game) price(it *Item, buy bool) int {
 	if f > 0.8 {
 		f = 0.8
 	}
-	f *= clPriceMod(g, g.Talk, it) // curio dealers and fences pay more for small things (clutter.go)
+	f *= clPriceMod(g, g.Talk, it)    // curio dealers and fences pay more for small things (clutter.go)
+	f *= hmPriceMod(g, g.Talk, false) // displayed sets (display.go)
 	return maxi(1, int(float64(v)*f*g.lqPriceFactor(false)))
 }
 
 func (g *Game) openTrade(a *Actor) {
 	if g.snMarketClosed(a) {
+		return
+	}
+	if g.cjShopClosed(a) { // shutters down at night (nightlife.go)
 		return
 	}
 	g.snStock(a)

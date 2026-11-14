@@ -41,9 +41,12 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.gmAbilities()...)
 	out = append(out, g.arAbilities()...)
 	out = append(out, g.lvAbilities()...)
+	out = append(out, g.lnAbilities()...)
+	out = append(out, g.hmAbilities()...)
 	out = append(out, g.crAbilities()...)
 	out = append(out, g.ggAbilities()...)
 	out = append(out, g.knAbilities()...)
+	out = append(out, g.mxAbilities()...)
 	out = append(out, g.wpAbilities()...)
 	out = append(out, g.lxAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
@@ -125,8 +128,20 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 		g.ggUse(id)
 		return
 	}
+	if id == "hm_display" { // display cases and museums (display.go)
+		g.hmAbUse(id)
+		return
+	}
+	if id == "ln_mail" { // letters (letters.go)
+		g.lnAbUse(id)
+		return
+	}
 	if id == "lv_people" { // who you know (lives.go)
 		g.lvAbUse(id)
+		return
+	}
+	if id == "mx_casebook" || id == "mx_examine" { // mysteries (mysteries.go)
+		g.mxAbUse(id)
 		return
 	}
 	if id == "kn_notes" { // case notes (knowledge.go)

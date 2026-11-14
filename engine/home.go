@@ -265,6 +265,8 @@ func (g *Game) keyStash(k string) {
 		inv = &hs.Stash
 	}
 	switch k {
+	case "d", "D": // display cases (display.go)
+		g.hmOpenDisplay()
 	case "Escape":
 		g.Mode = "main"
 	case "ArrowUp":
@@ -405,7 +407,7 @@ func (g *Game) drawStash() {
 			nw++
 		}
 	}
-	s.TextB(x, y+ph-3, "{{K|Tab switch  Enter move item  Esc leave}}", CGray, CBgDark, x+w)
+	s.TextB(x, y+ph-3, "{{K|Tab switch  Enter move item  Esc leave}}"+hmStashHint(g), CGray, CBgDark, x+w)
 	s.TextB(x, y+ph-2, fmt.Sprintf("{{W|s}} sleep in your bed (8 hours)   {{W|c}} companions stay home (%d with you)   {{W|v}} call them (%d waiting)", nf, nw), CGray, CBgDark, x+w)
 }
 

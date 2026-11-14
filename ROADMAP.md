@@ -67,6 +67,7 @@
 - Crossroads dilemma cards, karma ledger and oaths (`crossroads.go`, `karma.go`); end-of-life saga with journey map (`saga.go`, `src/Saga.svelte`); languages per culture (`languages.go`); heirloom gear, provenance and reforging (`gearlore.go`); weather, light, shadows and tooltips in sprite mode (`fxinfo.go`, `src/effects.ts`, `src/Tooltip.svelte`); challenge modifiers, permanent injuries and sleep and fatigue (`challenges.go`, `injuries.go`, `fatigue.go`).
 
 - Wave A: command palette on `;` (`palette.go`), talk menu hub with grouped submenus (`talkhub.go`), 26 first-time hints (`hints2.go`), wiring-left items (rival hoard races, trade goods pricing, banned goods, cliff glider, footprints, night sight, predator nest range), a static crash review of the newest systems.
+- Wave B: quests from NPC goals (`npcquests.go`), letters/messengers/newspaper (`letters.go`), weddings/funerals/ceremonies (`ceremonies.go`), murder mysteries (`mysteries.go`), city jobs and night life (`cityjobs.go`, `nightlife.go`), home display cases and museum (`display.go`, `museum.go`).
 
 ## Planned / ideas
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
