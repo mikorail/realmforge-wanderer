@@ -138,6 +138,24 @@
 - Run to saga: at the end of a life, a generated saga in the voice of a skald, chronicler or bard with chapters, a map of the journey, quotes from NPCs, and the lasting legend of the character in the world.
 - Dreams, visions and prophecies that foreshadow real future events of the run and resolve in unexpected ways.
 
+**Fixing growing pains** (next up)
+- Command palette: one key opens a type-to-find list that jumps to any screen or ability ("brew", "places", "hack"), since about 25 screens now sit on different keys (`F4` `F5` `F6` `F7` `F8` `F9` `F10` `/` and many letters).
+- Talk menu hub: a short opening list (Chat, Trade, Services, Ask about, Social, Quests) with each group opening its own short list, so the dialogue window stops listing 20 or more options at once.
+- First-time hints for the newest systems, shown once when you first meet them (first locked door, first foreign language, first crossroads card, first hack).
+
+**More from the life simulation**
+- Quests that people give you, built from their real goals ("find my missing husband", "collect a debt", "carry this letter", "take revenge on my rival"), with outcomes that change their life.
+- Letters and messengers: friends, family and rivals write to you and the letters arrive days later with news, requests, warnings or invitations, even across planets.
+- Town crier and newspaper: a daily bulletin built from the simulation's news, sold in towns and read aloud in squares, with rumours that turn out wrong.
+- Funerals and weddings of people you know that you can attend, with gifts and speeches that change opinions.
+
+**Homes and collections**
+- Display cases at home for collection sets and heirlooms with small permanent bonuses; a town museum where you donate relics and rare finds for coin, fame and a plaque with your name.
+
+**Cross-repo and quality**
+- Show a played chronicle (your character, nemesis, loved ones) inside Realmforge's history views.
+- A balance sheet screen (from the console) listing prices, damage and difficulty values in one place for tuning.
+
 **Under the hood**
 - Smaller saves (drop unvisited zone data), faster zone generation on slow machines, shareable world cards.
 
