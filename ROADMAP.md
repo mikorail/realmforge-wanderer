@@ -162,6 +162,38 @@
 **Wiring left from the life-systems wave**
 - Rivals racing you to buried hoards (`buDigSites`, `buRivalLoot`) and the endgame culling rivals (`rvCull`); merchants valuing trade goods in `price()` and honest merchants refusing banned goods; the in-zone cliff launch for gliders; footprint tiles on the map (`ssTrailAt`); night-sight reading `alnight`; researched powers for companions and the sandbox; predator nest range; `fmHeir` wired to a legacy run.
 
+### Plan and estimate (written Nov 2026)
+**Unit of work.** One agent run builds one file-sized feature (about 1,000 to 2,000 lines) and costs about 150k to 250k tokens. A wave is 4 to 6 agents in parallel, about 20 to 40 minutes, plus 10 to 20 minutes of wiring, rebuild and commit. The 5-hour usage window has held about 8 to 10 agent runs, so plan for about 1.5 waves per window.
+
+**Size of what is left (agent runs, rough, plus or minus 50%).**
+- Growing pains (command palette, talk menu hub, first-time hints, balance sheet) and the wiring-left list: 4 to 5.
+- Small and medium features (one or two agents each): combat depth, planet traits and star map, depth items (noise and smell, deadlines), libraries and dreams and prophecy, mysteries and city jobs, murim extras, taming extras, crafting extras (inventions, fishing, cartography), auto-travel and photo mode, play modes and pets, aging and legacy, disasters and migrations, tutorial and world editor-lite: about 35.
+- NPC-driven content (quests from goals, letters, newspaper, funerals and weddings, display cases and museum): 5 to 6.
+- Story systems (generated campaigns, narrative director, generated literature, cross-genre incursions): 8 to 10.
+- Presentation and interface (sprite animation, tile variety, sound effects and adaptive audio, right-click menus, key rebinding, gamepad, replay): 10 to 12.
+- Realmforge-side exports and Wanderer consuming them (languages, life logs, myths, price history, cuisine): 4 to 5.
+- Modding SDK and content packs: 3 to 4. Talent web: 2.
+- Heavy architecture (smaller saves, zone streaming, engine split): 6 to 8.
+- Not recommended now: the Realmforge simulation ported into Wanderer (10 to 15 runs, and the live link already covers it), asynchronous shared worlds (needs a server), a WebGL renderer rewrite (the canvas is enough).
+Total about 80 to 100 agent runs, about 10 to 12 usage windows. With one or two sessions a day that is roughly 2 to 3 weeks of calendar time, plus about 25% more for fixing what the new systems break.
+
+**Order.**
+1. Wave A: growing pains (palette, talk hub, hints), the wiring-left list, a read-through review of the newest files for obvious crashes.
+2. Wave B: NPC-driven content on top of the life simulation, then mysteries and city jobs.
+3. Wave C: combat depth, planet traits and star map, depth items.
+4. Wave D: story systems once the NPC content exists (campaigns, narrative director, literature, dreams, prophecy).
+5. Wave E: world and crafting breadth (inventions, fishing, cartography, auto-travel, photo mode, pets, disasters, migrations, aging, legacy).
+6. Wave F: presentation and interface (animation, tiles, audio, right-click, rebinding, gamepad, replay).
+7. Wave G: Realmforge exports and consuming them; modding SDK.
+8. Wave H: heavy architecture, once features stop changing.
+
+**How to run it.**
+- Each agent owns new files only and reports hook lines; one person wires them. Keep that.
+- Run each agent in its own git worktree so one half-written file never breaks the others' builds, then copy their new files in.
+- Write the shared data model first when features depend on each other (as `lives_types.go` did).
+- Stagger to about 5 agents per window to stay under the usage limit.
+- One cheap safety net per wave: `go run ./cmd/fuzz public/worlds/ember-crown.json 3000` in the background, since a crash in the browser build ends the game.
+
 ### Dropped on purpose
 - Player settlements, accessibility work, a playtest bot and extra test suites, ruling a realm with decrees, founding a faith or order.
 
