@@ -404,6 +404,9 @@ func line(x0, y0, x1, y1 int) [][2]int {
 // shoot fires a missile weapon along a line, hitting the first creature.
 func (g *Game) shoot(a *Actor, tx, ty int, w *Item) {
 	g.nsShot(a, w)
+	if a == g.P && ciMisfire(g, w) { // alien tech fizzles (incursions.go)
+		return
+	}
 	path := line(a.X, a.Y, tx, ty)
 	rng := w.Range
 	if a == g.P {

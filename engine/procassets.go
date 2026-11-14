@@ -302,7 +302,7 @@ func paSpawnWanderer(g *Game, zn *Zone, r *Rng) {
 		a.Inv = append(a.Inv, g.MakeScrap(r, r.Int(4, 10)), g.MakeOddity(r, clampi(lvl/3+1, 1, 5)))
 	case "chronicler", "pilgrim":
 		a.Gold = r.Int(30, 90)
-		a.Inv = append(a.Inv, g.RandomBook(r, p), g.MakeWater())
+		a.Inv = append(a.Inv, g.GenBook(r, p), g.MakeWater())
 	case "beastkeeper":
 		a.Gold = r.Int(50, 140)
 		// Companion beast beside the handler

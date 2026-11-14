@@ -49,6 +49,9 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.knAbilities()...)
 	out = append(out, g.mxAbilities()...)
 	out = append(out, g.dlAbilities()...)
+	out = append(out, g.ndAbilities()...)
+	out = append(out, g.vsAbilities()...)
+	out = append(out, g.cmpAbilities()...)
 	out = append(out, g.csAbilities()...)
 	out = append(out, g.wpAbilities()...)
 	out = append(out, g.lxAbilities()...)
@@ -140,6 +143,18 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 	}
 	if id == "hm_display" { // display cases and museums (display.go)
 		g.hmAbUse(id)
+		return
+	}
+	if strings.HasPrefix(id, "vs_") { // visions (visions.go)
+		g.vsAbUse(id)
+		return
+	}
+	if id == "cmp_plots" { // campaigns (campaigns.go)
+		g.cmpAbUse(id)
+		return
+	}
+	if id == "nd_story" { // narrative director (director.go)
+		g.ndAbUse(id)
 		return
 	}
 	if id == "dl_view" { // deadlines (deadlines.go)
@@ -526,6 +541,9 @@ func (g *Game) useItem(it *Item) {
 		bhRead(g, it)
 		return
 	case "book":
+		if g.glRead(it) { // generated literature (literature.go)
+			return
+		}
 		if g.lxRead(it) { // foreign books and phrasebooks (languages.go)
 			return
 		}

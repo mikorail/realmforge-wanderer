@@ -952,7 +952,7 @@ func (g *Game) wsSpawnGroup(zn *Zone, t *wsTrav, r *Rng) {
 		a := g.wsPerson(t, "villager", "scholar", r)
 		a.AI = "wander"
 		a.Set("wsscholar")
-		a.Inv = append(a.Inv, g.RandomBook(r, g.W.Idx(zn.WX, zn.WY)))
+		a.Inv = append(a.Inv, g.GenBook(r, g.W.Idx(zn.WX, zn.WY)))
 		add(a, 3)
 	case "merc":
 		for i := 0; i < t.Size; i++ {
@@ -1480,6 +1480,7 @@ func (g *Game) wsNewsLines() []wsLine {
 	}
 	out = append(out, g.knNews()...)      // rumours and cases (knowledge.go)
 	out = append(out, g.lsNewsLines()...) // people's lives (lifesim.go)
+	out = append(out, g.ciNewsLines()...) // strangers from other genres (incursions.go)
 	for _, l := range g.gdOmenLines() {   // omens (gen_myth.go)
 		out = append(out, wsLine{g.gdParasang(), l})
 	}

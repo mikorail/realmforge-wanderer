@@ -703,7 +703,7 @@ func (g *Game) interact(x, y int) {
 		g.Read[k] = true
 		st := g.W.State[g.W.Idx(z.WX, z.WY)]
 		_ = st
-		b := g.RandomBook(g.R, g.W.Idx(z.WX, z.WY))
+		b := g.GenBook(g.R, g.W.Idx(z.WX, z.WY))
 		g.give(b)
 		g.Msg("You find a " + g.Sk.Book + ": {{C|" + b.Name + "}}.")
 	}
@@ -785,6 +785,7 @@ func (g *Game) price(it *Item, buy bool) int {
 		}
 		f *= g.castePriceMod(g.Talk) * g.augPriceMod(g.Talk) * g.swPriceMod(g.Talk, it, true) * g.poPriceMod(g.Talk) * g.fmPriceMod(g.Talk) * g.lxPriceMod(g.Talk, true)
 		f *= g.ijPriceMod()              // double prices (challenges.go)
+		f *= g.vsPriceMul(it)            // omens (visions.go)
 		f *= g.cjPriceMod(g.Talk)        // staff discounts (cityjobs.go)
 		f *= hmPriceMod(g, g.Talk, true) // museum patron discount (museum.go)
 		f *= pltPriceMod(g, true)        // trade-hub worlds (planettraits.go)

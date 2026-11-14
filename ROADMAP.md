@@ -69,6 +69,7 @@
 - Wave A: command palette on `;` (`palette.go`), talk menu hub with grouped submenus (`talkhub.go`), 26 first-time hints (`hints2.go`), wiring-left items (rival hoard races, trade goods pricing, banned goods, cliff glider, footprints, night sight, predator nest range), a static crash review of the newest systems.
 - Wave B: quests from NPC goals (`npcquests.go`), letters/messengers/newspaper (`letters.go`), weddings/funerals/ceremonies (`ceremonies.go`), murder mysteries (`mysteries.go`), city jobs and night life (`cityjobs.go`, `nightlife.go`), home display cases and museum (`display.go`, `museum.go`).
 - Wave C: stances and techniques (`stances.go`), enemy resistances, boss phases and elites (`foes.go`), noise and smell (`senses.go`), deadlines and rival races (`deadlines.go`), planet traits and scans (`planettraits.go`).
+- Wave D: generated campaigns and faction ladders (`campaigns.go`), narrative director (`director.go`), generated literature (`literature.go`), cross-genre incursions (`incursions.go`), prophecy, seers, dreams and omens (`visions.go`).
 
 ## Planned / ideas
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
