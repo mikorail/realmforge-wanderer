@@ -411,6 +411,7 @@ func (g *Game) unTravel(ri, fromBurg int) {
 	}
 	r := u.Rifts[ri]
 	to := unOther(r, g.W.uniIdx, fromBurg)
+	pltRiftWarnMsg(g, ri)
 	if !g.UnGo(to.Planet, to.Burg) {
 		g.Mode = "main"
 		g.Msg("The rift gutters and closes. Nothing happens.")

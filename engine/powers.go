@@ -38,6 +38,7 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.bcAbilities()...)
 	out = append(out, g.alAbilities()...)
 	out = append(out, g.ssAbilities()...)
+	out = append(out, g.nsAbilities()...)
 	out = append(out, g.gmAbilities()...)
 	out = append(out, g.arAbilities()...)
 	out = append(out, g.lvAbilities()...)
@@ -47,6 +48,8 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.ggAbilities()...)
 	out = append(out, g.knAbilities()...)
 	out = append(out, g.mxAbilities()...)
+	out = append(out, g.dlAbilities()...)
+	out = append(out, g.csAbilities()...)
 	out = append(out, g.wpAbilities()...)
 	out = append(out, g.lxAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
@@ -100,12 +103,19 @@ func (g *Game) powerLevel(id string, it *Item) int {
 
 // usePower resolves an active power at a target tile (or a direction for dir powers).
 func (g *Game) usePower(id string, it *Item, tx, ty int) {
+	if strings.HasPrefix(id, "cs_") { // stances and techniques (stances.go)
+		g.csUse(id, tx, ty)
+		return
+	}
 	if strings.HasPrefix(id, "ar_") { // researched powers, pacts (arcane.go)
 		g.arUse(id, tx, ty)
 		return
 	}
 	if strings.HasPrefix(id, "gm_") { // busking and instruments (games.go)
 		g.gmUse(id, tx, ty)
+		return
+	}
+	if strings.HasPrefix(id, "ns_") && g.nsUse(id) { // noise and scent (senses.go)
 		return
 	}
 	if strings.HasPrefix(id, "ss_") { // stealth abilities (stealth.go)
@@ -130,6 +140,10 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 	}
 	if id == "hm_display" { // display cases and museums (display.go)
 		g.hmAbUse(id)
+		return
+	}
+	if id == "dl_view" { // deadlines (deadlines.go)
+		g.dlAbUse(id)
 		return
 	}
 	if id == "ln_mail" { // letters (letters.go)

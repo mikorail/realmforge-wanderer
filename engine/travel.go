@@ -57,7 +57,7 @@ func (g *Game) tvPace(p int) float64 {
 	if g.W.Height[p] >= 70 {
 		pace *= 0.5
 	}
-	return pace * (1 + 0.08*float64(g.Skills["survival"])) * g.trPaceMul(p) // mounts and carts (transport.go)
+	return pace * (1 + 0.08*float64(g.Skills["survival"])) * g.trPaceMul(p) / pltTravelMul(g) // mounts and carts (transport.go), heavy worlds (planettraits.go)
 }
 
 // tvMinutes is how long crossing into parasang p takes (turns are minutes).

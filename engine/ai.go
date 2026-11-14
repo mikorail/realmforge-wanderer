@@ -249,6 +249,9 @@ func (g *Game) aiAct(a *Actor) {
 		g.wander(a)
 		return
 	}
+	if g.bwAct(a) { // boss phases, tactics (foes.go)
+		return
+	}
 	if g.companionAct(a) {
 		return
 	}
@@ -264,7 +267,7 @@ func (g *Game) aiAct(a *Actor) {
 	best := 1 << 20
 	if g.Hostile(a) && a.AI != "follower" && g.ssNotices(a) { // stealth (stealth.go)
 		dd := dist(a, p)
-		if dd < 30 && (g.visible(a.X, a.Y) || dd < 6 || g.caScentNotice(a)) {
+		if dd < 30 && (g.visible(a.X, a.Y) || dd < 6 || g.caScentNotice(a) || g.nsScentNotice(a)) {
 			tgt, best = p, dd
 		}
 	}
@@ -287,6 +290,9 @@ func (g *Game) aiAct(a *Actor) {
 		return
 	}
 	if tgt == nil {
+		if g.nsInvestigate(a) { // heard or smelled the player (senses.go)
+			return
+		}
 		switch a.AI {
 		case "follower":
 			if dist(a, p) > 2 {

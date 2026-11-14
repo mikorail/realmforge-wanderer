@@ -787,6 +787,7 @@ func (g *Game) price(it *Item, buy bool) int {
 		f *= g.ijPriceMod()              // double prices (challenges.go)
 		f *= g.cjPriceMod(g.Talk)        // staff discounts (cityjobs.go)
 		f *= hmPriceMod(g, g.Talk, true) // museum patron discount (museum.go)
+		f *= pltPriceMod(g, true)        // trade-hub worlds (planettraits.go)
 		if f < 0.75 {
 			f = 0.75
 		}
@@ -803,6 +804,7 @@ func (g *Game) price(it *Item, buy bool) int {
 	}
 	f *= clPriceMod(g, g.Talk, it)    // curio dealers and fences pay more for small things (clutter.go)
 	f *= hmPriceMod(g, g.Talk, false) // displayed sets (display.go)
+	f *= pltPriceMod(g, false)        // trade-hub worlds (planettraits.go)
 	return maxi(1, int(float64(v)*f*g.lqPriceFactor(false)))
 }
 

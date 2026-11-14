@@ -49,7 +49,7 @@ func (g *Game) skillLv(a *Actor, s string) int {
 func (g *Game) swing(a, d *Actor, w *Item) {
 	sk := g.skillLv(a, w.Skill)
 	roll := g.R.Int(1, 20)
-	hit := roll + a.M(AGI) + sk + skStatusToHit(a) + wpHitMod(a, d, w) + g.tcFlankBonus(a, d) + g.tcHighGroundBonus(a, d) + g.ggHitBonus(a, w)
+	hit := roll + a.M(AGI) + sk + skStatusToHit(a) + wpHitMod(a, d, w) + g.tcFlankBonus(a, d) + g.tcHighGroundBonus(a, d) + g.ggHitBonus(a, w) + g.csHitMod(a, d, w)
 	if a.St("confused") > 0 {
 		hit -= 4
 	}
@@ -62,6 +62,10 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 		if a == g.P || d == g.P {
 			g.Msg(fmt.Sprintf("%s %s %s.", g.The(a), verb(a == g.P, "miss", "misses"), g.the(d)))
 		}
+		g.csOnMiss(a, d)
+		return
+	}
+	if g.csDefend(d, a, w, false) {
 		return
 	}
 	if g.wpBlock(a, d, w, false) {
@@ -86,8 +90,10 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 		dmg += g.R.Dice(maxi(w.DN, 1), maxi(w.DS, 1)) + w.DB
 	}
 	dmg += g.categoryBonusDamage(w, d)
-	dmg += g.ggDamageBonus(a, w)            // heirloom gear (gearlore.go)
-	dmg += dmg * g.ssSneakBonus(a, d) / 100 // sneak attacks (stealth.go)
+	dmg += g.ggDamageBonus(a, w)                        // heirloom gear (gearlore.go)
+	dmg += g.csDmgMod(a, d, w)                          // stances (stances.go)
+	dmg = g.bwDamageMod(d, a, bwTypeOf(w, w.Name), dmg) // resistances (foes.go)
+	dmg += dmg * g.ssSneakBonus(a, d) / 100             // sneak attacks (stealth.go)
 	if a.St("mighty") > 0 {
 		dmg += 2
 	}
@@ -103,11 +109,13 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 		g.Msg(fmt.Sprintf("%s %s %s (x%d) for {{%s|%d}} damage with %s.%s", g.The(a), verb(a == g.P, "hit", "hits"), g.the(d), pens, col, dmg, w.Name, critS))
 	}
 	g.hurt(d, dmg, a, w.Name)
+	g.bwOnHit(a, d, dmg)
 	if d.HP <= 0 {
 		return
 	}
 	g.onHit(a, d, w, crit, sk)
 	g.alOnHit(a, d, w) // poisoned weapons (alchemy.go)
+	g.csOnHit(a, d, w, crit, sk)
 }
 
 func (g *Game) onHit(a, d *Actor, w *Item, crit bool, sk int) {
@@ -236,6 +244,7 @@ func (g *Game) hurt(d *Actor, n int, src *Actor, cause string) {
 		return
 	}
 	d.HP -= n
+	g.csOnHurt(d, n, src)
 	if d == g.P {
 		g.ijOnHurt(d, n, src, cause) // permanent injuries (injuries.go)
 	}
@@ -394,6 +403,7 @@ func line(x0, y0, x1, y1 int) [][2]int {
 
 // shoot fires a missile weapon along a line, hitting the first creature.
 func (g *Game) shoot(a *Actor, tx, ty int, w *Item) {
+	g.nsShot(a, w)
 	path := line(a.X, a.Y, tx, ty)
 	rng := w.Range
 	if a == g.P {
@@ -420,12 +430,15 @@ func (g *Game) shoot(a *Actor, tx, ty int, w *Item) {
 			continue
 		}
 		roll := g.R.Int(1, 20)
-		hit := roll + a.M(AGI) + g.skillLv(a, wpShotSkill(w)) - i/4 - g.weatherMissile(a) + wpShotHit(a, w) + g.tcHighGroundBonus(a, d) + g.tcWeatherRangedMod() - g.tcCoverBonus(d, a)
+		hit := roll + a.M(AGI) + g.skillLv(a, wpShotSkill(w)) - i/4 - g.weatherMissile(a) + wpShotHit(a, w) + g.tcHighGroundBonus(a, d) + g.tcWeatherRangedMod() - g.tcCoverBonus(d, a) + g.csHitMod(a, d, w)
 		if roll != 20 && hit < d.DV() {
 			if a == g.P || d == g.P {
 				g.Msg(fmt.Sprintf("%s %s %s.", g.The(a), verb(a == g.P, "miss", "misses"), g.the(d)))
 			}
 			continue
+		}
+		if g.csDefend(d, a, w, true) {
+			return
 		}
 		if g.wpBlock(a, d, w, true) {
 			return
@@ -443,6 +456,7 @@ func (g *Game) shoot(a *Actor, tx, ty int, w *Item) {
 		}
 		g.Msg(fmt.Sprintf("%s %s %s (x%d) for {{R|%d}} damage.", g.The(a), verb(a == g.P, "shoot", "shoots"), g.the(d), pens, dmg))
 		g.hurt(d, dmg, a, w.Name)
+		g.csOnShot(a, d, w)
 		return
 	}
 }

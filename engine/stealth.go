@@ -234,6 +234,7 @@ func (g *Game) ssNotices(a *Actor) bool {
 		aware += 4
 	}
 	score := g.R.Dice(2, 6) + aware + 6 - d/2
+	score += g.nsNoticeBonus(a, d) // noise and scent (senses.go)
 	if score >= g.R.Dice(2, 6)+g.ssMod()+3 {
 		g.ssSpot(a, d)
 		return true

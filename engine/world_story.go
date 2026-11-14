@@ -478,6 +478,7 @@ func (g *Game) wyStarMapLines() []string {
 			lines = append(lines, fmt.Sprintf("  Ø %s: %s <-> %s %s", rf.Name, aName, bName, status))
 		}
 	}
+	lines = append(lines, pltStarMapLines(g)...) // planet traits (planettraits.go)
 	return lines
 }
 
@@ -491,6 +492,8 @@ func wyStarMapKey(g *Game, k string) {
 		g.Sel = clampi(g.Sel-1, 0, n-1)
 	case "Down", "N2", "j":
 		g.Sel = clampi(g.Sel+1, 0, n-1)
+	case "s":
+		pltScanSelected(g)
 	}
 }
 
