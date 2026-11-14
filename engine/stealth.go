@@ -736,7 +736,17 @@ func ssTurn(g *Game) {
 				kept = append(kept, m)
 			}
 		}
-		st.Trails[z.Key] = kept
+		if len(kept) == 0 {
+			delete(st.Trails, z.Key)
+		} else {
+			st.Trails[z.Key] = kept
+		}
+		// tracks in zones left behind fade too (save size)
+		for k, tr := range st.Trails {
+			if k != z.Key && (len(tr) == 0 || g.Turn-tr[len(tr)-1].T > 1500) {
+				delete(st.Trails, k)
+			}
+		}
 	}
 	g.ssDisguiseTick()
 	st.Hint = g.ssTrailHint()

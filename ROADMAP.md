@@ -66,6 +66,8 @@
 
 - Crossroads dilemma cards, karma ledger and oaths (`crossroads.go`, `karma.go`); end-of-life saga with journey map (`saga.go`, `src/Saga.svelte`); languages per culture (`languages.go`); heirloom gear, provenance and reforging (`gearlore.go`); weather, light, shadows and tooltips in sprite mode (`fxinfo.go`, `src/effects.ts`, `src/Tooltip.svelte`); challenge modifiers, permanent injuries and sleep and fatigue (`challenges.go`, `injuries.go`, `fatigue.go`).
 
+- Wave A: command palette on `;` (`palette.go`), talk menu hub with grouped submenus (`talkhub.go`), 26 first-time hints (`hints2.go`), wiring-left items (rival hoard races, trade goods pricing, banned goods, cliff glider, footprints, night sight, predator nest range), a static crash review of the newest systems.
+
 ## Planned / ideas
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
 
@@ -138,11 +140,6 @@
 - Run to saga: at the end of a life, a generated saga in the voice of a skald, chronicler or bard with chapters, a map of the journey, quotes from NPCs, and the lasting legend of the character in the world.
 - Dreams, visions and prophecies that foreshadow real future events of the run and resolve in unexpected ways.
 
-**Fixing growing pains** (next up)
-- Command palette: one key opens a type-to-find list that jumps to any screen or ability ("brew", "places", "hack"), since about 25 screens now sit on different keys (`F4` `F5` `F6` `F7` `F8` `F9` `F10` `/` and many letters).
-- Talk menu hub: a short opening list (Chat, Trade, Services, Ask about, Social, Quests) with each group opening its own short list, so the dialogue window stops listing 20 or more options at once.
-- First-time hints for the newest systems, shown once when you first meet them (first locked door, first foreign language, first crossroads card, first hack).
-
 **More from the life simulation**
 - Quests that people give you, built from their real goals ("find my missing husband", "collect a debt", "carry this letter", "take revenge on my rival"), with outcomes that change their life.
 - Letters and messengers: friends, family and rivals write to you and the letters arrive days later with news, requests, warnings or invitations, even across planets.
@@ -158,9 +155,6 @@
 
 **Under the hood**
 - Smaller saves (drop unvisited zone data), faster zone generation on slow machines, shareable world cards.
-
-**Wiring left from the life-systems wave**
-- Rivals racing you to buried hoards (`buDigSites`, `buRivalLoot`) and the endgame culling rivals (`rvCull`); merchants valuing trade goods in `price()` and honest merchants refusing banned goods; the in-zone cliff launch for gliders; footprint tiles on the map (`ssTrailAt`); night-sight reading `alnight`; researched powers for companions and the sandbox; predator nest range; `fmHeir` wired to a legacy run.
 
 ### Plan and estimate (written Nov 2026)
 **Unit of work.** One agent run builds one file-sized feature (about 1,000 to 2,000 lines) and costs about 150k to 250k tokens. A wave is 4 to 6 agents in parallel, about 20 to 40 minutes, plus 10 to 20 minutes of wiring, rebuild and commit. The 5-hour usage window has held about 8 to 10 agent runs, so plan for about 1.5 waves per window.

@@ -114,7 +114,13 @@ func (g *Game) Key(k string) Out {
 		}
 		g.Pend = ""
 	case "talk":
-		g.keyMenu(k, func() { g.Mode = "main"; g.Talk = nil })
+		g.keyMenu(k, func() {
+			if g.th2Esc() {
+				return
+			}
+			g.Mode = "main"
+			g.Talk = nil
+		})
 	case "comp":
 		g.keyMenu(k, func() { g.Mode = "main" })
 	case "trade":
@@ -170,7 +176,7 @@ func (g *Game) Key(k string) Out {
 	default:
 		if h, ok := modeKeys[g.Mode]; ok {
 			h(g, k)
-			return out
+			return paTakeOut(g, out)
 		}
 		out = g.keyMain(k)
 	}

@@ -1222,6 +1222,9 @@ func (g *Game) bsAct(a *Actor) bool {
 	p := g.P
 	dp := dist(a, p)
 	if s.Hostile() {
+		if a.Has("ntpar") && !a.Angry && dp > 6 {
+			return true // nest parents (nests.go) only turn on you within 6 tiles unless provoked
+		}
 		if dp <= 10 || a.Angry {
 			return false
 		}

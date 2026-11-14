@@ -196,6 +196,11 @@ func init() {
 						ids = append(ids, p.ID)
 					}
 				}
+				for id := range g.ar().Powers { // researched powers you hold (arcane.go)
+					if g.P.Powers["ar_"+id] > 0 {
+						ids = append(ids, "ar_"+id)
+					}
+				}
 				return strings.Join(ids, " ")
 			}
 			n := 1

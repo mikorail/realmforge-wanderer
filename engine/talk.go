@@ -168,6 +168,7 @@ func (g *Game) talkMenu(text string) {
 	}
 	g.lxTrimOpts(a) // a foreign tongue limits what you can say (languages.go)
 	add("Goodbye.", func() { g.Mode = "main"; g.Talk = nil })
+	g.th2Apply() // long lists become a hub of grouped submenus (talkhub.go)
 	g.Sel = 0
 }
 

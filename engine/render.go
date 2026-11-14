@@ -858,7 +858,7 @@ func (g *Game) drawHelp() {
 		"Cities are several zones wide: market, harbor, temple, scholars, barracks, arena, forges. Trainers teach skills for coin; the arena master pays for bouts.",
 		"",
 		"{{Y|Screens}}  {{W|i}} inventory  {{W|c}} character  {{W|j}} journal  {{W|r}} reputation  {{W|m}} log  {{W|x}} look  {{W|T}} craft  {{W|g}} pick up",
-		"{{W|T}} workbench  {{W|C}} cook  {{W|o}} companions  {{W|O}} orders  {{W|W}} war  {{W|H}} home/stash  {{W|F3}} return home  {{W|F2}} sandbox  {{W|/}} cheat console  {{W|`}} settings",
+		"{{W|T}} workbench  {{W|C}} cook  {{W|o}} companions  {{W|O}} orders  {{W|W}} war  {{W|H}} home/stash  {{W|F3}} return home  {{W|F2}} sandbox  {{W|/}} cheat console  {{W|`}} settings  {{W|;}} command palette",
 		"{{W|S}} save · {{W|Esc}} save and return to the chronicle. Slain legends and recovered relics are written into Realmforge's history.",
 	}
 	for _, l := range help {
