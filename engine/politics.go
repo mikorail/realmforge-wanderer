@@ -89,10 +89,43 @@ type poState struct {
 func (g *Game) po() *poState {
 	s := g.ext("po", func() any { return &poState{} }).(*poState)
 	if s.Office == nil {
-		s.Office, s.Done, s.Stand = map[int]int{}, map[int]int{}, map[int]int{}
-		s.Fav, s.Hit, s.Back = map[string]int{}, map[string]int{}, map[int]string{}
-		s.Dirt, s.Dead, s.Ruler = map[int]int{}, map[int]int{}, map[int]string{}
-		s.Crises, s.Peace, s.Aud, s.Paid = map[int]*poCrisis{}, map[string]int{}, map[int]int{}, map[int]int{}
+		s.Office = map[int]int{}
+	}
+	if s.Done == nil {
+		s.Done = map[int]int{}
+	}
+	if s.Stand == nil {
+		s.Stand = map[int]int{}
+	}
+	if s.Fav == nil {
+		s.Fav = map[string]int{}
+	}
+	if s.Hit == nil {
+		s.Hit = map[string]int{}
+	}
+	if s.Back == nil {
+		s.Back = map[int]string{}
+	}
+	if s.Dirt == nil {
+		s.Dirt = map[int]int{}
+	}
+	if s.Dead == nil {
+		s.Dead = map[int]int{}
+	}
+	if s.Ruler == nil {
+		s.Ruler = map[int]string{}
+	}
+	if s.Crises == nil {
+		s.Crises = map[int]*poCrisis{}
+	}
+	if s.Peace == nil {
+		s.Peace = map[string]int{}
+	}
+	if s.Aud == nil {
+		s.Aud = map[int]int{}
+	}
+	if s.Paid == nil {
+		s.Paid = map[int]int{}
 	}
 	if s.Office == nil || s.Dirt == nil || s.Crises == nil || s.Peace == nil || s.Hit == nil || s.Back == nil || s.Ruler == nil || s.Dead == nil || s.Aud == nil || s.Paid == nil || s.Fav == nil || s.Done == nil || s.Stand == nil {
 		if s.Office == nil {

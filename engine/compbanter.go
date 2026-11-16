@@ -40,7 +40,25 @@ type cbState struct {
 func (g *Game) cb() *cbState {
 	st := g.ext("cb", func() any { return &cbState{} }).(*cbState)
 	if st.Last == nil {
-		st.Last, st.Quip, st.Seen, st.Lvl, st.Meal, st.Feast, st.Low = map[int]int{}, map[int]int{}, map[string]bool{}, map[int]int{}, map[int]int{}, map[int]int{}, map[int]bool{}
+		st.Last = map[int]int{}
+	}
+	if st.Quip == nil {
+		st.Quip = map[int]int{}
+	}
+	if st.Seen == nil {
+		st.Seen = map[string]bool{}
+	}
+	if st.Lvl == nil {
+		st.Lvl = map[int]int{}
+	}
+	if st.Meal == nil {
+		st.Meal = map[int]int{}
+	}
+	if st.Feast == nil {
+		st.Feast = map[int]int{}
+	}
+	if st.Low == nil {
+		st.Low = map[int]bool{}
 	}
 	if st.Said == nil {
 		st.Said = map[int]string{}

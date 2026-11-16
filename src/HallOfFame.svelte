@@ -2,6 +2,8 @@
 	/** Title-screen hall of fame: past lives by score, filter by world, delete, export, share. */
 	import { onMount } from 'svelte';
 	import Saga from './Saga.svelte';
+	import Replay from './Replay.svelte';
+	import { listReplays } from './replay';
 	import { listHall, deleteHall, exportHall, shareText, type HallEntry } from './halloffame';
 
 	let { onclose }: { onclose: () => void } = $props();
@@ -10,11 +12,18 @@
 	let open = $state('');
 	let note = $state('');
 	let reading = $state<HallEntry | null>(null);
+	let rpId = $state('');
+	let rpHas = $state<Set<string>>(new Set());
 	const worlds = $derived([...new Set(all.map((e) => e.world))]);
 	const shown = $derived(world ? all.filter((e) => e.world === world) : all);
 
 	onMount(async () => {
 		all = await listHall();
+		try {
+			rpHas = new Set((await listReplays()).map((m) => m.id));
+		} catch {
+			// no replay store: the buttons stay hidden
+		}
 	});
 
 	async function del(e: HallEntry) {
@@ -32,7 +41,7 @@
 		}
 	}
 	function onkey(ev: KeyboardEvent) {
-		if (reading) return;
+		if (reading || rpId) return;
 		if (ev.key === 'Escape') onclose();
 	}
 </script>
@@ -60,6 +69,7 @@
 				<span class="dim">— {e.world}, {e.retired ? 'retired' : 'fell'} year {e.yearEnd}{e.seedText ? ` · seed ${e.seedText}` : ''}</span>
 			</button>
 			{#if e.saga}<button onclick={() => (reading = e)} title="Read the saga of {e.name}">Saga</button>{/if}
+			{#if rpHas.has(e.id)}<button onclick={() => (rpId = e.id)} title="Watch the life of {e.name} again">Replay</button>{/if}
 			<button onclick={() => share(e)} title="Copy seed and score" aria-label="Share {e.name}">Share</button>
 			<button class="x" onclick={() => del(e)} aria-label="Remove {e.name}">✕</button>
 		</div>
@@ -78,6 +88,9 @@
 		{/if}
 	{/each}
 </section>
+{#if rpId}
+	<Replay id={rpId} onclose={() => (rpId = '')} />
+{/if}
 {#if reading?.saga}
 	<Saga saga={reading.saga} onclose={() => (reading = null)} />
 {/if}

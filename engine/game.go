@@ -313,6 +313,7 @@ func NewGame(w *WorldData, spec CharSpec) *Game {
 	g.ijApply(spec)       // challenge modifiers (challenges.go)
 	pqApply(g, spec.Mods) // play modes (pets.go)
 	g.recompute()
+	g.rpBegin(spec) // replay log (replay.go)
 	return g
 }
 

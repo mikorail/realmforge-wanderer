@@ -49,6 +49,10 @@ func letterIndex(k string) int {
 }
 
 func (g *Game) Key(k string) Out {
+	defer g.rpEnter(k)()              // replay log, outermost call only (replay.go)
+	if strings.HasPrefix(k, "ctx:") { // a context-menu action, sent as a key so replays record it (ctxmenu.go)
+		return g.cmKey(k)
+	}
 	var out Out
 	defer func() {
 		if g.Sel < 0 {

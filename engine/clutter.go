@@ -236,7 +236,13 @@ func clL(g *Game) *clLocal {
 func clG(g *Game) *clGlobal {
 	s := g.ext("clg", func() any { return &clGlobal{} }).(*clGlobal)
 	if s.Done == nil {
-		s.Done, s.Found, s.Firsts = map[string]int{}, map[string]bool{}, map[string]bool{}
+		s.Done = map[string]int{}
+	}
+	if s.Found == nil {
+		s.Found = map[string]bool{}
+	}
+	if s.Firsts == nil {
+		s.Firsts = map[string]bool{}
 	}
 	return s
 }

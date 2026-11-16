@@ -5,6 +5,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"syscall/js"
 
 	"wanderer/engine"
@@ -13,10 +14,13 @@ import (
 var (
 	world *engine.WorldData
 	game  *engine.Game
+	rp    *engine.RpPlayer // replay viewer's own game (engine/replay.go)
 )
 
-func frame(out engine.Out) any {
-	s := game.Render()
+func frame(out engine.Out) any { return frameOf(game, out) }
+
+func frameOf(g *engine.Game, out engine.Out) any {
+	s := g.Render()
 	fg := make([]byte, len(s.F))
 	bg := make([]byte, len(s.B))
 	for i := range s.F {
@@ -25,13 +29,13 @@ func frame(out engine.Out) any {
 	}
 	fr := map[string]any{
 		"w": engine.SW, "h": engine.SH, "g": string(s.G), "f": string(fg), "b": string(bg),
-		"save": out.Save, "exit": out.Exit, "dead": game.Dead, "mode": game.Mode,
-		"music": musicJS(game.MusicState()), "actors": actorsJS(game.SpriteActors()),
+		"save": out.Save, "exit": out.Exit, "dead": g.Dead, "mode": g.Mode,
+		"music": musicJS(g.MusicState()), "actors": actorsJS(g.SpriteActors()), "rpHl": g.ReplayHL(),
 	}
-	if pi := game.Portrait(); pi != nil { // speaker or paper doll rectangle (engine/portraits.go)
+	if pi := g.Portrait(); pi != nil { // speaker or paper doll rectangle (engine/portraits.go)
 		fr["portrait"] = map[string]any{"x": pi.X, "y": pi.Y, "w": pi.W, "h": pi.H, "kind": pi.Kind, "actor": actorsJS([]engine.SprActor{pi.Actor}).([]any)[0]}
 	}
-	if fx := game.FxInfo(); fx != nil {
+	if fx := g.FxInfo(); fx != nil {
 		fr["fx"] = fxJS(fx)
 	}
 	return fr
@@ -104,6 +108,12 @@ func musicJS(m engine.Music) any {
 		"wx": m.Wx, "season": m.Season, "bolt": m.Bolt, "sphere": m.Sphere, "feast": m.Feast, "combat": m.Combat, "planet": m.Planet, "doom": m.Doom}
 }
 
+func rpFrame() any {
+	f := frameOf(rp.Game(), engine.Out{}).(map[string]any)
+	f["info"] = rp.Info()
+	return f
+}
+
 func errObj(err error) any { return map[string]any{"error": err.Error()} }
 
 func main() {
@@ -140,7 +150,13 @@ func main() {
 		if game == nil {
 			return nil
 		}
-		return frame(game.Key(a[0].String()))
+		game.SfxBegin()
+		fr := frame(game.Key(a[0].String()))
+		if m, ok := fr.(map[string]any); ok {
+			m["sfx"] = game.SfxEnd()
+			m["sfxs"] = game.SfxScene()
+		}
+		return fr
 	})
 	api["frame"] = js.FuncOf(func(this js.Value, a []js.Value) any {
 		if game == nil {
@@ -190,6 +206,106 @@ func main() {
 			game.HFSetLegends(l)
 		}
 		return nil
+	})
+	// replays (engine/replay.go)
+	api["replay"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if game == nil {
+			return ""
+		}
+		return game.ReplayData()
+	})
+	api["replayRestore"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if game == nil {
+			return "no game"
+		}
+		if err := game.ReplayRestore(a[0].String()); err != nil {
+			return err.Error()
+		}
+		return ""
+	})
+	api["replayHl"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if game == nil {
+			return ""
+		}
+		return game.ReplayLastHl()
+	})
+	api["replayOpen"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if rp != nil {
+			rp.Close()
+			rp = nil
+		}
+		p, err := engine.NewReplayPlayer(a[0].String(), a[1].String())
+		if err != nil {
+			return errObj(err)
+		}
+		rp = p
+		return rpFrame()
+	})
+	api["replayStep"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if rp == nil {
+			return nil
+		}
+		for i := 0; i < a[0].Int() && rp.Step(); i++ {
+		}
+		return rpFrame()
+	})
+	api["replayTo"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if rp == nil {
+			return nil
+		}
+		if err := rp.StepTo(a[0].Int()); err != nil {
+			return errObj(err)
+		}
+		return rpFrame()
+	})
+	api["replayHighlight"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if rp == nil {
+			return nil
+		}
+		rp.JumpHighlight(a[0].Int())
+		return rpFrame()
+	})
+	api["replayRestart"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if rp == nil {
+			return nil
+		}
+		if err := rp.Restart(); err != nil {
+			return errObj(err)
+		}
+		return rpFrame()
+	})
+	api["replayClose"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if rp != nil {
+			rp.Close()
+			rp = nil
+		}
+		return nil
+	})
+	// right-click context menu (engine/ctxmenu.go)
+	api["ctx"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if game == nil {
+			return "[]"
+		}
+		it := game.CtxMenu(a[0].Int(), a[1].Int())
+		if it == nil {
+			it = []engine.CtxItem{}
+		}
+		b, _ := json.Marshal(it)
+		return string(b)
+	})
+	api["ctxDo"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if game == nil {
+			return nil
+		}
+		// sent as a key so the replay log records it
+		return frame(game.Key(fmt.Sprintf("ctx:%s:%d:%d", a[0].String(), a[1].Int(), a[2].Int())))
+	})
+	api["ctxAt"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if game == nil {
+			return ""
+		}
+		x, y := game.CtxCursor()
+		return fmt.Sprintf("%d,%d", x, y)
 	})
 	js.Global().Set("qud", js.ValueOf(api))
 	js.Global().Call("dispatchEvent", js.Global().Get("Event").New("qud-ready"))

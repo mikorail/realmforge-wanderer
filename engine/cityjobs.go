@@ -42,13 +42,29 @@ func (g *Game) cj() *cjState {
 	st := g.ext("cj", func() any { return &cjState{} }).(*cjState)
 	if st.Shifts == nil {
 		st.Shifts = map[string]int{}
+	}
+	if st.Rank == nil {
 		st.Rank = map[string]int{}
+	}
+	if st.Hired == nil {
 		st.Hired = map[string]bool{}
+	}
+	if st.Last == nil {
 		st.Last = map[string]int{}
+	}
+	if st.Practice == nil {
 		st.Practice = map[string]int{}
+	}
+	if st.Perk == nil {
 		st.Perk = map[string]int{}
+	}
+	if st.Seen == nil {
 		st.Seen = map[string]bool{}
+	}
+	if st.Spawned == nil {
 		st.Spawned = map[string]int{}
+	}
+	if st.Fined == nil {
 		st.Fined = map[string]int{}
 	}
 	return st

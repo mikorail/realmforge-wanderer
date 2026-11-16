@@ -26,9 +26,21 @@ type acState struct {
 
 func (g *Game) ac() *acState {
 	st := g.ext("ac", func() any { return &acState{} }).(*acState)
+	// each map on its own: an empty one is dropped from the save and comes back nil
 	if st.Done == nil {
-		st.Done, st.C, st.K = map[string]int{}, map[string]int{}, map[string]int{}
-		st.Planets, st.Zones = map[int]bool{}, map[string]bool{}
+		st.Done = map[string]int{}
+	}
+	if st.C == nil {
+		st.C = map[string]int{}
+	}
+	if st.K == nil {
+		st.K = map[string]int{}
+	}
+	if st.Planets == nil {
+		st.Planets = map[int]bool{}
+	}
+	if st.Zones == nil {
+		st.Zones = map[string]bool{}
 	}
 	return st
 }

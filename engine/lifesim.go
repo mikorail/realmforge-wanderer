@@ -81,22 +81,56 @@ func lsSt(g *Game) *lsState {
 	s := g.ext("ls", func() any { return &lsState{} }).(*lsState)
 	if s.Last == nil {
 		s.Last = map[string]int{}
+	}
+	if s.Sick == nil {
 		s.Sick = map[string]lsSick{}
+	}
+	if s.Mourn == nil {
 		s.Mourn = map[string]int{}
+	}
+	if s.Court == nil {
 		s.Court = map[string]int{}
+	}
+	if s.Wooing == nil {
 		s.Wooing = map[string]string{}
+	}
+	if s.Preg == nil {
 		s.Preg = map[string]int{}
+	}
+	if s.Jail == nil {
 		s.Jail = map[string]int{}
+	}
+	if s.Mig == nil {
 		s.Mig = map[string]bool{}
+	}
+	if s.From == nil {
 		s.From = map[string]int{}
+	}
+	if s.Feud == nil {
 		s.Feud = map[string]*lsFeud{}
+	}
+	if s.Avenge == nil {
 		s.Avenge = map[string]string{}
+	}
+	if s.Crim == nil {
 		s.Crim = map[string]int{}
+	}
+	if s.Rec == nil {
 		s.Rec = map[string]int{}
+	}
+	if s.GoalD == nil {
 		s.GoalD = map[string]int{}
+	}
+	if s.Vacant == nil {
 		s.Vacant = map[int][]string{}
+	}
+	if s.Chg == nil {
 		s.Chg = map[int][]lsChg{}
+	}
+	if s.Seen == nil {
 		s.Seen = map[int]int{}
+	}
+	if s.Notes == nil {
 		s.Notes = map[string]bool{}
 	}
 	// maps may be missing after loading a save that omitted empty ones

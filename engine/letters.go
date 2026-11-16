@@ -151,8 +151,14 @@ func lnl(g *Game) *lnlState {
 	s := g.ext("lnl", func() any { return &lnlState{} }).(*lnlState)
 	if s.Last == nil {
 		s.Last = map[string]int{}
+	}
+	if s.Seen == nil {
 		s.Seen = map[string]string{}
+	}
+	if s.Rep == nil {
 		s.Rep = map[string]int{}
+	}
+	if s.Crier == nil {
 		s.Crier = map[int]int{}
 	}
 	return s

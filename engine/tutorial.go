@@ -5,7 +5,7 @@ package engine
 // Never flag). Steps are detected by polling real state from the turn and sidebar hooks (every render),
 // so no other file has to cooperate. While it runs, the hints.go / hints2.go tips it already covers
 // are marked shown, so both systems never fire the same tip; skipping the guide gives them back.
-// F12, the palette ("Tutorial") or the console command `tutorial` opens the menu: skip step / skip all.
+// The palette ("Tutorial guide") or the console command `tutorial` opens the menu: skip step / skip all.
 
 import (
 	"fmt"
@@ -69,7 +69,7 @@ func tuSide(g *Game) []string {
 	if !st.On || st.Done || g.P == nil || st.Step >= len(tuSteps) {
 		return nil
 	}
-	out := []string{fmt.Sprintf("{{c|Guide %d/%d}} {{K|F12 menu}}", st.Step+1, len(tuSteps))}
+	out := []string{fmt.Sprintf("{{c|Guide %d/%d}} {{K|; palette: Tutorial guide}}", st.Step+1, len(tuSteps))}
 	for _, l := range Wrap(tuSteps[st.Step].Obj, 29) {
 		out = append(out, "{{Y|"+l+"}}")
 	}
@@ -225,7 +225,7 @@ func tuAdvance(g *Game, st *tuState) {
 	st.BSet = 0
 	if st.Step >= len(tuSteps) {
 		st.Done = true
-		g.Msg("{{G|Guide: that is the whole first hour. Good luck out there. (F12 reopens the guide menu.)}}")
+		g.Msg("{{G|Guide: that is the whole first hour. Good luck out there. (The palette, ;, reopens the guide menu.)}}")
 		return
 	}
 	tuBase(g, st)
@@ -284,7 +284,7 @@ func tuOffer(g *Game) {
 	st := g.tu()
 	st.Offered = true
 	tuOpen(g, "Guide",
-		"Would you like a gentle guided first hour? A short list of small tasks (move, look, talk, buy, equip, fight, rest, journal, map, quests, powers, palette) shown in the sidebar, each detected as you do it. You can skip any step, or stop at any time with F12.",
+		"Would you like a gentle guided first hour? A short list of small tasks (move, look, talk, buy, equip, fight, rest, journal, map, quests, powers, palette) shown in the sidebar, each detected as you do it. You can skip any step, or stop at any time from the palette (; then type tutorial).",
 		[]Option{
 			{"{{G|Yes, guide me.}}", func() { g.Mode = "main"; tuStart(g, g.tu(), 0) }},
 			{"{{K|Not now.}}", func() { g.Mode = "main" }},

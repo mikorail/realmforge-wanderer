@@ -1,5 +1,6 @@
 <script lang="ts">
 	/** Title → choose a world (bundled sample or a Realmforge export) → chargen → play. Saved runs continue from the title. */
+	import { replayResume, replayReset } from './replay';
 	import { onMount } from 'svelte';
 	import { loadQud, type QudApi, type QudFrame } from './qud';
 	import { listRuns, loadRun, deleteRun, type RunMeta } from './store';
@@ -140,6 +141,7 @@
 
 	function begin(spec: object) {
 		if (!api) return;
+		replayReset();
 		const f = api.newGame(JSON.stringify(spec));
 		if ('error' in f) return fail(f.error);
 		frame = f;
@@ -187,6 +189,7 @@
 			if (typeof opts !== 'string') throw new Error(opts.error);
 			const f = a.load(run.save);
 			if ('error' in f) throw new Error(f.error);
+			await replayResume(a, r.seed);
 			worldText = null;
 			frame = f;
 			phase = 'play';

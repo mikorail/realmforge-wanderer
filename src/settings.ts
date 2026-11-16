@@ -6,6 +6,7 @@ export const MUSIC_STYLES: MusicStyle[] = ['auto', 'drift', 'pastoral', 'desert'
 export type InstrumentFlavour = 'cultural' | 'chiptune';
 export type PaletteName = 'qud' | 'classic' | 'contrast';
 export type RenderStyle = 'sprites' | 'ascii';
+import { cleanKeymap } from './keymap';
 
 export interface Settings {
 	music: boolean;
@@ -36,6 +37,22 @@ export interface Settings {
 	showHints: boolean;
 	/** f / t fire at the best clear target at once; F aims by hand */
 	autoAim: boolean;
+	/** rebound keys: action id -> physical keys (src/keymap.ts); overrides only */
+	keymap: Record<string, string[]>;
+	gamepad: boolean;
+	gamepadRumble: boolean;
+	gamepadDeadzone: number;
+	gamepadRepeat: number;
+	/** synthesised event sounds: steps, hits, doors (src/gamesfx.ts) */
+	sfxEvents: boolean;
+	/** sprite mode: per-tile ground variants and wall edges (src/tilevariety.ts) */
+	tileVariety: boolean;
+	/** sprite mode: water shimmer, fire flicker, walk steps (src/spriteanim.ts) */
+	tileAnim: boolean;
+	/** right-click a map cell for a menu of actions */
+	contextMenu: boolean;
+	/** record keys so a finished run can be replayed */
+	recordReplay: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -55,6 +72,16 @@ export const DEFAULT_SETTINGS: Settings = {
 	autosaveEvery: 150,
 	showHints: true,
 	autoAim: true,
+	keymap: {},
+	gamepad: true,
+	gamepadRumble: false,
+	gamepadDeadzone: 0.3,
+	gamepadRepeat: 110,
+	sfxEvents: true,
+	tileVariety: true,
+	tileAnim: true,
+	contextMenu: true,
+	recordReplay: true,
 };
 
 export const SCALE_OPTIONS = [0.75, 1, 1.25, 1.5] as const;
@@ -97,6 +124,12 @@ function clean(raw: unknown): Settings {
 	if (typeof a === 'number' && (AUTOSAVE_OPTIONS as readonly number[]).includes(a)) s.autosaveEvery = a;
 	if (typeof r.showHints === 'boolean') s.showHints = r.showHints;
 	if (typeof r.autoAim === 'boolean') s.autoAim = r.autoAim;
+	if (typeof r.keymap === 'object' && r.keymap !== null) s.keymap = cleanKeymap(r.keymap);
+	for (const k of ['gamepad', 'gamepadRumble', 'sfxEvents', 'tileVariety', 'tileAnim', 'contextMenu', 'recordReplay'] as const) {
+		if (typeof r[k] === 'boolean') s[k] = r[k] as boolean;
+	}
+	if (typeof r.gamepadDeadzone === 'number' && Number.isFinite(r.gamepadDeadzone)) s.gamepadDeadzone = Math.min(0.7, Math.max(0.1, r.gamepadDeadzone));
+	if (typeof r.gamepadRepeat === 'number' && Number.isFinite(r.gamepadRepeat)) s.gamepadRepeat = Math.min(400, Math.max(50, r.gamepadRepeat));
 	return s;
 }
 

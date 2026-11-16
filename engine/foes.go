@@ -25,11 +25,23 @@ func (g *Game) bw() *bwState {
 	s := g.ext("bw", func() any { return &bwState{} }).(*bwState)
 	if s.Learn == nil {
 		s.Learn = map[string]map[string]int{}
+	}
+	if s.Known == nil {
 		s.Known = map[string]map[string]bool{}
+	}
+	if s.Tele == nil {
 		s.Tele = map[int]string{}
+	}
+	if s.Flee == nil {
 		s.Flee = map[int]int{}
+	}
+	if s.Guard == nil {
 		s.Guard = map[int]int{}
+	}
+	if s.Cool == nil {
 		s.Cool = map[int]int{}
+	}
+	if s.Last == nil {
 		s.Last = map[int]string{}
 	}
 	return s

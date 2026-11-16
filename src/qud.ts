@@ -61,6 +61,9 @@ export interface QudApi {
 	save(): string;
 	meta(): string;
 	/** host setting for the engine (anim, hints) */
+	ctx(x: number, y: number): string;
+	ctxDo(id: string, x: number, y: number): QudFrame | Err | null;
+	ctxAt(): string;
 	pref(key: string, on: boolean): void;
 	deeds(): string;
 	/** life summary + score (engine/halloffame.go) */

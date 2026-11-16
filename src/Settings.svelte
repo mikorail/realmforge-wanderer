@@ -1,6 +1,7 @@
 <script lang="ts">
 	/** Modal settings pane. Every change is passed up through onchange and applied live by the game screen. */
 	import { onMount } from 'svelte';
+	import KeyBindings from './KeyBindings.svelte';
 	import { AUTOSAVE_OPTIONS, SCALE_OPTIONS, type InstrumentFlavour, type MusicStyle, type PaletteName, type RenderStyle, type Settings } from './settings';
 
 	let { settings, onchange, onclose }: { settings: Settings; onchange: (s: Settings) => void; onclose: () => void } = $props();
@@ -10,6 +11,7 @@
 
 	onMount(() => firstControl?.focus());
 
+	let keysOpen = $state(false);
 	function set<K extends keyof Settings>(key: K, value: Settings[K]) {
 		onchange({ ...settings, [key]: value });
 	}
@@ -63,7 +65,7 @@
 <svelte:window
 	onkeydown={(e) => {
 		// Esc closes the pane even when focus has left it (the game screen ignores keys while it is open)
-		if (e.key === 'Escape') {
+		if (e.key === 'Escape' && !keysOpen) {
 			e.preventDefault();
 			onclose();
 		}
@@ -152,6 +154,11 @@
 			/>
 		</label>
 
+		<label class="row">
+			<span>Event sounds (steps, hits, doors)</span>
+			<input type="checkbox" checked={settings.sfxEvents} onchange={(e) => set('sfxEvents', e.currentTarget.checked)} />
+		</label>
+
 		<h3>Display</h3>
 		<label class="row">
 			<span>Map visuals</span>
@@ -186,8 +193,24 @@
 			<input type="checkbox" checked={settings.weatherFx} onchange={(e) => set('weatherFx', e.currentTarget.checked)} />
 		</label>
 		<label class="row">
+			<span>Tile variety (sprite mode)</span>
+			<input type="checkbox" checked={settings.tileVariety} onchange={(e) => set('tileVariety', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Animated tiles and walking (needs weather effects)</span>
+			<input type="checkbox" checked={settings.tileAnim} onchange={(e) => set('tileAnim', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
 			<span>Reduce motion</span>
 			<input type="checkbox" checked={settings.reduceMotion} onchange={(e) => set('reduceMotion', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Right-click menu on the map</span>
+			<input type="checkbox" checked={settings.contextMenu} onchange={(e) => set('contextMenu', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Record replays</span>
+			<input type="checkbox" checked={settings.recordReplay} onchange={(e) => set('recordReplay', e.currentTarget.checked)} />
 		</label>
 		<label class="row">
 			<span>Show hints</span>
@@ -209,6 +232,12 @@
 		</label>
 
 		<h3>Keys</h3>
+		<label class="row"><span>Key bindings</span><button onclick={() => (keysOpen = true)}>Edit…</button></label>
+		<label class="row"><span>Gamepad</span><input type="checkbox" checked={settings.gamepad} onchange={(e) => set('gamepad', e.currentTarget.checked)} /></label>
+		<label class="row"><span>Gamepad rumble when hurt</span><input type="checkbox" checked={settings.gamepadRumble} disabled={!settings.gamepad} onchange={(e) => set('gamepadRumble', e.currentTarget.checked)} /></label>
+		<label class="row"><span>Stick deadzone <output>{Math.round(settings.gamepadDeadzone * 100)}%</output></span><input type="range" min="0.1" max="0.7" step="0.05" value={settings.gamepadDeadzone} disabled={!settings.gamepad} oninput={(e) => set('gamepadDeadzone', Number(e.currentTarget.value))} /></label>
+		<label class="row"><span>Stick repeat <output>{settings.gamepadRepeat} ms</output></span><input type="range" min="50" max="300" step="10" value={settings.gamepadRepeat} disabled={!settings.gamepad} oninput={(e) => set('gamepadRepeat', Number(e.currentTarget.value))} /></label>
+		<p class="note">The list below shows the stock keys.</p>
 		<dl class="keys">
 			{#each KEYS as [action, key] (action)}
 				<dt>{action}</dt>
@@ -217,6 +246,9 @@
 		</dl>
 	</div>
 </div>
+{#if keysOpen}
+	<KeyBindings keymap={settings.keymap} onchange={(k) => set('keymap', k)} onclose={() => (keysOpen = false)} />
+{/if}
 
 <style>
 	.backdrop {

@@ -71,6 +71,7 @@
 - Wave C: stances and techniques (`stances.go`), enemy resistances, boss phases and elites (`foes.go`), noise and smell (`senses.go`), deadlines and rival races (`deadlines.go`), planet traits and scans (`planettraits.go`).
 - Wave D: generated campaigns and faction ladders (`campaigns.go`), narrative director (`director.go`), generated literature (`literature.go`), cross-genre incursions (`incursions.go`), prophecy, seers, dreams and omens (`visions.go`).
 - Wave E: aging and legacy (`aging.go`), pets and play modes (`pets.go`), auto-travel (`autotravel.go`), disaster scenes and migrations (`scenes.go`), tutorial and world editor-lite (`tutorial.go`).
+- Wave F: tile variety and animation, event sound effects and adaptive audio, right-click menus, key rebinding and gamepad, replay.
 
 ## Planned / ideas
 - Music listening pass in a real browser for the garden styles (drift / pastoral / desert): tune note density, the length of drift silences and instrument balance by ear.
