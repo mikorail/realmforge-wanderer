@@ -1,5 +1,7 @@
 package engine
 
+import "strings"
+
 // The culture pack: optional per-culture depth shipped by Realmforge (customs, voice, faith lore,
 // literature, material life, language) plus a small voice per notable person.
 //
@@ -314,4 +316,41 @@ func (w *WorldData) cpOf(culture int) *CulturePack {
 		return nil
 	}
 	return w.Cultures[culture].Pack
+}
+
+// ---- shared helpers for everything that speaks pack text ----
+
+// cpFill replaces the schema placeholders ({name} {title} {realm} {town} {culture} {faith} {deity} {time}
+// {kin} {item}) with vars; placeholders without a value are left out cleanly (the surrounding space too).
+func cpFill(s string, vars map[string]string) string {
+	for _, k := range []string{"name", "title", "realm", "town", "culture", "faith", "deity", "time", "kin", "item"} {
+		ph := "{" + k + "}"
+		if !strings.Contains(s, ph) {
+			continue
+		}
+		v := vars[k]
+		if v == "" {
+			s = strings.ReplaceAll(s, " "+ph, "")
+			s = strings.ReplaceAll(s, ph+" ", "")
+		}
+		s = strings.ReplaceAll(s, ph, v)
+	}
+	return s
+}
+
+// cpChoose picks one entry of list by a stable hash of the world seed and the key parts (never g.R), so the
+// same speaker says the same thing in the same situation, and varies when a part (the day, a topic) changes.
+func (w *WorldData) cpChoose(list []string, parts ...string) string {
+	if len(list) == 0 {
+		return ""
+	}
+	return list[int(HashStr(w.Seed+":cp:"+strings.Join(parts, ":"))%uint64(len(list)))]
+}
+
+// cpIdx is cpChoose for an index (n options).
+func (w *WorldData) cpIdx(n int, parts ...string) int {
+	if n <= 0 {
+		return 0
+	}
+	return int(HashStr(w.Seed+":cp:"+strings.Join(parts, ":")) % uint64(n))
 }

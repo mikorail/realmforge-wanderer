@@ -242,7 +242,7 @@ Waves A to F added breadth (100+ systems). Wave G (Realmforge exports, modding S
 **Order**
 1. (done 2026-11-20) Shared schema: one optional `culturePack` per culture (and `voice` per person) in the world file, defined once in `engine/world.go` and `realmforge/src/lib/adventure/` together.
 2. (done 2026-11-20, four agents) Realmforge generators: customs and ritual; voice, proverbs and literature; religion and material culture. Pure, deterministic, side rngs only.
-3. Wanderer dialogue engine and culture in play (consumes the pack):
+3. (done 2026-11-21, six agents; callers of the remaining voice kinds, culture goods in `tq`, buildings/dress/music/games from the pack still open) Wanderer dialogue engine and culture in play (consumes the pack):
    - Voice grammar per NPC (culture, species, caste, age, mood, goals, speech tics), so two people say the same thing differently.
    - Topic webs: ask about a subject, the NPC answers from what they know, follow-ups unlock, NPCs remember what you asked.
    - Barks and overheard chatter: vendors, guards, gossip between NPCs you can eavesdrop on.

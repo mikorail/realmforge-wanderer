@@ -303,7 +303,8 @@ func (g *Game) keyMain(k string) Out {
 	case "C":
 		g.openCook()
 	case "T":
-		mainKeys["T"](g) // the workbench (crafting.go)
+		g.etWork("craft") // working on a holy day (etiquette.go)
+		mainKeys["T"](g)  // the workbench (crafting.go)
 	case "S":
 		if g.ijNoManualSave() {
 			g.Msg("Iron man: no manual saves.")

@@ -553,6 +553,9 @@ func (g *Game) glItem(seed, p int, rare bool) *Item {
 // GenBook is the drop-in replacement for RandomBook: about two books in three are generated
 // literature about the world's real events, the rest fall back to the codex books.
 func (g *Game) GenBook(r *Rng, p int) *Item {
+	if it := g.cgPickBook(r, p); it != nil { // a work from the culture pack (cultgoods.go)
+		return it
+	}
 	if g.W == nil || len(g.W.Events) == 0 || r.Chance(0.35) {
 		return g.RandomBook(r, p)
 	}

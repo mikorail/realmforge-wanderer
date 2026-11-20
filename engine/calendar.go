@@ -459,5 +459,6 @@ func (g *Game) calendarLines() []string {
 		fl := g.Feasts[i]
 		lines = append(lines, Wrap(fmt.Sprintf("{{W|%s}} in %s {{K|(Y%d)}}: %s", fl.Name, fl.Town, fl.Year, fl.Text), SW-6)...)
 	}
+	lines = append(lines, g.rtCalendarLines()...) // holy days (rituals.go)
 	return lines
 }

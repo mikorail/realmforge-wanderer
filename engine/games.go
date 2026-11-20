@@ -1180,6 +1180,7 @@ func (g *Game) gmBusk(it *Item, mode int) {
 			return
 		}
 		tip := crowd*(2+margin)/3 + 1 + st.Fame/10
+		tip += g.cgBuskTip() // verses known in this culture (cultgoods.go)
 		g.cuEarn(tip)
 		st.Tips += tip
 		gain := 1

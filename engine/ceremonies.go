@@ -1259,6 +1259,9 @@ func fwcKeys(g *Game, k string) {
 func fwDrawLines(g *Game, c *fwCer) []string {
 	n := fwNames(g, c)
 	where := fwBurgName(g, c.Burg)
+	if l := rtDrawLines(g, c); l != nil { // rites from the culture pack (rituals.go)
+		return l
+	}
 	switch c.Kind {
 	case "wedding":
 		if len(n) >= 2 {
@@ -1790,6 +1793,7 @@ func fwOptions(g *Game, c *fwCer) []fwOpt {
 			fwRes(g, "{{R|[Intimidate: Failure]}}", "The pilgrims close ranks and shove you out, and a hundred eyes remember your face.")
 		})
 	}
+	o = append(o, rtGuestOptions(g, c)...) // guest etiquette (rituals.go)
 	o = append(o, fwOpt{label: "Slip away quietly.", ok: true, do: func() { fwClose(g) }})
 	_ = cur
 	return o

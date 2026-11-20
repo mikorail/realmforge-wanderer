@@ -802,5 +802,8 @@ func (g *Game) casteGreeting(a *Actor) string {
 	case s >= 8:
 		return "\"" + Pick(r, []string{"It is an honor, truly.", "Well met! We have heard of you."}) + "\""
 	}
+	if s := g.dvSayQ(a, "greet", nil); s != "" { // their own voice (voice.go)
+		return s
+	}
 	return "\"" + Pick(r, []string{"Well met.", "Good day, traveler.", "What brings you our way?"}) + "\""
 }

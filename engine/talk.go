@@ -69,6 +69,9 @@ func (g *Game) greeting(a *Actor) string {
 	if sg := g.swGreeting(a); sg != "" {
 		return sg
 	}
+	if s := g.rtClergyGreet(a); s != "" { // priests greet by faith (rituals.go)
+		return s
+	}
 	if fg := g.feastGreeting(a); fg != "" {
 		return fg
 	}
@@ -80,6 +83,12 @@ func (g *Game) greeting(a *Actor) string {
 	}
 	if cg := g.casteGreeting(a); cg != "" {
 		return cg
+	}
+	if s := g.tpGreeting(a); s != "" { // what you asked before (topics.go)
+		return s
+	}
+	if s := g.dvSayQ(a, "greet", nil); s != "" { // their own voice (voice.go)
+		return s
 	}
 	lines := []string{"\"Live and drink, wanderer.\"", "\"Travelers are rare. Speak.\"", "\"Mm? Yes?\"", "\"You're not from here.\""}
 	return Pick(NewRng(fmt.Sprint(a.ID)), lines)
@@ -95,7 +104,7 @@ func (g *Game) talkMenu(text string) {
 	add := func(t string, f func()) { g.Opts = append(g.Opts, Option{t, f}) }
 	add("Who are you?", func() { g.talkMenu(g.aboutNPC(a)) })
 	add("What news is there?", func() { g.talkMenu(g.gossip(a)) })
-	if g.canJoinFeast(a) {
+	if g.canJoinFeast(a) && !g.rtOwnsFeast(a) {
 		_, f := g.feastToday()
 		add("{{W|Join the "+f.Name+".}}", func() { g.joinFeast(a) })
 	}
@@ -167,7 +176,13 @@ func (g *Game) talkMenu(text string) {
 		g.Opts = append(g.Opts, h(g, a)...)
 	}
 	g.lxTrimOpts(a) // a foreign tongue limits what you can say (languages.go)
-	add("Goodbye.", func() { g.Mode = "main"; g.Talk = nil })
+	add("Goodbye.", func() {
+		if s := g.dvSayQ(a, "farewell", nil); s != "" { // their own voice (voice.go)
+			g.Msg(a.Name + ": " + s)
+		}
+		g.Mode = "main"
+		g.Talk = nil
+	})
 	g.th2Apply() // long lists become a hub of grouped submenus (talkhub.go)
 	g.Sel = 0
 }
@@ -736,6 +751,7 @@ func (g *Game) drinkHere() {
 }
 
 func (g *Game) dig(x, y int) {
+	g.etWork("dig") // working on a holy day (etiquette.go)
 	g.Cur.Set(x, y, TRubble)
 	g.Msg("You dig through.")
 	g.spend(2000)
@@ -789,6 +805,8 @@ func (g *Game) price(it *Item, buy bool) int {
 		f *= g.cjPriceMod(g.Talk)        // staff discounts (cityjobs.go)
 		f *= hmPriceMod(g, g.Talk, true) // museum patron discount (museum.go)
 		f *= pltPriceMod(g, true)        // trade-hub worlds (planettraits.go)
+		f *= g.rtPriceMod(g.Talk)        // holy days (rituals.go)
+		f *= g.etPriceMod()              // insult surcharge (etiquette.go)
 		if f < 0.75 {
 			f = 0.75
 		}
@@ -810,6 +828,9 @@ func (g *Game) price(it *Item, buy bool) int {
 }
 
 func (g *Game) openTrade(a *Actor) {
+	if g.rtShopClosed(a) { // holy day (rituals.go)
+		return
+	}
 	if g.snMarketClosed(a) {
 		return
 	}
@@ -817,6 +838,7 @@ func (g *Game) openTrade(a *Actor) {
 		return
 	}
 	g.snStock(a)
+	g.etTrade(a) // holy-day trading and haggling taboos (etiquette.go)
 	g.feastStock(a)
 	g.Talk = a
 	g.Mode = "trade"
@@ -853,6 +875,9 @@ func (g *Game) tradeAct() {
 		g.give(one)
 		g.Msg(fmt.Sprintf("You buy %s for %s.", one.Display(), g.cuFormat(pr)))
 		g.lvTrade(a, pr)
+		if s := g.dvSayQ(a, "thanks", nil); s != "" {
+			g.Msg(a.Name + ": " + s)
+		}
 	} else {
 		if g.Sel >= len(g.P.Inv) {
 			return

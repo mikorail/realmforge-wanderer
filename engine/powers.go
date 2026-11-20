@@ -48,6 +48,7 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.crAbilities()...)
 	out = append(out, g.ggAbilities()...)
 	out = append(out, g.knAbilities()...)
+	out = append(out, g.baAbilities()...)
 	out = append(out, g.mxAbilities()...)
 	out = append(out, g.dlAbilities()...)
 	out = append(out, g.msAbilities()...)
@@ -58,6 +59,7 @@ func (g *Game) Abilities() []Ability {
 	out = append(out, g.wpAbilities()...)
 	out = append(out, g.atAbilities()...)
 	out = append(out, g.lxAbilities()...)
+	out = append(out, g.etAbilities()...)
 	out = append(out, g.pqAbilities()...)
 	out = append(out, g.wedAbilities()...)
 	all := append([]*Item{}, g.P.Inv...)
@@ -138,6 +140,10 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 		g.ssUse(id, tx, ty)
 		return
 	}
+	if strings.HasPrefix(id, "et_") { // local customs (etiquette.go)
+		g.etUse(id)
+		return
+	}
 	if strings.HasPrefix(id, "lx_") { // tongues (languages.go)
 		g.lxUse(id, tx, ty)
 		return
@@ -200,6 +206,10 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 	}
 	if id == "kn_notes" { // case notes (knowledge.go)
 		g.knAbUse(id)
+		return
+	}
+	if id == "ba_ear" { // listen in (barks.go)
+		g.baUse()
 		return
 	}
 	if id == "al_brew" { // brewing (alchemy.go)
@@ -368,6 +378,7 @@ func (g *Game) usePower(id string, it *Item, tx, ty int) {
 // ---- targeting ----
 
 func (g *Game) beginTarget(pend string) {
+	g.etTarget() // drawing a weapon indoors (etiquette.go)
 	g.Pend = pend
 	g.Mode = "target"
 	g.CX, g.CY = g.P.X, g.P.Y
@@ -569,6 +580,9 @@ func (g *Game) useItem(it *Item) {
 		bhRead(g, it)
 		return
 	case "book":
+		if g.cgRead(it) { // works from the culture pack (cultgoods.go)
+			return
+		}
 		if g.glRead(it) { // generated literature (literature.go)
 			return
 		}
