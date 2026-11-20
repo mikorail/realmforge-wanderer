@@ -38,5 +38,13 @@
   "year": 201,
   "blurb": "A golden age long collapsed: demigod lords, plague wards and hunters, catacombs below and a drowned gilded city under the sea. Three linked planets (Sirati, Pongpen, Tlotri) joined by rifts.",
   "planets": 3
+ },
+ {
+  "file": "iron-lantern.json",
+  "name": "Losifi",
+  "genre": "Steampunk",
+  "year": 201,
+  "blurb": "Boilers, guild halls and brass oaths across a terran continent, with a shattered world and a desert world joined by rifts. Every culture carries its own customs, speech, faith lore, books, dishes and tongue (the culture pack). Three linked planets (Losifi, Siny, Merirone).",
+  "planets": 3
  }
 ]
