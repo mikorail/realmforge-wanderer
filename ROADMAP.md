@@ -234,3 +234,23 @@ Total about 80 to 100 agent runs, about 10 to 12 usage windows. With one or two 
 - [x] **Thaumaturgical Smog, Spell Backfires & Crystalline Mutations** (`engine/thaumaturgy.go`): Ambient arcane smog, spell research backfires (temporal echoes, localized gravity inversion, warp cascades), mana sickness, and crystalline skin mutations attracting mana leeches.
 - [x] **Living Faiths: Divine Oaths, Inquisitors & Shrines** (`engine/saints_faith.go`): Sacred vows (Oath of the Iron Fist, Oath of the Sunken Eye), taboo violation apostasy, inquisitor hit squads, and living saint shrine prayers.
 - [x] **Trans-Continental Banking, Loans & Commodity Arbitrage** (`engine/banking_economy.go`): Weightless promissory notes, bank credit and loan sharks, regional commodity arbitrage across biomes, debt default bounties, and debt enforcers.
+
+
+## Depth waves (agreed 2026-11-20)
+Waves A to F added breadth (100+ systems). Wave G (Realmforge exports, modding SDK) is skipped for now: it is small next to depth. The weakest area is depth per system: dialogue, culture, visuals and sound feel thin and repetitive next to AAA games. Realmforge is in scope too: depth is generated at the source (Realmforge) and exported, then played here. Every new export field is optional (omitempty), so old worlds still load. The matching Realmforge tasks are in `../realmforge/ROADMAP.md` ("Culture depth for Wanderer").
+
+**Order**
+1. (done 2026-11-20) Shared schema: one optional `culturePack` per culture (and `voice` per person) in the world file, defined once in `engine/world.go` and `realmforge/src/lib/adventure/` together.
+2. (done 2026-11-20, four agents) Realmforge generators: customs and ritual; voice, proverbs and literature; religion and material culture. Pure, deterministic, side rngs only.
+3. Wanderer dialogue engine and culture in play (consumes the pack):
+   - Voice grammar per NPC (culture, species, caste, age, mood, goals, speech tics), so two people say the same thing differently.
+   - Topic webs: ask about a subject, the NPC answers from what they know, follow-ups unlock, NPCs remember what you asked.
+   - Barks and overheard chatter: vendors, guards, gossip between NPCs you can eavesdrop on.
+   - Branching quest conversations where skill checks change tone, not just a number.
+   - Etiquette and taboos with consequences, hospitality rules, joinable rituals and holy days, proverbs, oaths and poetry in each culture's voice, law that differs per realm.
+   - Literature (`literature.go`) draws on the exported corpus; culture-specific food, crafts and goods.
+4. Visual depth: equipment visible on sprites (weapon, armour, cloak, hat) layered by species; real animation frames for attack, cast, hurt and death; portraits with expressions; item and UI icons; culture-specific building tiles; spell particles and lighting; procedural vignette images for key story beats.
+5. Audio depth: location soundscapes (tavern murmur, market crowd, dungeon drips, ship creaks); species voices (grunts, cries, chatter); layered combat music and stingers for story beats; foley per item and material; culture-specific ambience.
+6. Clarity and quality: in-game encyclopedia, better tooltips, a "what can I do here" overview; a balance and pacing pass (nothing has been playtested); performance and save size (a long run's save is about 5 MB); a stability sweep for load crashes (a nil-map crash after load was found and fixed in wave F).
+
+**Rules (unchanged)**: no LLM/AI API calls (grammars, templates and simulation only); agents own new files; coordinator wires hooks; no test suites or playtest bots (fuzz, `go vet`, svelte-check, Realmforge `npm run check` and `selftest` only); close the browser tab after any check.

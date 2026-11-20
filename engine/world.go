@@ -294,6 +294,7 @@ type CultureData struct {
 	Values       []string      `json:"values,omitempty"`
 	Prestige     *PrestigeData `json:"prestige,omitempty"` // socialworld.go
 	Origin       *OriginData   `json:"origin,omitempty"`   // a mixed people
+	Pack         *CulturePack  `json:"pack,omitempty"`     // culturepack.go: customs, voice, literature, material, language
 }
 
 // FeastData is one feast day: Month is on Realmforge's 12-month scale (0 = midwinter); Text keeps {realm}/{town}.
@@ -305,36 +306,38 @@ type FeastData struct {
 }
 
 type ReligionData struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Deity    string `json:"deity"`
-	Theology string `json:"theology"`
-	Doctrine string `json:"doctrine"`
-	Type     string `json:"type"`
+	ID       int        `json:"id"`
+	Name     string     `json:"name"`
+	Deity    string     `json:"deity"`
+	Theology string     `json:"theology"`
+	Doctrine string     `json:"doctrine"`
+	Type     string     `json:"type"`
+	Lore     *FaithPack `json:"lore,omitempty"` // culturepack.go: prayers, liturgy, saints, heresies
 }
 
 type PersonData struct {
-	ID       int        `json:"id"`
-	Name     string     `json:"name"`
-	Role     string     `json:"role"`
-	Burg     int        `json:"burg"`
-	State    int        `json:"state"`
-	Culture  int        `json:"culture"`
-	Religion int        `json:"religion"`
-	Species  string     `json:"species"`
-	Martial  int        `json:"martial"`
-	Diplo    int        `json:"diplomacy"`
-	Steward  int        `json:"stewardship"`
-	Intrigue int        `json:"intrigue"`
-	Born     int        `json:"born"`
-	Died     int        `json:"died"`
-	Cause    string     `json:"cause"`
-	Alive    bool       `json:"alive"`
-	Traits   []string   `json:"traits"`
-	Renown   int        `json:"renown"`
-	P        int        `json:"p"`
-	Title    string     `json:"title"`
-	Mixed    *MixedData `json:"mixed,omitempty"` // child of two peoples (socialworld.go)
+	ID       int          `json:"id"`
+	Name     string       `json:"name"`
+	Role     string       `json:"role"`
+	Burg     int          `json:"burg"`
+	State    int          `json:"state"`
+	Culture  int          `json:"culture"`
+	Religion int          `json:"religion"`
+	Species  string       `json:"species"`
+	Martial  int          `json:"martial"`
+	Diplo    int          `json:"diplomacy"`
+	Steward  int          `json:"stewardship"`
+	Intrigue int          `json:"intrigue"`
+	Born     int          `json:"born"`
+	Died     int          `json:"died"`
+	Cause    string       `json:"cause"`
+	Alive    bool         `json:"alive"`
+	Traits   []string     `json:"traits"`
+	Renown   int          `json:"renown"`
+	P        int          `json:"p"`
+	Title    string       `json:"title"`
+	Mixed    *MixedData   `json:"mixed,omitempty"` // child of two peoples (socialworld.go)
+	Voice    *PersonVoice `json:"voice,omitempty"` // culturepack.go: speech habits
 }
 
 type EventData struct {
