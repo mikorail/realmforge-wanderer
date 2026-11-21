@@ -201,6 +201,30 @@
 			<input type="checkbox" checked={settings.tileAnim} onchange={(e) => set('tileAnim', e.currentTarget.checked)} />
 		</label>
 		<label class="row">
+			<span>Gear on people (sprite mode)</span>
+			<input type="checkbox" checked={settings.gearSprites} onchange={(e) => set('gearSprites', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Limb poses: walk, attack, hurt</span>
+			<input type="checkbox" checked={settings.actorPoses} onchange={(e) => set('actorPoses', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Culture trim on town buildings</span>
+			<input type="checkbox" checked={settings.cultureTiles} onchange={(e) => set('cultureTiles', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Spell particles and auras</span>
+			<input type="checkbox" checked={settings.spellFx} onchange={(e) => set('spellFx', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Faces and moods on portraits</span>
+			<input type="checkbox" checked={settings.portraitFaces} onchange={(e) => set('portraitFaces', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Item icons on hover</span>
+			<input type="checkbox" checked={settings.itemIcons} onchange={(e) => set('itemIcons', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
 			<span>Damage numbers and hit flashes</span>
 			<input type="checkbox" checked={settings.hitNumbers} onchange={(e) => set('hitNumbers', e.currentTarget.checked)} />
 		</label>

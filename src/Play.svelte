@@ -26,6 +26,14 @@
 	import { drawTileVariant, neighbourMask, setTileContext, isAnimatedTile, TILE_REPLACED } from './tilevariety';
 	import { setSpriteAnimPrefs, tickTileAnim, trackActors, actorOffset, applyActorMotion, resetSpriteAnim, noteAttack, flashActor, markDeath } from './spriteanim';
 	import { createHitFx, type HitFxHandle } from './hitfx';
+	import { setGearFrame, setGearPrefs } from './gearsprites';
+	import { setPosePrefs, trackPoses, notePoseHits, setSleepers, resetPoses } from './poses';
+	import { applyCultureTile, setCultureTileOptions } from './culturetiles';
+	import { createSpellFx, type SpellFxHandle } from './spellfx';
+	import { drawFace, portraitBreath } from './portraitfx';
+	import IconCard from './IconCard.svelte';
+	import StatusStrip from './StatusStrip.svelte';
+	import type { IconRowInfo, IconStatusInfo } from './icons';
 
 	let { api, first, world, onquit }: { api: QudApi; first: QudFrame; world: string | null; onquit: () => void } = $props();
 
@@ -34,6 +42,8 @@
 	let fxh: FxHandle | null = null;
 	let hitCanvas = $state<HTMLCanvasElement | null>(null);
 	let hitfx: HitFxHandle | null = null;
+	let spellCanvas = $state<HTMLCanvasElement | null>(null);
+	let spellfx: SpellFxHandle | null = null;
 	let actorCells: { g: string; fgIdx: number; bgIdx: number; fg: string; gx: number; gy: number; a: QudActor }[] = [];
 	let uiMaskNow: Uint8Array | null = null;
 	/** sprite-mode state of the last draw, for the animation tick */
@@ -49,6 +59,10 @@
 	let settingsOpen = $state(false);
 	let saga = $state<SagaData | null>(null);
 	let dead = $state(first.dead);
+	let iconRows = $state<IconRowInfo[] | undefined>(undefined);
+	let iconStatus = $state<IconStatusInfo | undefined>(undefined);
+	let iconsRaw = '';
+	let statusRaw = '';
 	let rpId = $state('');
 	/** hall of fame id of this life once it has ended: the replay is filed under it */
 	let hid = $state('');
@@ -108,6 +122,10 @@
 	function applyFx() {
 		fxh?.setOptions({ enabled: fxOn(), reduced: prefs.reduceMotion || !!reducedMq?.matches });
 		hitfx?.setOptions({ numbers: prefs.hitNumbers, shake: prefs.hitShake, pause: prefs.hitPause, reduced: prefs.reduceMotion || !!reducedMq?.matches });
+		spellfx?.setOptions({ enabled: prefs.spellFx, reduced: prefs.reduceMotion || !!reducedMq?.matches });
+		setCultureTileOptions({ enabled: prefs.cultureTiles });
+		setGearPrefs({ gearSprites: prefs.gearSprites });
+		setPosePrefs({ actorPoses: prefs.actorPoses });
 		setSpriteAnimPrefs({ reduceMotion: prefs.reduceMotion || !!reducedMq?.matches, tileVariety: prefs.tileVariety, tileAnim: prefs.tileAnim });
 		fxh?.setFrame(frame);
 	}
@@ -119,9 +137,12 @@
 		const fgIdx = f.f.charCodeAt(i) - 65, bgIdx = f.b.charCodeAt(i) - 65;
 		const fg = palette[fgIdx];
 		const base = drawProceduralCell(ctx, g, fgIdx, bgIdx, fg, palette, gx, gy, x, y, cw, chh, a);
-		if (a || !prefs.tileVariety) return base;
-		const tv = drawTileVariant(ctx, g, fg, palette[bgIdx], x, y, cw, gx, gy, neighbourMask(glyphsNow, f.w, f.h, gx, gy, g), { chh, fgIdx, bgIdx, palette });
-		return base || tv === TILE_REPLACED;
+		if (a) return base;
+		const nm = neighbourMask(glyphsNow, f.w, f.h, gx, gy, g);
+		let replaced = false;
+		if (prefs.tileVariety) replaced = drawTileVariant(ctx, g, fg, palette[bgIdx], x, y, cw, gx, gy, nm, { chh, fgIdx, bgIdx, palette }) === TILE_REPLACED;
+		if (prefs.cultureTiles && !replaced) applyCultureTile(ctx, g, fgIdx, bgIdx, x, y, cw, chh, gx, gy, f.style, nm);
+		return base || replaced;
 	}
 	/** Fill a cell's background and repaint what stands on it. */
 	function repaintCell(ctx: CanvasRenderingContext2D, i: number) {
@@ -300,9 +321,21 @@
 		draw();
 		fxh?.setFrame(f);
 		hitfx?.setTelegraphs(f.tele);
+		setSleepers(f.sleepers);
+		if ((f.icons ?? '') !== iconsRaw) {
+			iconsRaw = f.icons ?? '';
+			iconRows = iconsRaw ? (JSON.parse(iconsRaw) as IconRowInfo[]) : undefined;
+		}
+		if ((f.status ?? '') !== statusRaw) {
+			statusRaw = f.status ?? '';
+			iconStatus = statusRaw ? (JSON.parse(statusRaw) as IconStatusInfo) : undefined;
+		}
+		spellfx?.setStatuses(f.statuses);
 		if (f.hits?.length) {
 			hitfx?.push(f.hits);
+			spellfx?.push(f.hits, f.origins, f.actors?.map((a) => ({ id: a.i, x: a.x, y: a.y })));
 			const t = performance.now();
+			notePoseHits(f.hits, t);
 			for (const e of f.hits) {
 				if (e.attackerId && e.kind !== 'heal' && e.kind !== 'death') noteAttack(e.attackerId, e.x, e.y, t);
 				if (e.targetId && (e.kind === 'hit' || e.kind === 'crit' || e.kind === 'burn' || e.kind === 'poison' || e.kind === 'bleed')) flashActor(e.targetId, t);
@@ -400,6 +433,7 @@
 		canvas.getContext('2d')?.setTransform(dpr, 0, 0, dpr, 0, 0);
 		fxh?.layout(cw, chh, dpr);
 		hitfx?.layout();
+		spellfx?.layout();
 		applyFx();
 		draw();
 	}
@@ -422,6 +456,8 @@
 			const fxi = f.fx as unknown as Record<string, any> | undefined;
 			setTileContext({ salt: (mu?.seed ?? 0) ^ ((mu?.depth ?? 0) * 7919), genre: mu?.genre, season: mu?.season, wind: fxi?.wind, indoors: fxi?.ind });
 			trackActors(f.actors, performance.now());
+			trackPoses(f.actors, performance.now());
+			setGearFrame(f.gear);
 		}
 		const shadows = fxOn() && f.mode === 'main';
 		const who = new Map<number, QudActor>();
@@ -488,13 +524,29 @@
 		// a sprite is built for a cell about 0.6 as wide as it is tall: keep that shape, as large as fits
 		const sh = ph - 4;
 		const sw = Math.min(pw - 4, sh * 0.62);
-		drawActorSprite(ctx, p.actor, ' ', '#ffffff', palette, 0, px + (pw - sw) / 2, py + 2, sw, sh);
+		const reduce = prefs.reduceMotion || !!reducedMq?.matches;
+		const sx = px + (pw - sw) / 2;
+		const sy = py + 2 + portraitBreath(performance.now(), sh, reduce);
+		drawActorSprite(ctx, p.actor, ' ', '#ffffff', palette, 0, sx, sy, sw, sh);
+		// a face with the speaker's mood, for people only (creatures have a template and no species)
+		if (prefs.portraitFaces && p.mood && p.actor.s) {
+			if (drawFace(ctx, p.mood, p.actor.s, sx, sy, sw, sh, {}, { id: p.actor.i, reduceMotion: reduce, key: p.kind + ':' + p.actor.i })) faceRedraw();
+		}
 		ctx.restore();
 		ctx.strokeStyle = palette[11] ?? '#3a8a9a';
 		ctx.lineWidth = 1;
 		ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
 	}
 
+	/** a blink or an expression change is under way: repaint the portrait soon */
+	let faceTimer: ReturnType<typeof setTimeout> | null = null;
+	function faceRedraw() {
+		if (faceTimer) return;
+		faceTimer = setTimeout(() => {
+			faceTimer = null;
+			if (frame.portrait) draw();
+		}, 80);
+	}
 	function closeSettings() {
 		settingsOpen = false;
 		gear?.focus();
@@ -524,6 +576,7 @@
 			fxh = createEffects(fxCanvas);
 			fxh.onTick(bobTick);
 		}
+		if (spellCanvas) spellfx = createSpellFx(spellCanvas, () => ({ cw, chh, dpr: window.devicePixelRatio || 1, cols: 80, rows: 25 }));
 		if (hitCanvas) hitfx = createHitFx(hitCanvas, () => ({ cw, chh, dpr: window.devicePixelRatio || 1, cols: 80, rows: 25 }));
 		mq.addEventListener('change', onmq);
 		applyAudio();
@@ -536,6 +589,7 @@
 		if (wrap) ro.observe(wrap);
 		void persist();
 		resetSpriteAnim();
+		resetPoses();
 		startGamepad((k) => { if (!settingsOpen && !saga) send(k); }, () => frame, { enabled: prefs.gamepad, onSettings: () => (settingsOpen = true) });
 		// fonts load after first paint: redraw once they are in
 		void document.fonts?.ready.then(draw);
@@ -545,6 +599,8 @@
 			fxh = null;
 			hitfx?.dispose();
 			hitfx = null;
+			spellfx?.dispose();
+			spellfx = null;
 			mq.removeEventListener('change', onmq);
 			ro.disconnect();
 			stopGamepad();
@@ -565,12 +621,15 @@
 	<div class="stack">
 		<canvas bind:this={canvas} aria-label="Game screen"></canvas>
 		<canvas class="fx" bind:this={fxCanvas} aria-hidden="true"></canvas>
+		<canvas class="fx" bind:this={spellCanvas} aria-hidden="true"></canvas>
 		<canvas class="fx" bind:this={hitCanvas} aria-hidden="true"></canvas>
 	</div>
 </div>
 {#if !touch}
 	<Tooltip {canvas} cell={() => ({ cw, chh })} {lookup} />
+	<IconCard {canvas} cell={() => ({ cw, chh })} rows={iconRows} enabled={prefs.itemIcons} />
 {/if}
+<StatusStrip {canvas} cell={() => ({ cw, chh })} status={iconStatus} cols={frame.w} enabled={prefs.itemIcons} />
 {#if ctxm}
 	<ContextMenu items={ctxm.items} x={ctxm.x} y={ctxm.y} onpick={ctxPick} onclose={() => (ctxm = null)} />
 {/if}

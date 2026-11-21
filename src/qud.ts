@@ -21,8 +21,21 @@ export interface QudFrame {
 	actors?: import('./actorsprites').QudActor[];
 	/** weather, daylight and lights for the sprite-mode effects layer (engine/fxinfo.go) */
 	fx?: QudFx;
+	/** worn and wielded gear per person, keyed by actor id (engine/gearinfo.go) */
+	gear?: Record<string, import('./gearsprites').GearLook>;
+	/** culture building style of the zone (engine/styleinfo.go) */
+	style?: import('./culturetiles').CultureStyle;
+	/** status auras and item glows (engine/styleinfo.go) */
+	statuses?: import('./spellfx').StatusFx[];
+	/** where attackers stood at the start of the key, by actor id */
+	origins?: Record<string, number[]>;
+	/** item icons per list row and sidebar status icons, as JSON (engine/iconinfo.go) */
+	icons?: string;
+	status?: string;
+	/** actor ids asleep (engine/poseinfo.go) */
+	sleepers?: number[];
 	/** a rectangle of grid cells the engine blanked for a large sprite: the speaker (talk, trade) or the paper doll (character sheet) */
-	portrait?: { x: number; y: number; w: number; h: number; kind: 'talk' | 'trade' | 'sheet'; actor: import('./actorsprites').QudActor };
+	portrait?: { x: number; y: number; w: number; h: number; kind: 'talk' | 'trade' | 'sheet'; actor: import('./actorsprites').QudActor; mood?: import('./portraitfx').PortraitFace };
 }
 export interface QudMusic {
 	mood: 'town' | 'wild' | 'dungeon' | 'tower' | 'sky' | 'sea' | 'underdark' | 'crypt' | 'world' | 'dead';

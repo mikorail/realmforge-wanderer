@@ -4,7 +4,14 @@
  * miniatures while keeping UI boxes, sidebars, and logs in crisp monospace text.
  */
 
+import { withGear, gearBuild, type GearPose } from './gearsprites';
 import { drawPersonSprite, drawCreatureSprite2, type QudActor } from './actorsprites';
+import { poseOf, limbAngles, legRest, ARM_REST, type Pose, type Limbs } from './poses';
+
+// scratch pose objects for the person call site (reused every draw: no allocation)
+const SPR_POSE = {} as Pose;
+const SPR_LIMBS = {} as Limbs;
+const SPR_GEAR: GearPose = {};
 
 const MAP_W = 80;
 const MAP_H = 25;
@@ -714,8 +721,29 @@ export function drawProceduralCell(
 
 	// 7a. Who is really standing here (species, calling, role, body plan: engine/sprinfo.go)
 	if (actor && (g === '@' || /[A-Za-zψ]/.test(g))) {
-		if (actor.s || g === '@') drawPersonSprite(ctx, actor, fg, palette, bgIdx, x, y, cw, chh);
-		else drawCreatureSprite2(ctx, actor, g, fg, palette, bgIdx, x, y, cw, chh);
+		if (actor.s || g === '@') {
+			// one pose for body and gear (poses.ts): drawPersonSprite gets the pose itself, the gear layer
+			// the same limb angles as a GearPose (deltas from rest, px offsets), so both move together
+			const pose = poseOf(actor.i, performance.now(), SPR_POSE);
+			const b = gearBuild(actor.s, actor.i);
+			const L = limbAngles(pose, b, SPR_LIMBS);
+			const lr = legRest(b.w);
+			const gp = SPR_GEAR;
+			gp.dx = L.dx * cw;
+			gp.dy = 0; // withGear adds the idle bob
+			gp.drop = L.drop * chh;
+			gp.rot = L.armR - ARM_REST;
+			gp.rotL = L.armL + ARM_REST;
+			gp.step = pose.phase;
+			gp.lean = L.torsoLean;
+			gp.legL = Math.abs(L.legL + lr) < 1e-6 ? 0 : L.legL + lr;
+			gp.legR = Math.abs(L.legR - lr) < 1e-6 ? 0 : L.legR - lr;
+			gp.liftL = L.liftL;
+			gp.liftR = L.liftR;
+			gp.lie = L.lie;
+			gp.mirror = pose.attack > 0 && pose.face < 0;
+			withGear(ctx, actor, x, y, cw, chh, (a) => drawPersonSprite(ctx, a, fg, palette, bgIdx, x, y, cw, chh, pose), gp);
+		} else drawCreatureSprite2(ctx, actor, g, fg, palette, bgIdx, x, y, cw, chh);
 		return true;
 	}
 

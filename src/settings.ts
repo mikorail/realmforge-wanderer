@@ -59,6 +59,18 @@ export interface Settings {
 	hitPause: boolean;
 	/** town folk follow daily routines (engine/routines.go) */
 	routines: boolean;
+	/** sprite mode: worn and wielded gear on people (src/gearsprites.ts) */
+	gearSprites: boolean;
+	/** limb poses: walk, attack, cast, hurt, block, sleep (src/poses.ts) */
+	actorPoses: boolean;
+	/** faces with moods on talk portraits (src/portraitfx.ts) */
+	portraitFaces: boolean;
+	/** item icons on hover and status icons (src/icons.ts) */
+	itemIcons: boolean;
+	/** spell particles, status auras, item glows (src/spellfx.ts) */
+	spellFx: boolean;
+	/** culture building trim on town walls, roofs, doors (src/culturetiles.ts) */
+	cultureTiles: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -92,6 +104,12 @@ export const DEFAULT_SETTINGS: Settings = {
 	hitShake: true,
 	hitPause: true,
 	routines: true,
+	gearSprites: true,
+	actorPoses: true,
+	portraitFaces: true,
+	itemIcons: true,
+	spellFx: true,
+	cultureTiles: true,
 };
 
 export const SCALE_OPTIONS = [0.75, 1, 1.25, 1.5] as const;
@@ -135,7 +153,7 @@ function clean(raw: unknown): Settings {
 	if (typeof r.showHints === 'boolean') s.showHints = r.showHints;
 	if (typeof r.autoAim === 'boolean') s.autoAim = r.autoAim;
 	if (typeof r.keymap === 'object' && r.keymap !== null) s.keymap = cleanKeymap(r.keymap);
-	for (const k of ['gamepad', 'gamepadRumble', 'sfxEvents', 'tileVariety', 'tileAnim', 'contextMenu', 'recordReplay', 'hitNumbers', 'hitShake', 'hitPause', 'routines'] as const) {
+	for (const k of ['gamepad', 'gamepadRumble', 'sfxEvents', 'tileVariety', 'tileAnim', 'contextMenu', 'recordReplay', 'hitNumbers', 'hitShake', 'hitPause', 'routines', 'gearSprites', 'actorPoses', 'portraitFaces', 'itemIcons', 'spellFx', 'cultureTiles'] as const) {
 		if (typeof r[k] === 'boolean') s[k] = r[k] as boolean;
 	}
 	if (typeof r.gamepadDeadzone === 'number' && Number.isFinite(r.gamepadDeadzone)) s.gamepadDeadzone = Math.min(0.7, Math.max(0.1, r.gamepadDeadzone));

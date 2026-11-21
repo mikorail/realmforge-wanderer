@@ -33,10 +33,36 @@ func frameOf(g *engine.Game, out engine.Out) any {
 		"music": musicJS(g.MusicState()), "actors": actorsJS(g.SpriteActors()), "rpHl": g.ReplayHL(),
 	}
 	if pi := g.Portrait(); pi != nil { // speaker or paper doll rectangle (engine/portraits.go)
-		fr["portrait"] = map[string]any{"x": pi.X, "y": pi.Y, "w": pi.W, "h": pi.H, "kind": pi.Kind, "actor": actorsJS([]engine.SprActor{pi.Actor}).([]any)[0]}
+		pj := map[string]any{"x": pi.X, "y": pi.Y, "w": pi.W, "h": pi.H, "kind": pi.Kind, "actor": actorsJS([]engine.SprActor{pi.Actor}).([]any)[0]}
+		if pf := g.PortraitFaceOf(pi); pf != nil { // expression, age, scars (engine/portraitmood.go)
+			pj["mood"] = engine.PortraitMoodJS(*pf)
+		}
+		fr["portrait"] = pj
 	}
 	if fx := g.FxInfo(); fx != nil {
 		fr["fx"] = fxJS(fx)
+	}
+	if gi := g.GearInfo(); len(gi) > 0 { // worn and wielded gear per person (engine/gearinfo.go)
+		fr["gear"] = engine.GearJS(gi)
+	}
+	if st := g.StyleInfo(); st != nil { // culture building style (engine/styleinfo.go)
+		fr["style"] = engine.StyleJS(st)
+	}
+	if sf := g.StatusFx(); len(sf) > 0 { // status auras and item glows (engine/styleinfo.go)
+		fr["statuses"] = engine.StatusFxJS(sf)
+	}
+	if s := g.IconRowsJSON(); s != "" { // item icons per list row (engine/iconinfo.go)
+		fr["icons"] = s
+	}
+	if s := g.IconStatusJSON(); s != "" { // sidebar status icons
+		fr["status"] = s
+	}
+	if sl := g.PiSleepers(); len(sl) > 0 { // sleeping actors for poses (engine/poseinfo.go)
+		ids := make([]any, len(sl))
+		for i, id := range sl {
+			ids[i] = id
+		}
+		fr["sleepers"] = ids
 	}
 	return fr
 }
@@ -156,7 +182,15 @@ func main() {
 		if m, ok := fr.(map[string]any); ok {
 			m["sfx"] = game.SfxEnd()
 			m["sfxs"] = game.SfxScene()
-			m["hits"] = engine.HitJS(game.HitEnd())
+			evs := game.HitEnd()
+			m["hits"] = engine.HitJS(evs)
+			ids := []int{}
+			for _, e := range evs {
+				if e.Attacker != 0 {
+					ids = append(ids, e.Attacker)
+				}
+			}
+			m["origins"] = engine.HitOriginsJS(game.HitOrigins(), ids) // where attackers stood (engine/styleinfo.go)
 		}
 		return fr
 	})
@@ -306,7 +340,15 @@ func main() {
 		if m, ok := fr.(map[string]any); ok {
 			m["sfx"] = game.SfxEnd()
 			m["sfxs"] = game.SfxScene()
-			m["hits"] = engine.HitJS(game.HitEnd())
+			evs := game.HitEnd()
+			m["hits"] = engine.HitJS(evs)
+			ids := []int{}
+			for _, e := range evs {
+				if e.Attacker != 0 {
+					ids = append(ids, e.Attacker)
+				}
+			}
+			m["origins"] = engine.HitOriginsJS(game.HitOrigins(), ids) // where attackers stood (engine/styleinfo.go)
 		}
 		return fr
 	})

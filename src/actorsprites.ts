@@ -2,11 +2,24 @@
 // calling and role its own outfit and gear, and each individual varies (hair, cloth, build, tint)
 // by their id. The engine sends who stands where (`frame.actors`, engine/sprinfo.go); the glyph
 // grid still decides what is visible, so nothing here changes the game.
+//
+// Poses (src/poses.ts): drawPersonSprite and drawCreatureSprite2 read the actor's pose
+// (`poseOf(actor.i, performance.now())`, or the one the caller passes so gear and body agree) and move
+// the limbs. At the static rest pose (poses off, reduceMotion, untracked actors) every pose value is
+// zero and each posed branch falls back to the exact old drawing calls, so nothing changes there.
+// Sign conventions used below (canvas y points down, rotate(+a) turns clockwise on screen):
+// - a hanging limb at angle d from its rest (poses.ts: + = tip to the right) is drawn with rotate(-d)
+//   about its root, or with the inline rotation (ex, ey) -> (ex cos d + ey sin d, -ex sin d + ey cos d);
+// - an upright part (torso lean, lie, a held weapon) leaning right by a is drawn with rotate(+a).
+
+import { poseOf, limbAngles, creaturePose, castGlow, applyBodyFrame, drawCastGlow, ARM_REST, legRest, type Pose, type Limbs, type CreatureParams } from './poses';
 
 export interface QudActor {
 	x: number;
 	y: number;
 	i: number; // actor id: the seed of this one's variation
+	gx?: boolean; // gearsprites.ts draws this one's gear: the built-in outfit item and back piece stay off
+	ga?: boolean; // gearsprites.ts draws the posed right (weapon) sleeve: skip the built-in right arm line (the hand dot stays)
 	s?: string; // species id
 	c?: string; // the player's calling
 	r?: string; // role (guard, merchant, elder …)
@@ -226,6 +239,10 @@ function outfitFor(a: QudActor, h: number): Outfit {
 	if (a.a !== undefined && a.a >= 0) out.armor = a.a;
 	if (a.ge) applyGear(out, a);
 	if (a.k && /high|noble|lord|elite/i.test(a.k)) out.fine = true;
+	if (a.gx) {
+		out.item = 'none';
+		out.back = 'none';
+	}
 	void h;
 	return out;
 }
@@ -379,8 +396,50 @@ function actorAnimBobAndFlash(a: QudActor, chh: number, bgIdx: number): { bobY: 
 	return { bobY, flash };
 }
 
-/** a person: species body plan, calling/role outfit, and per-individual variation */
-export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: string[], bgIdx: number, x: number, y: number, cw: number, chh: number) {
+// scratch objects for the pose (no allocation per draw; the drawers are not re-entrant)
+const PERSON_POSE = {} as Pose;
+const PERSON_LIMBS = {} as Limbs;
+const PERSON_BUILD = { h: 1, w: 1 };
+const CREATURE_POSE = {} as Pose;
+const CREATURE_PARAMS = {} as CreatureParams;
+
+/** rotate(+a) about (px, py): the upright-part lean (torso). save() only when a != 0; the caller restores when a != 0. */
+function leanAbout(c: Ctx, a: number, px: number, py: number) {
+	if (!a) return;
+	c.save();
+	c.translate(px, py);
+	c.rotate(a); // + = clockwise on screen = the top leans to the RIGHT
+	c.translate(-px, -py);
+}
+
+/** A posed leg: rect from the hip down to the (lifted) foot, rotated by d about the hip; rotate(-d) moves the foot RIGHT for d > 0. */
+function posedLeg(c: Ctx, hx: number, hipY: number, ground: number, lift: number, d: number, lw: number, v: number, left: boolean, legCol: string, footCol: string, boots: string | undefined) {
+	c.save();
+	if (d) {
+		c.translate(hx, hipY);
+		c.rotate(-d);
+		c.translate(-hx, -hipY);
+	}
+	const fy = ground - lift * v; // foot lift: the leg shortens, the foot rises
+	const fx = left ? hx - lw * 0.7 : hx - lw * 0.3; // the old feet: the left one centred, the right one toes-out
+	c.fillStyle = legCol;
+	c.fillRect(hx - lw / 2, hipY, lw, fy - hipY);
+	c.fillStyle = footCol;
+	c.fillRect(fx, fy - v * 0.04, lw * 1.4, v * 0.04);
+	if (boots) {
+		c.fillStyle = boots;
+		c.fillRect(hx - lw * 0.6, fy - v * 0.2, lw * 1.2, v * 0.2);
+		c.fillRect(fx, fy - v * 0.04, lw * 1.4, v * 0.04);
+	}
+	c.restore();
+}
+
+/**
+ * a person: species body plan, calling/role outfit, and per-individual variation. `pose` (optional):
+ * the caller's pose for this actor (sprites.ts passes the one it also gives the gear layer); without
+ * it the pose is read here with poseOf(a.i, performance.now()).
+ */
+export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: string[], bgIdx: number, x: number, y: number, cw: number, chh: number, pose?: Pose) {
 	const seed = hash(a.i + 17);
 	const sp = a.s ?? 'human';
 	const L = lookFor(sp);
@@ -396,14 +455,25 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 	const u = cw;
 	const v = chh;
 	const vary = 1 + (((seed >>> 20) % 9) - 4) * 0.015;
-	const cx = x + u * 0.5;
-	const base = y + v * 0.9;
+	// pose: at rest every value below is 0 (arms/legs exactly at their rest angles)
+	const P = pose ?? poseOf(a.i, performance.now(), PERSON_POSE);
+	PERSON_BUILD.h = L.h;
+	PERSON_BUILD.w = L.w;
+	const Lm = limbAngles(P, PERSON_BUILD, PERSON_LIMBS);
+	const cx0 = x + u * 0.5; // cell centre: ring, aura, swarm, lie/mirror pivot
+	const ground = y + v * 0.9; // feet line: the feet stay here when the body drops
+	const cx = cx0 + Lm.dx * u; // recoil shift (+ = right)
+	const base = ground + Lm.drop * v; // body drop (+ = down): hips, torso and head move, feet do not
 	const H = v * 0.82 * L.h * vary;
 	const W = u * 0.46 * L.w;
 	const hr = u * 0.2 * L.hd * (1 + (L.h < 0.75 ? 0.15 : 0));
-	const headY = base - H + hr;
-	const neckY = headY + hr * 0.85;
+	const neckY = base - H + hr + hr * 0.85; // = old headY + hr * 0.85 (the neck does not bob with the head)
+	const headY = base - H + hr + Lm.headBob * v; // head bob (+ = down)
 	const hipY = base - H * 0.34;
+	const lean = Lm.torsoLean; // + = upper body leans right, rotate(+lean) about the hips
+	const dAL = Lm.armL + ARM_REST; // arm deltas from rest (+ = hand moves right)
+	const dAR = Lm.armR - ARM_REST;
+	const shut = P.sleep > 0 || P.dead > 0.5; // eyes closed
 
 	c.save();
 	// rings: the player and companions are marked as before
@@ -412,11 +482,11 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 		c.strokeStyle = ring;
 		c.lineWidth = 1;
 		c.beginPath();
-		c.ellipse(cx, y + v * 0.92, u * 0.4, v * 0.06, 0, 0, Math.PI * 2);
+		c.ellipse(cx0, y + v * 0.92, u * 0.4, v * 0.06, 0, 0, Math.PI * 2);
 		c.stroke();
 	}
 	if (L.glow) {
-		const gr = c.createRadialGradient(cx, y + v * 0.5, 1, cx, y + v * 0.5, v * 0.55);
+		const gr = c.createRadialGradient(cx0, y + v * 0.5, 1, cx0, y + v * 0.5, v * 0.55);
 		gr.addColorStop(0, L.glow + '66');
 		gr.addColorStop(1, L.glow + '00');
 		c.fillStyle = gr;
@@ -424,10 +494,10 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 	}
 
 	if (L.swarm) {
-		// a chitin swarm: a cluster of scuttling bodies
+		// a chitin swarm: a cluster of scuttling bodies (not posed)
 		for (let k = 0; k < 9; k++) {
 			const hh = hash(a.i, k + 3);
-			const bx = cx + (((hh % 100) / 100) - 0.5) * u * 0.8;
+			const bx = cx0 + (((hh % 100) / 100) - 0.5) * u * 0.8;
 			const by = y + v * 0.45 + (((hh >>> 8) % 100) / 100) * v * 0.42;
 			c.fillStyle = k % 3 === 0 ? shade(skin, 0.25) : skin;
 			ell(c, bx, by, u * 0.1, v * 0.045);
@@ -435,12 +505,18 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 			line(c, bx - u * 0.1, by + v * 0.04, bx + u * 0.1, by - v * 0.03, 1);
 		}
 		c.fillStyle = L.eye;
-		ell(c, cx, y + v * 0.5, u * 0.04, u * 0.04);
+		ell(c, cx0, y + v * 0.5, u * 0.04, u * 0.04);
 		c.restore();
 		return;
 	}
 
-	// wings and tail go behind the body
+	// whole-body frame: lie down (sleep, death) about the body's middle, mirror when striking left
+	// (same helper and arguments as gearsprites drawGear, so worn gear follows)
+	const mirror = P.attack > 0 && P.face < 0;
+	if (Lm.lie || mirror) applyBodyFrame(c, Lm.lie, mirror, cx0, ground, H, u);
+
+	// wings and tail go behind the body (wings and cape lean with the torso)
+	leanAbout(c, lean, cx, hipY);
 	if (L.wings) {
 		c.fillStyle = '#f4ecd0';
 		poly(c, [cx - W * 0.4, neckY + v * 0.04, cx - u * 0.52, headY - hr * 0.6, cx - u * 0.38, hipY, cx - W * 0.3, hipY - v * 0.04]);
@@ -450,6 +526,7 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 		c.fillStyle = shade(dark, -0.1);
 		poly(c, [cx - W * 0.55, neckY, cx + W * 0.55, neckY, cx + W * 0.7, base - v * 0.04, cx - W * 0.7, base - v * 0.04]);
 	}
+	if (lean) c.restore();
 	if (L.tail !== 'none') {
 		c.strokeStyle = skin;
 		c.lineWidth = Math.max(1, u * (L.tail === 'rat' ? 0.05 : 0.09));
@@ -467,23 +544,37 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 		c.fillStyle = shade(skin, 0.2);
 		poly(c, [cx - W * 0.2, base - v * 0.12, cx - u * 0.36, base, cx, base - v * 0.1, cx + u * 0.36, base, cx + W * 0.2, base - v * 0.12]);
 	} else {
-		c.fillStyle = L.bone ? skin : dark;
 		const lw = Math.max(1.5, u * 0.14 * Math.min(1.3, L.w));
-		c.fillRect(cx - W * 0.32 - lw / 2, hipY, lw, base - hipY);
-		c.fillRect(cx + W * 0.32 - lw / 2, hipY, lw, base - hipY);
-		c.fillStyle = shade(dark, -0.3);
-		c.fillRect(cx - W * 0.32 - lw * 0.7, base - v * 0.04, lw * 1.4, v * 0.04);
-		c.fillRect(cx + W * 0.32 - lw * 0.3, base - v * 0.04, lw * 1.4, v * 0.04);
-		if (o.boots) {
-			c.fillStyle = o.boots;
-			c.fillRect(cx - W * 0.32 - lw * 0.6, base - v * 0.2, lw * 1.2, v * 0.2);
-			c.fillRect(cx + W * 0.32 - lw * 0.6, base - v * 0.2, lw * 1.2, v * 0.2);
-			c.fillRect(cx - W * 0.32 - lw * 0.7, base - v * 0.04, lw * 1.4, v * 0.04);
-			c.fillRect(cx + W * 0.32 - lw * 0.3, base - v * 0.04, lw * 1.4, v * 0.04);
+		const lr = legRest(L.w);
+		// leg deltas from rest (+ = foot moves right); rounding noise of the width term is treated as rest
+		const dLL = Math.abs(Lm.legL + lr) < 1e-6 ? 0 : Lm.legL + lr;
+		const dLR = Math.abs(Lm.legR - lr) < 1e-6 ? 0 : Lm.legR - lr;
+		if (!dLL && !dLR && !Lm.liftL && !Lm.liftR) {
+			// standing: the old two fixed legs (hips may drop, the feet stay on the ground line)
+			c.fillStyle = L.bone ? skin : dark;
+			c.fillRect(cx - W * 0.32 - lw / 2, hipY, lw, ground - hipY);
+			c.fillRect(cx + W * 0.32 - lw / 2, hipY, lw, ground - hipY);
+			c.fillStyle = shade(dark, -0.3);
+			c.fillRect(cx - W * 0.32 - lw * 0.7, ground - v * 0.04, lw * 1.4, v * 0.04);
+			c.fillRect(cx + W * 0.32 - lw * 0.3, ground - v * 0.04, lw * 1.4, v * 0.04);
+			if (o.boots) {
+				c.fillStyle = o.boots;
+				c.fillRect(cx - W * 0.32 - lw * 0.6, ground - v * 0.2, lw * 1.2, v * 0.2);
+				c.fillRect(cx + W * 0.32 - lw * 0.6, ground - v * 0.2, lw * 1.2, v * 0.2);
+				c.fillRect(cx - W * 0.32 - lw * 0.7, ground - v * 0.04, lw * 1.4, v * 0.04);
+				c.fillRect(cx + W * 0.32 - lw * 0.3, ground - v * 0.04, lw * 1.4, v * 0.04);
+			}
+		} else {
+			// walking / falling: each leg swings from its hip, the lifted foot rises
+			const legCol = L.bone ? skin : dark;
+			const footCol = shade(dark, -0.3);
+			posedLeg(c, cx - W * 0.32, hipY, ground, Lm.liftL, dLL, lw, v, true, legCol, footCol, o.boots);
+			posedLeg(c, cx + W * 0.32, hipY, ground, Lm.liftR, dLR, lw, v, false, legCol, footCol, o.boots);
 		}
 	}
 
-	// torso
+	// torso, arms and head lean together about the hips (restored at the end)
+	leanAbout(c, lean, cx, hipY);
 	const armor = o.armor ?? 0;
 	c.fillStyle = armor >= 3 ? '#8a909a' : armor === 2 ? shade(cloth, -0.1) : cloth;
 	poly(c, [cx - W * 0.5, neckY, cx + W * 0.5, neckY, cx + W * 0.42, hipY + v * 0.04, cx - W * 0.42, hipY + v * 0.04]);
@@ -523,22 +614,60 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 	// arms (two, or four)
 	c.strokeStyle = o.armor && o.armor >= 2 ? '#8a909a' : cloth;
 	const aw = Math.max(1.4, u * 0.1);
-	const armPairs = L.arms === 4 ? [0, 1] : [0];
-	for (const k of armPairs) {
+	// primary arms swing from the shoulders: the rest hand is rotated about the shoulder by the delta
+	// (ex, ey) -> (ex cos d + ey sin d, -ex sin d + ey cos d), so d > 0 moves the hand to the RIGHT
+	// (same formula as gearsprites' weapon arm). A second pair (four arms) stays at rest like the gear sleeves.
+	const shY = neckY + v * 0.04;
+	const lsx = cx - W * 0.5;
+	const rsx = cx + W * 0.5;
+	let lhx = cx - W * 0.68;
+	let lhy = hipY - v * 0.0;
+	let rhx = cx + W * 0.66;
+	let rhy = hipY - v * 0.02;
+	if (dAL) {
+		const ca = Math.cos(dAL), sa = Math.sin(dAL), ex = lhx - lsx, ey = lhy - shY;
+		lhx = lsx + ex * ca + ey * sa;
+		lhy = shY - ex * sa + ey * ca;
+	}
+	if (dAR) {
+		const ca = Math.cos(dAR), sa = Math.sin(dAR), ex = rhx - rsx, ey = rhy - shY;
+		rhx = rsx + ex * ca + ey * sa;
+		rhy = shY - ex * sa + ey * ca;
+	}
+	const pairs = L.arms === 4 ? 2 : 1;
+	for (let k = 0; k < pairs; k++) {
 		const off = k * v * 0.1;
-		line(c, cx - W * 0.5, neckY + v * 0.04 + off, cx - W * 0.68, hipY - v * 0.0 + off * 0.5, aw);
-		line(c, cx + W * 0.5, neckY + v * 0.04 + off, cx + W * 0.66, hipY - v * 0.02 + off * 0.5, aw);
+		if (k === 0) {
+			line(c, lsx, shY, lhx, lhy, aw);
+			// the gear layer draws the posed weapon sleeve itself (`ga`): no second arm under it
+			if (!a.ga) line(c, rsx, shY, rhx, rhy, aw);
+		} else {
+			line(c, cx - W * 0.5, neckY + v * 0.04 + off, cx - W * 0.68, hipY - v * 0.0 + off * 0.5, aw);
+			line(c, cx + W * 0.5, neckY + v * 0.04 + off, cx + W * 0.66, hipY - v * 0.02 + off * 0.5, aw);
+		}
 	}
 	c.fillStyle = o.gloves ?? skin;
-	ell(c, cx - W * 0.68, hipY, u * 0.05, u * 0.05);
-	ell(c, cx + W * 0.66, hipY - v * 0.02, u * 0.05, u * 0.05);
+	ell(c, lhx, lhy, u * 0.05, u * 0.05);
+	ell(c, rhx, rhy, u * 0.05, u * 0.05);
 	if (o.shield) {
+		// shield rides the left hand (rest: the old cx - 0.78 W, hipY - 0.1 v)
+		const sx = dAL ? lhx - W * 0.1 : cx - W * 0.78;
+		const sy = dAL ? lhy - v * 0.1 : hipY - v * 0.1;
 		c.fillStyle = shade(o.cloth[0], -0.1);
-		ell(c, cx - W * 0.78, hipY - v * 0.1, u * 0.14, v * 0.12);
+		ell(c, sx, sy, u * 0.14, v * 0.12);
 		c.fillStyle = o.trim;
-		ell(c, cx - W * 0.78, hipY - v * 0.1, u * 0.05, v * 0.04);
+		ell(c, sx, sy, u * 0.05, v * 0.04);
 	}
-	drawItem(c, o.item, cx + W * 0.66, hipY - v * 0.02, u, v, o.trim, steel, 1);
+	if (!dAR) drawItem(c, o.item, cx + W * 0.66, hipY - v * 0.02, u, v, o.trim, steel, 1);
+	else if (o.item !== 'none') {
+		// held item at the posed hand, tipped by half the arm swing: rotate(+dAR/2) turns the item's up
+		// direction clockwise (forward/right), matching gearsprites' weapon (ctx.rotate(rot * 0.5))
+		c.save();
+		c.translate(rhx, rhy);
+		c.rotate(dAR * 0.5);
+		drawItem(c, o.item, 0, 0, u, v, o.trim, steel, 1);
+		c.restore();
+	}
 
 	// head
 	c.fillStyle = skin;
@@ -626,8 +755,11 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 	// eyes
 	c.fillStyle = L.eye;
 	const es = Math.max(1, u * 0.07);
-	c.fillRect(cx - hw * 0.5, headY - hh2 * 0.1, es, es * 1.1);
-	c.fillRect(cx + hw * 0.5 - es, headY - hh2 * 0.1, es, es * 1.1);
+	// asleep or fallen: thin closed lids at the lower half of the eye
+	const eh = shut ? Math.max(0.6, es * 0.35) : es * 1.1;
+	const eo = shut ? es * 0.6 : 0;
+	c.fillRect(cx - hw * 0.5, headY - hh2 * 0.1 + eo, es, eh);
+	c.fillRect(cx + hw * 0.5 - es, headY - hh2 * 0.1 + eo, es, eh);
 	if (L.halo) {
 		c.strokeStyle = '#ffe680';
 		c.lineWidth = Math.max(1, u * 0.06);
@@ -656,8 +788,8 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 			c.fillStyle = skin;
 			ell(c, cx, headY + hh2 * 0.15, hw * 0.7, hh2 * 0.7);
 			c.fillStyle = L.eye;
-			c.fillRect(cx - hw * 0.45, headY - hh2 * 0.05, es, es * 1.1);
-			c.fillRect(cx + hw * 0.45 - es, headY - hh2 * 0.05, es, es * 1.1);
+			c.fillRect(cx - hw * 0.45, headY - hh2 * 0.05 + eo, es, eh);
+			c.fillRect(cx + hw * 0.45 - es, headY - hh2 * 0.05 + eo, es, eh);
 			break;
 		case 'cap':
 			c.fillStyle = shade(cloth, -0.1);
@@ -708,6 +840,14 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 		default:
 			break;
 	}
+	// cast: a soft glow at both (posed) hands, alpha = castGlow (0 when not casting: nothing drawn)
+	const glow = castGlow(P);
+	if (glow > 0) {
+		const gc = L.glow ?? '#9fd8ff';
+		drawCastGlow(c, lhx, lhy, u * 0.4, gc, glow);
+		drawCastGlow(c, rhx, rhy, u * 0.4, gc, glow);
+	}
+	if (lean) c.restore(); // the torso lean
 	c.restore();
 }
 
@@ -755,12 +895,40 @@ function bodyPlanOf(a: QudActor, glyph: string): string {
 	return 'humanoid';
 }
 
-/** a beast, monster or machine: silhouette by body plan, size by species, tint and markings by individual */
-export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, palette: string[], bgIdx: number, x: number, y: number, cw: number, chh: number) {
+const CREATURE_PLANS = new Set(['quadruped', 'saurian', 'avian', 'fish', 'insect', 'arachnid', 'crab', 'serpent', 'ooze', 'tentacled', 'golem']);
+const QUAD_LEGS = [-0.62, -0.3, 0.3, 0.62];
+
+/** rotate(-d) about (px, py): a hanging part (leg) swung by d, + = its tip moves RIGHT. save() only when d != 0; the caller restores when d != 0. */
+function swingAbout(c: Ctx, d: number, px: number, py: number) {
+	if (!d) return;
+	c.save();
+	c.translate(px, py);
+	c.rotate(-d);
+	c.translate(-px, -py);
+}
+
+/** rotate(+a) about (px, py) (clockwise on screen). save() only when a != 0; the caller restores when a != 0. */
+function turnAbout(c: Ctx, a: number, px: number, py: number) {
+	if (!a) return;
+	c.save();
+	c.translate(px, py);
+	c.rotate(a);
+	c.translate(-px, -py);
+}
+
+/**
+ * a beast, monster or machine: silhouette by body plan, size by species, tint and markings by individual.
+ * Posed by poses.ts creaturePose (see the header there): legs alternate (legA/legB), wings flap, serpents
+ * undulate, fish wag, oozes squash, tentacles sway, golems stomp; bob dy, recoil dx, hurt tilt, death lie,
+ * cast glow; mirrored when facing left (the art faces right). Every pose value is 0 at the static rest
+ * pose and each posed expression then reduces to the old drawing. `pose`: optional, as for drawPersonSprite.
+ */
+export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, palette: string[], bgIdx: number, x: number, y: number, cw: number, chh: number, pose?: Pose) {
 	const seed = hash(a.i + 91);
 	const plan = bodyPlanOf(a, g);
+	const P0 = pose ?? poseOf(a.i, performance.now(), CREATURE_POSE);
 	if (plan === 'humanoid' && !a.gr && (a.s || a.r)) {
-		drawPersonSprite(c, a, fg, palette, bgIdx, x, y, cw, chh);
+		drawPersonSprite(c, a, fg, palette, bgIdx, x, y, cw, chh, P0);
 		return;
 	}
 	const u = cw;
@@ -769,14 +937,21 @@ export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, 
 	const trCol = actorTribeColors(a);
 	const { bobY, flash } = actorAnimBobAndFlash(a, chh, bgIdx);
 	y += bobY;
+	if (!CREATURE_PLANS.has(plan)) {
+		// a monster in rough human shape: hunched, horned or crested by individual (posed as a person)
+		drawPersonSprite(c, { ...a, s: a.s ?? ['orc', 'goblin', 'troll', 'beastman', 'ogor', 'lizardfolk', 'warp_fiend'][seed % 7] }, fg, palette, bgIdx, x, y, cw, chh, P0);
+		return;
+	}
+	const C = creaturePose(plan, P0, CREATURE_PARAMS);
 	const sz = size * (1 + (((seed >>> 4) % 9) - 4) * 0.03);
 	const body = flash ? '#ff6666' : shade(trCol?.skin ?? fg, (((seed >>> 9) % 7) - 3) * 0.05);
 	const belly = shade(body, 0.28);
 	const dark = shade(body, -0.35);
 	const cx = x + u * 0.5;
-	const cy = y + v * 0.6;
+	const cy = y + v * 0.6 + C.dy * v; // body bob (+ = down); the ground line stays, so legs stretch and squash
 	const ground = y + v * 0.9;
 	const mark = (seed >>> 14) % 4; // 0 plain 1 stripes 2 spots 3 two-tone
+	const hl = C.lunge * u * 0.5; // head thrust toward the target (+ = forward, the art's right), < 0 winding up
 
 	c.save();
 	c.fillStyle = body;
@@ -798,29 +973,79 @@ export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, 
 		c.fillStyle = body;
 	};
 
+	// ---- pose frame (inner save; the letter badge below stays upright and unmirrored)
+	c.save();
+	if (C.dx) c.translate(C.dx * u, 0); // recoil shift, + = right
+	// hurt tilt about the feet: rotate(+t) is clockwise on screen, so t > 0 tips the top to the RIGHT
+	// (creaturePose gives t = -dir * 0.22: the body rocks against the push)
+	if (C.tilt) {
+		c.translate(cx, ground);
+		c.rotate(C.tilt);
+		c.translate(-cx, -ground);
+	}
+	// facing left: mirror about the cell centre (the art faces right)
+	if (P0.face < 0) {
+		c.translate(cx, 0);
+		c.scale(-1, 1);
+		c.translate(-cx, 0);
+	}
+	const ooze = plan === 'ooze';
+	if (C.lie && !ooze) {
+		// death: roll belly-up about the body centre (lie 0..1.5 -> 0..pi, sign = fall direction, rotate(+)
+		// clockwise), sinking toward the ground. Rotating about the feet instead would throw the body out
+		// of its cell (the map clips each sprite to its cell).
+		const k = Math.min(1, Math.abs(C.lie) / 1.5);
+		const sink = (ground - cy) * 0.6 * k;
+		c.translate(cx, cy + sink);
+		c.rotate((C.lie < 0 ? -1 : 1) * k * Math.PI);
+		c.translate(-cx, -cy);
+	}
+	// squash and stretch about the ground point (ooze breathing, sleeping curl); a dead ooze flattens
+	let sqx = C.sx;
+	let sqy = C.sy;
+	if (ooze && P0.dead > 0) {
+		sqx += 0.3 * P0.dead;
+		sqy -= 0.55 * P0.dead;
+	}
+	if (sqx || sqy) {
+		c.translate(cx, ground);
+		c.scale(1 + sqx, 1 + sqy);
+		c.translate(-cx, -ground);
+	}
+
 	switch (plan) {
 		case 'quadruped': {
 			const rx = u * 0.34 * sz;
 			const ry = v * 0.17 * sz;
-			// legs
+			// legs: swung about their tops; i even legA, odd legB, so the hind pair and the fore pair each alternate
 			c.fillStyle = dark;
-			for (const lx of [-0.62, -0.3, 0.3, 0.62]) c.fillRect(cx + rx * lx - lw * 0.4, cy, lw * 0.8, ground - cy);
+			for (let i = 0; i < 4; i++) {
+				const lx = QUAD_LEGS[i];
+				const th = i & 1 ? C.legB : C.legA;
+				swingAbout(c, th, cx + rx * lx, cy);
+				c.fillRect(cx + rx * lx - lw * 0.4, cy, lw * 0.8, ground - cy);
+				if (th) c.restore();
+			}
 			c.fillStyle = body;
 			ell(c, cx, cy - ry * 0.2, rx, ry);
 			markings(rx, ry);
 			// head toward the right
-			const hx = cx + rx * 0.95;
+			const hx = cx + rx * 0.95 + hl;
 			const hy = cy - ry * 0.75;
 			ell(c, hx, hy, u * 0.14 * sz, u * 0.12 * sz);
 			ell(c, hx + u * 0.12 * sz, hy + u * 0.03, u * 0.09 * sz, u * 0.06 * sz);
 			poly(c, [hx - u * 0.05, hy - u * 0.1 * sz, hx - u * 0.02, hy - u * 0.2 * sz, hx + u * 0.05, hy - u * 0.1 * sz]);
-			// tail
+			// tail, wagged about its root (rotate(+) clockwise)
 			c.strokeStyle = body;
 			c.lineWidth = lw * 0.7;
+			const tx0 = cx - rx * 0.95;
+			const ty0 = cy - ry * 0.4;
+			turnAbout(c, C.tail * 0.8, tx0, ty0);
 			c.beginPath();
-			c.moveTo(cx - rx * 0.95, cy - ry * 0.4);
+			c.moveTo(tx0, ty0);
 			c.quadraticCurveTo(cx - rx * 1.4, cy - ry * 1.5, cx - rx * 1.2, cy - ry * 2.0);
 			c.stroke();
+			if (C.tail * 0.8) c.restore();
 			c.fillStyle = eye;
 			c.fillRect(hx + u * 0.02, hy - u * 0.03, Math.max(1, u * 0.05), Math.max(1, u * 0.05));
 			if ((a.z ?? 0) >= 5) {
@@ -836,13 +1061,20 @@ export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, 
 			const rx = u * 0.34 * sz;
 			const ry = v * 0.14 * sz;
 			c.fillStyle = dark;
+			swingAbout(c, C.legA, cx - rx * 0.4, cy);
 			c.fillRect(cx - rx * 0.4 - lw * 0.4, cy, lw * 0.8, ground - cy);
+			if (C.legA) c.restore();
+			swingAbout(c, C.legB, cx + rx * 0.4, cy);
 			c.fillRect(cx + rx * 0.4 - lw * 0.4, cy, lw * 0.8, ground - cy);
+			if (C.legB) c.restore();
 			c.fillStyle = body;
 			ell(c, cx, cy - ry * 0.2, rx, ry);
 			markings(rx, ry);
+			// tail swish about its root (rotate(+) clockwise)
+			turnAbout(c, C.tail * 0.5, cx - rx * 0.75, cy - ry * 0.15);
 			poly(c, [cx - rx * 0.9, cy - ry * 0.5, cx - u * 0.52, ground - v * 0.08, cx - rx * 0.6, cy + ry * 0.2]);
-			const hx = cx + rx * 1.0;
+			if (C.tail * 0.5) c.restore();
+			const hx = cx + rx * 1.0 + hl;
 			const hy = cy - ry * 1.0;
 			ell(c, hx, hy, u * 0.12 * sz, u * 0.09 * sz);
 			ell(c, hx + u * 0.12 * sz, hy + u * 0.02, u * 0.1 * sz, u * 0.05 * sz);
@@ -857,22 +1089,31 @@ export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, 
 		case 'avian': {
 			const rx = u * 0.2 * sz;
 			const ry = v * 0.17 * sz;
+			// legs: the feet swing by sin(leg) x leg length (+ = right)
+			const legH = ground - cy - ry;
 			c.strokeStyle = '#c8a050';
-			line(c, cx - rx * 0.4, cy + ry, cx - rx * 0.4, ground, 1);
-			line(c, cx + rx * 0.4, cy + ry, cx + rx * 0.4, ground, 1);
+			line(c, cx - rx * 0.4, cy + ry, cx - rx * 0.4 + Math.sin(C.legA) * legH, ground, 1);
+			line(c, cx + rx * 0.4, cy + ry, cx + rx * 0.4 + Math.sin(C.legB) * legH, ground, 1);
 			c.fillStyle = body;
 			ell(c, cx, cy, rx, ry);
 			markings(rx, ry);
-			// wings
+			// wings, flapped about their roots: + wing = raised. The left wing turns clockwise (rotate(+w):
+			// its up-left tip swings up), the right one counter-clockwise (rotate(-w))
+			const wa = C.wing * 0.6;
 			c.fillStyle = dark;
+			turnAbout(c, wa, cx - rx * 0.2, cy - ry * 0.6);
 			poly(c, [cx - rx * 0.2, cy - ry * 0.6, cx - u * 0.48, cy - ry * 1.9, cx - u * 0.4, cy + ry * 0.2]);
+			if (wa) c.restore();
+			turnAbout(c, -wa, cx + rx * 0.2, cy - ry * 0.6);
 			poly(c, [cx + rx * 0.2, cy - ry * 0.6, cx + u * 0.48, cy - ry * 1.9, cx + u * 0.4, cy + ry * 0.2]);
+			if (wa) c.restore();
+			const hx = cx + rx * 0.7 + hl;
 			c.fillStyle = body;
-			ell(c, cx + rx * 0.7, cy - ry * 1.1, u * 0.09 * sz, u * 0.09 * sz);
+			ell(c, hx, cy - ry * 1.1, u * 0.09 * sz, u * 0.09 * sz);
 			c.fillStyle = '#e8b030';
-			poly(c, [cx + rx * 0.7 + u * 0.08, cy - ry * 1.15, cx + rx * 0.7 + u * 0.2, cy - ry * 1.0, cx + rx * 0.7 + u * 0.08, cy - ry * 0.9]);
+			poly(c, [hx + u * 0.08, cy - ry * 1.15, hx + u * 0.2, cy - ry * 1.0, hx + u * 0.08, cy - ry * 0.9]);
 			c.fillStyle = eye;
-			c.fillRect(cx + rx * 0.7, cy - ry * 1.2, Math.max(1, u * 0.04), Math.max(1, u * 0.04));
+			c.fillRect(hx, cy - ry * 1.2, Math.max(1, u * 0.04), Math.max(1, u * 0.04));
 			break;
 		}
 		case 'fish': {
@@ -881,11 +1122,15 @@ export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, 
 			c.fillStyle = body;
 			ell(c, cx, cy, rx, ry);
 			markings(rx, ry);
+			// tail fin wag about its root (rotate(+) clockwise), plus a little of the body wave
+			const fa = C.tail * 0.5 + C.undAmp * Math.sin(C.undPhase) * 0.3;
+			turnAbout(c, fa, cx - rx * 0.8, cy);
 			poly(c, [cx - rx * 0.8, cy, cx - rx * 1.35, cy - ry * 1.1, cx - rx * 1.35, cy + ry * 1.1]);
+			if (fa) c.restore();
 			c.fillStyle = dark;
 			poly(c, [cx - rx * 0.1, cy - ry * 0.9, cx + rx * 0.3, cy - ry * 1.8, cx + rx * 0.4, cy - ry * 0.7]);
 			c.fillStyle = eye;
-			c.fillRect(cx + rx * 0.55, cy - ry * 0.3, Math.max(1, u * 0.05), Math.max(1, u * 0.05));
+			c.fillRect(cx + rx * 0.55 + hl, cy - ry * 0.3, Math.max(1, u * 0.05), Math.max(1, u * 0.05));
 			break;
 		}
 		case 'insect':
@@ -898,18 +1143,24 @@ export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, 
 			c.lineWidth = Math.max(1, u * 0.06);
 			for (let k = 0; k < legs; k++) {
 				const ly = cy - ry * 0.4 + k * ry * 0.55;
-				line(c, cx - rx * 0.7, ly, cx - u * 0.46, ly + ry * (0.7 + k * 0.3), c.lineWidth);
-				line(c, cx + rx * 0.7, ly, cx + u * 0.46, ly + ry * (0.7 + k * 0.3), c.lineWidth);
+				// alternating tripods: right legs take legA, legB, legA.., left legs the other one;
+				// the foot shifts by leg x 0.1 cell (+ = right)
+				const tR = k & 1 ? C.legB : C.legA;
+				const tL = k & 1 ? C.legA : C.legB;
+				line(c, cx - rx * 0.7, ly, cx - u * 0.46 + tL * u * 0.1, ly + ry * (0.7 + k * 0.3), c.lineWidth);
+				line(c, cx + rx * 0.7, ly, cx + u * 0.46 + tR * u * 0.1, ly + ry * (0.7 + k * 0.3), c.lineWidth);
 			}
 			c.fillStyle = body;
 			ell(c, cx, cy, rx, ry);
 			if (plan !== 'crab') ell(c, cx - rx * 0.9, cy, rx * 0.7, ry * 0.8);
 			markings(rx, ry);
-			ell(c, cx + rx * 0.95, cy - ry * 0.1, rx * 0.5, ry * 0.7);
+			ell(c, cx + rx * 0.95 + hl, cy - ry * 0.1, rx * 0.5, ry * 0.7);
 			if (plan === 'crab') {
+				// claws rise with `wing` (+ = up), the forward one thrusts with the lunge
+				const cr = C.wing * v * 0.15;
 				c.fillStyle = dark;
-				ell(c, cx - rx * 1.35, cy - ry * 1.2, rx * 0.4, ry * 0.7);
-				ell(c, cx + rx * 1.35, cy - ry * 1.2, rx * 0.4, ry * 0.7);
+				ell(c, cx - rx * 1.35, cy - ry * 1.2 - cr, rx * 0.4, ry * 0.7);
+				ell(c, cx + rx * 1.35 + hl, cy - ry * 1.2 - cr, rx * 0.4, ry * 0.7);
 			}
 			if (a.t && /bee|wasp|fly|moth|dragon|beetle/.test(a.t) || (seed & 3) === 0) {
 				c.fillStyle = 'rgba(220,240,255,0.55)';
@@ -917,25 +1168,31 @@ export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, 
 				ell(c, cx + rx * 0.3, cy - ry * 1.5, rx * 0.8, ry * 0.7);
 			}
 			c.fillStyle = eye;
-			c.fillRect(cx + rx * 1.1, cy - ry * 0.3, Math.max(1, u * 0.05), Math.max(1, u * 0.05));
+			c.fillRect(cx + rx * 1.1 + hl, cy - ry * 0.3, Math.max(1, u * 0.05), Math.max(1, u * 0.05));
 			break;
 		}
 		case 'serpent': {
+			// undulation: the curve's control points swell and shrink out of phase (amplitude undAmp),
+			// the head end rides the wave and thrusts forward with the lunge
+			const und = C.undAmp;
+			const ph = C.undPhase;
 			c.lineWidth = lw * 1.1 * sz;
 			c.lineCap = 'round';
 			c.beginPath();
 			const amp = v * 0.11 * sz;
-			c.moveTo(x + u * 0.08, cy + amp);
-			c.bezierCurveTo(x + u * 0.28, cy - amp * 2, x + u * 0.5, cy + amp * 2, x + u * 0.74, cy - amp * 0.4);
+			const ho = amp * und * Math.sin(ph + 3.2); // head offset (+ = down)
+			c.moveTo(x + u * 0.08, cy + amp + amp * und * Math.sin(ph + 4.5));
+			c.bezierCurveTo(x + u * 0.28, cy - amp * 2 * (1 + und * Math.sin(ph)), x + u * 0.5, cy + amp * 2 * (1 + und * Math.sin(ph + 1.6)), x + u * 0.74 + hl, cy - amp * 0.4 + ho);
 			c.stroke();
-			ell(c, x + u * 0.78, cy - amp * 0.5, u * 0.1 * sz, u * 0.075 * sz);
+			ell(c, x + u * 0.78 + hl, cy - amp * 0.5 + ho, u * 0.1 * sz, u * 0.075 * sz);
 			c.fillStyle = eye;
-			c.fillRect(x + u * 0.8, cy - amp * 0.7, Math.max(1, u * 0.04), Math.max(1, u * 0.04));
+			c.fillRect(x + u * 0.8 + hl, cy - amp * 0.7 + ho, Math.max(1, u * 0.04), Math.max(1, u * 0.04));
 			c.strokeStyle = '#d83a3a';
-			line(c, x + u * 0.86, cy - amp * 0.5, x + u * 0.96, cy - amp * 0.7, 1);
+			line(c, x + u * 0.86 + hl, cy - amp * 0.5 + ho, x + u * 0.96 + hl, cy - amp * 0.7 + ho, 1);
 			break;
 		}
 		case 'ooze': {
+			// squash and stretch is the frame scale above
 			c.beginPath();
 			c.arc(cx, cy + v * 0.04, u * 0.34 * sz, Math.PI, 0);
 			c.lineTo(cx + u * 0.4 * sz, ground);
@@ -955,10 +1212,12 @@ export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, 
 			c.fill();
 			c.lineWidth = Math.max(1, u * 0.06);
 			for (let k = -2; k <= 2; k++) {
+				// sway: each tentacle's bend and tip drift sideways, phase-shifted along the row (+ = right)
+				const sw = C.sway ? Math.sin(C.undPhase + k * 0.8) * C.sway * u : 0;
 				c.strokeStyle = body;
 				c.beginPath();
 				c.moveTo(cx + k * u * 0.12, cy - v * 0.1);
-				c.quadraticCurveTo(cx + k * u * 0.2 + ((seed >>> (k + 4)) & 3) * 2, cy + v * 0.12, cx + k * u * 0.16, ground);
+				c.quadraticCurveTo(cx + k * u * 0.2 + ((seed >>> (k + 4)) & 3) * 2 + sw * 0.25, cy + v * 0.12, cx + k * u * 0.16 + sw * 0.15, ground);
 				c.stroke();
 			}
 			c.fillStyle = eye;
@@ -973,21 +1232,34 @@ export function drawCreatureSprite2(c: Ctx, a: QudActor, g: string, fg: string, 
 			c.fillStyle = dark;
 			c.fillRect(cx - bw / 2 - u * 0.1, cy - v * 0.16, u * 0.1, v * 0.3);
 			c.fillRect(cx + bw / 2, cy - v * 0.16, u * 0.1, v * 0.3);
+			// legs swing about their tops (rotate(-d): + = foot right)
+			const gA = C.legA * 0.6;
+			const gB = C.legB * 0.6;
+			swingAbout(c, gA, cx - bw / 2 + u * 0.04 + bw * 0.19, cy + v * 0.2);
 			c.fillRect(cx - bw / 2 + u * 0.04, cy + v * 0.2, bw * 0.38, ground - cy - v * 0.2);
+			if (gA) c.restore();
+			swingAbout(c, gB, cx + bw * 0.1 + bw * 0.19, cy + v * 0.2);
 			c.fillRect(cx + bw * 0.1, cy + v * 0.2, bw * 0.38, ground - cy - v * 0.2);
+			if (gB) c.restore();
+			if (C.stomp > 0.5) {
+				// the foot comes down: two dust puffs at the ground beside the feet
+				c.save();
+				c.globalAlpha *= 0.55 * C.stomp;
+				c.fillStyle = belly;
+				ell(c, cx - bw / 2 - u * 0.04, ground - v * 0.015, u * 0.09, v * 0.025);
+				ell(c, cx + bw / 2 + u * 0.04, ground - v * 0.015, u * 0.09, v * 0.025);
+				c.restore();
+			}
 			c.fillStyle = body;
 			c.fillRect(cx - u * 0.14, cy - v * 0.38, u * 0.28, v * 0.16);
 			c.fillStyle = bgIdx === 22 ? '#ffff55' : '#ffb03a';
 			c.fillRect(cx - u * 0.08, cy - v * 0.32, Math.max(1, u * 0.16), Math.max(1, v * 0.03));
 			break;
 		}
-		default: {
-			// a monster in rough human shape: hunched, horned or crested by individual
-			drawPersonSprite(c, { ...a, s: a.s ?? ['orc', 'goblin', 'troll', 'beastman', 'ogor', 'lizardfolk', 'warp_fiend'][seed % 7] }, fg, palette, bgIdx, x, y, cw, chh);
-			c.restore();
-			return;
-		}
 	}
+	// cast: a soft glow over the body (alpha = cast envelope; nothing drawn otherwise)
+	if (C.glow > 0) drawCastGlow(c, cx, cy, v * 0.5, '#9fd8ff', C.glow);
+	c.restore(); // pose frame
 	// letter badge keeps the roguelike reading
 	if (chh >= 14) {
 		c.fillStyle = palette[3] || '#ffffff';
