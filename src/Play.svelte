@@ -19,6 +19,7 @@
 	import { mapKey, setKeymap } from './keymap';
 	import { startGamepad, stopGamepad, setGamepadOptions } from './gamepad';
 	import { createGameSfx } from './gamesfx';
+	import { createAudioHub, type HubPrefs } from './audiohub';
 	import Replay from './Replay.svelte';
 	import { replayTap, replaySaveLive, replayFinish, setReplayRecording } from './replay';
 	import ContextMenu from './ContextMenu.svelte';
@@ -76,6 +77,8 @@
 	const music: MusicHandle = createMusic();
 	const sfx: SfxHandle = createWeatherSfx();
 	const gsfx = createGameSfx();
+	// shared context for soundscapes, voices, music layers, foley and culture music; ducks the base music while stingers and performers play
+	const hub = createAudioHub({ duckBase: (factor) => music.setVolume(prefs.musicVolume * factor) });
 	// touch layout: coarse pointer or a narrow window
 	let touch = $state(false);
 	let ctlH = $state(0);
@@ -100,6 +103,7 @@
 		gsfx.setEnabled(prefs.sfx && prefs.sfxEvents);
 		gsfx.setVolume(prefs.sfxVolume);
 		gsfx.setReduceMotion(prefs.reduceMotion);
+		hub.setPrefs(prefs as HubPrefs);
 	}
 
 	/** Host settings the engine reads (g.Pref). */
@@ -318,6 +322,7 @@
 		music.setState(f.music);
 		sfx.setState(f.music);
 		gsfx.handleFrame(f, k);
+		hub.frame(f, k);
 		draw();
 		fxh?.setFrame(f);
 		hitfx?.setTelegraphs(f.tele);
@@ -610,6 +615,7 @@
 		music.dispose();
 		sfx.dispose();
 		gsfx.dispose();
+		hub.dispose();
 		void persist();
 	});
 </script>

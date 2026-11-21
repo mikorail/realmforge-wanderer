@@ -57,6 +57,13 @@ func frameOf(g *engine.Game, out engine.Out) any {
 	if s := g.IconStatusJSON(); s != "" { // sidebar status icons
 		fr["status"] = s
 	}
+	if sn := g.SoundInfo(); sn != nil { // place soundscape (engine/soundinfo.go)
+		fr["sound"] = engine.SoundJS(sn)
+	}
+	if ms := g.MusicStyle(); ms != nil { // culture music and performers (engine/musicstyle.go)
+		fr["mstyle"] = engine.MusicStyleJS(ms)
+	}
+	fr["cuex"] = g.CueScene()              // combat layers (engine/cueinfo.go)
 	if sl := g.PiSleepers(); len(sl) > 0 { // sleeping actors for poses (engine/poseinfo.go)
 		ids := make([]any, len(sl))
 		for i, id := range sl {
@@ -178,6 +185,9 @@ func main() {
 		}
 		game.SfxBegin()
 		game.HitBegin()
+		game.VoxBegin()
+		game.CueBegin()
+		game.FoleyBegin()
 		fr := frame(game.Key(a[0].String()))
 		if m, ok := fr.(map[string]any); ok {
 			m["sfx"] = game.SfxEnd()
@@ -191,6 +201,9 @@ func main() {
 				}
 			}
 			m["origins"] = engine.HitOriginsJS(game.HitOrigins(), ids) // where attackers stood (engine/styleinfo.go)
+			m["vox"] = engine.VoxJS(game.VoxEnd())                     // species and creature voices (engine/voxinfo.go)
+			m["cues"] = engine.CueJS(game.CueEnd())                    // stingers (engine/cueinfo.go)
+			m["foley"] = game.FoleyEnd()                               // item and material sounds (engine/foleyinfo.go)
 		}
 		return fr
 	})
@@ -336,6 +349,9 @@ func main() {
 		// sent as a key so the replay log records it
 		game.SfxBegin()
 		game.HitBegin()
+		game.VoxBegin()
+		game.CueBegin()
+		game.FoleyBegin()
 		fr := frame(game.Key(fmt.Sprintf("ctx:%s:%d:%d", a[0].String(), a[1].Int(), a[2].Int())))
 		if m, ok := fr.(map[string]any); ok {
 			m["sfx"] = game.SfxEnd()
@@ -349,6 +365,9 @@ func main() {
 				}
 			}
 			m["origins"] = engine.HitOriginsJS(game.HitOrigins(), ids) // where attackers stood (engine/styleinfo.go)
+			m["vox"] = engine.VoxJS(game.VoxEnd())                     // species and creature voices (engine/voxinfo.go)
+			m["cues"] = engine.CueJS(game.CueEnd())                    // stingers (engine/cueinfo.go)
+			m["foley"] = game.FoleyEnd()                               // item and material sounds (engine/foleyinfo.go)
 		}
 		return fr
 	})

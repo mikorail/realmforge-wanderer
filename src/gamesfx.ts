@@ -103,6 +103,12 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 const pv = (f: number, amt = 0.06) => f * (1 + (Math.random() * 2 - 1) * amt);
 
 /** createGameSfx: the live layer for the game screen, on its own AudioContext. */
+/** ids another layer (foley.ts) plays now; skipped while it is on and the frame carries foley events (set by audiohub.ts) */
+let foleyCovers: ReadonlySet<string> | null = null;
+export function setFoleyCovers(s: ReadonlySet<string> | null): void {
+	foleyCovers = s;
+}
+
 export function createGameSfx(): GameSfxHandle {
 	let ctx: AudioContext | null = null;
 	let master: GainNode | null = null;
@@ -386,7 +392,8 @@ export function createGameSfx(): GameSfxHandle {
 			scene = sceneFor(fx);
 			if (enabled) {
 				if (ctx) applyScene();
-				const ev = Array.isArray(fx.sfx) ? fx.sfx : inferFromDiff(prevFrame, fx, key);
+				let ev = Array.isArray(fx.sfx) ? fx.sfx : inferFromDiff(prevFrame, fx, key);
+				if (foleyCovers && (fx as { foley?: unknown[] }).foley?.length) ev = ev.filter((e) => !foleyCovers!.has(e));
 				// UI feedback in menus still comes from the shell: the engine reports world events only
 				if (Array.isArray(fx.sfx) && prevFrame && fx.mode !== 'main' && fx.mode !== 'world' && fx.mode !== 'dead' && key) {
 					ev.push(...inferFromDiff(prevFrame, fx, key).filter((e) => e.startsWith('ui:')));

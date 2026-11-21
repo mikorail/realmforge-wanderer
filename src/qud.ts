@@ -34,6 +34,13 @@ export interface QudFrame {
 	status?: string;
 	/** actor ids asleep (engine/poseinfo.go) */
 	sleepers?: number[];
+	/** place soundscape, voices, combat-layer extras, stingers, item foley, culture music (audiohub.ts) */
+	sound?: import('./soundscape').SoundSceneIn;
+	vox?: import('./voices').VoxEvent[];
+	cuex?: import('./musiclayers').MusicExtras;
+	cues?: import('./musiclayers').StingerCue[];
+	foley?: import('./foley').FoleyEvent[];
+	mstyle?: import('./culturemusic').MusicStyleFrame;
 	/** a rectangle of grid cells the engine blanked for a large sprite: the speaker (talk, trade) or the paper doll (character sheet) */
 	portrait?: { x: number; y: number; w: number; h: number; kind: 'talk' | 'trade' | 'sheet'; actor: import('./actorsprites').QudActor; mood?: import('./portraitfx').PortraitFace };
 }

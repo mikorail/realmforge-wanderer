@@ -32,8 +32,39 @@ func main() {
 	g.P.MaxHP, g.P.HP = 100000, 100000
 	for i := 0; i < steps; i++ {
 		k := keys[r.Int(0, len(keys)-1)]
+		// the per-key information the web shell asks for (cmd/wasm/main.go): run it all so its panics show up here
+		g.SfxBegin()
+		g.HitBegin()
+		g.VoxBegin()
+		g.CueBegin()
+		g.FoleyBegin()
 		g.Key(k)
 		g.Render()
+		g.SfxEnd()
+		g.SfxScene()
+		evs := g.HitEnd()
+		engine.HitJS(evs)
+		g.HitOrigins()
+		engine.VoxJS(g.VoxEnd())
+		engine.CueJS(g.CueEnd())
+		g.CueScene()
+		g.FoleyEnd()
+		g.SpriteActors()
+		g.GearInfo()
+		g.StyleInfo()
+		g.StatusFx()
+		g.IconRowsJSON()
+		g.IconStatusJSON()
+		g.PiSleepers()
+		if sn := g.SoundInfo(); sn != nil {
+			engine.SoundJS(sn)
+		}
+		if ms := g.MusicStyle(); ms != nil {
+			engine.MusicStyleJS(ms)
+		}
+		if pi := g.Portrait(); pi != nil {
+			g.PortraitFaceOf(pi)
+		}
 		if i%250 == 0 {
 			z := r.Int(-1, 5)
 			if r.Chance(0.25) {

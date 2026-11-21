@@ -159,6 +159,35 @@
 			<input type="checkbox" checked={settings.sfxEvents} onchange={(e) => set('sfxEvents', e.currentTarget.checked)} />
 		</label>
 
+		<label class="row">
+			<span>Place soundscapes (tavern, forest, cave...)</span>
+			<input type="checkbox" checked={settings.soundscapes} onchange={(e) => set('soundscapes', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Item and material foley</span>
+			<input type="checkbox" checked={settings.foley} onchange={(e) => set('foley', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Species and creature voices</span>
+			<input type="checkbox" checked={settings.voices} onchange={(e) => set('voices', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Speech blips while people talk</span>
+			<input type="checkbox" checked={settings.speechBlips} onchange={(e) => set('speechBlips', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Combat music layers</span>
+			<input type="checkbox" checked={settings.musicLayers} onchange={(e) => set('musicLayers', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Story stingers</span>
+			<input type="checkbox" checked={settings.stingers} onchange={(e) => set('stingers', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Culture music and street performers</span>
+			<input type="checkbox" checked={settings.cultureMusic} onchange={(e) => set('cultureMusic', e.currentTarget.checked)} />
+		</label>
+
 		<h3>Display</h3>
 		<label class="row">
 			<span>Map visuals</span>
