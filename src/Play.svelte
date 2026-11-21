@@ -24,13 +24,16 @@
 	import ContextMenu from './ContextMenu.svelte';
 	import { ctxItems, ctxRun, ctxCursor, isMenuKey, type CtxItem } from './ctxmenu';
 	import { drawTileVariant, neighbourMask, setTileContext, isAnimatedTile, TILE_REPLACED } from './tilevariety';
-	import { setSpriteAnimPrefs, tickTileAnim, trackActors, actorOffset, applyActorMotion, resetSpriteAnim } from './spriteanim';
+	import { setSpriteAnimPrefs, tickTileAnim, trackActors, actorOffset, applyActorMotion, resetSpriteAnim, noteAttack, flashActor, markDeath } from './spriteanim';
+	import { createHitFx, type HitFxHandle } from './hitfx';
 
 	let { api, first, world, onquit }: { api: QudApi; first: QudFrame; world: string | null; onquit: () => void } = $props();
 
 	let canvas = $state<HTMLCanvasElement | null>(null);
 	let fxCanvas = $state<HTMLCanvasElement | null>(null);
 	let fxh: FxHandle | null = null;
+	let hitCanvas = $state<HTMLCanvasElement | null>(null);
+	let hitfx: HitFxHandle | null = null;
 	let actorCells: { g: string; fgIdx: number; bgIdx: number; fg: string; gx: number; gy: number; a: QudActor }[] = [];
 	let uiMaskNow: Uint8Array | null = null;
 	/** sprite-mode state of the last draw, for the animation tick */
@@ -92,6 +95,7 @@
 		api.pref('autoaim', prefs.autoAim);
 		api.pref('sprites', prefs.renderStyle === 'sprites');
 		api.pref('contextMenu', prefs.contextMenu);
+		api.pref('routines', prefs.routines);
 		api.pref('recordReplay', prefs.recordReplay);
 		setReplayRecording(prefs.recordReplay);
 		setKeymap(prefs.keymap);
@@ -103,6 +107,7 @@
 	}
 	function applyFx() {
 		fxh?.setOptions({ enabled: fxOn(), reduced: prefs.reduceMotion || !!reducedMq?.matches });
+		hitfx?.setOptions({ numbers: prefs.hitNumbers, shake: prefs.hitShake, pause: prefs.hitPause, reduced: prefs.reduceMotion || !!reducedMq?.matches });
 		setSpriteAnimPrefs({ reduceMotion: prefs.reduceMotion || !!reducedMq?.matches, tileVariety: prefs.tileVariety, tileAnim: prefs.tileAnim });
 		fxh?.setFrame(frame);
 	}
@@ -265,10 +270,25 @@
 	function readSaga() {
 		saga = loadSaga(api);
 	}
-	function send(k: string) {
-		const f = api.key(k);
-		if (!f || 'error' in f) return;
-		applyFrame(f, k);
+	/** keys wait their turn so a short hit pause never drops one */
+	const keyQ: string[] = [];
+	let pumping = false;
+	async function send(k: string) {
+		keyQ.push(k);
+		if (pumping) return;
+		pumping = true;
+		try {
+			while (keyQ.length) {
+				const key = keyQ.shift()!;
+				const f = api.key(key);
+				if (!f || 'error' in f) continue;
+				applyFrame(f, key);
+				const p = hitfx?.pause();
+				if (p) await p;
+			}
+		} finally {
+			pumping = false;
+		}
 	}
 	function applyFrame(f: QudFrame, k?: string) {
 		frame = f;
@@ -279,6 +299,15 @@
 		gsfx.handleFrame(f, k);
 		draw();
 		fxh?.setFrame(f);
+		hitfx?.setTelegraphs(f.tele);
+		if (f.hits?.length) {
+			hitfx?.push(f.hits);
+			const t = performance.now();
+			for (const e of f.hits) {
+				if (e.attackerId && e.kind !== 'heal' && e.kind !== 'death') noteAttack(e.attackerId, e.x, e.y, t);
+				if (e.targetId && (e.kind === 'hit' || e.kind === 'crit' || e.kind === 'burn' || e.kind === 'poison' || e.kind === 'bleed')) flashActor(e.targetId, t);
+			}
+		}
 		keys++;
 		if (f.save || keys % prefs.autosaveEvery === 0) void persist();
 		if (f.exit) void quit();
@@ -370,6 +399,7 @@
 		canvas.style.height = `${frame.h * chh}px`;
 		canvas.getContext('2d')?.setTransform(dpr, 0, 0, dpr, 0, 0);
 		fxh?.layout(cw, chh, dpr);
+		hitfx?.layout();
 		applyFx();
 		draw();
 	}
@@ -494,6 +524,7 @@
 			fxh = createEffects(fxCanvas);
 			fxh.onTick(bobTick);
 		}
+		if (hitCanvas) hitfx = createHitFx(hitCanvas, () => ({ cw, chh, dpr: window.devicePixelRatio || 1, cols: 80, rows: 25 }));
 		mq.addEventListener('change', onmq);
 		applyAudio();
 		applyEngine();
@@ -512,6 +543,8 @@
 			reducedMq?.removeEventListener('change', onred);
 			fxh?.dispose();
 			fxh = null;
+			hitfx?.dispose();
+			hitfx = null;
 			mq.removeEventListener('change', onmq);
 			ro.disconnect();
 			stopGamepad();
@@ -532,6 +565,7 @@
 	<div class="stack">
 		<canvas bind:this={canvas} aria-label="Game screen"></canvas>
 		<canvas class="fx" bind:this={fxCanvas} aria-hidden="true"></canvas>
+		<canvas class="fx" bind:this={hitCanvas} aria-hidden="true"></canvas>
 	</div>
 </div>
 {#if !touch}

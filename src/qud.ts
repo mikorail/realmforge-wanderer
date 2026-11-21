@@ -11,6 +11,10 @@ export interface QudFrame {
 	exit: boolean;
 	dead: boolean;
 	mode: string;
+	/** hits, misses, heals and deaths of the last key (engine/hitfx.go) */
+	hits?: import('./hitfx').HitEvent[];
+	/** cells a visible enemy will hit next turn, when the engine knows (not yet produced) */
+	tele?: { x: number; y: number }[];
 	/** what the soundtrack should play (engine/game.go MusicState) */
 	music: QudMusic;
 	/** who stands where on the map (engine/sprinfo.go), for sprite mode */

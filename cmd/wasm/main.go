@@ -151,10 +151,12 @@ func main() {
 			return nil
 		}
 		game.SfxBegin()
+		game.HitBegin()
 		fr := frame(game.Key(a[0].String()))
 		if m, ok := fr.(map[string]any); ok {
 			m["sfx"] = game.SfxEnd()
 			m["sfxs"] = game.SfxScene()
+			m["hits"] = engine.HitJS(game.HitEnd())
 		}
 		return fr
 	})
@@ -298,7 +300,15 @@ func main() {
 			return nil
 		}
 		// sent as a key so the replay log records it
-		return frame(game.Key(fmt.Sprintf("ctx:%s:%d:%d", a[0].String(), a[1].Int(), a[2].Int())))
+		game.SfxBegin()
+		game.HitBegin()
+		fr := frame(game.Key(fmt.Sprintf("ctx:%s:%d:%d", a[0].String(), a[1].Int(), a[2].Int())))
+		if m, ok := fr.(map[string]any); ok {
+			m["sfx"] = game.SfxEnd()
+			m["sfxs"] = game.SfxScene()
+			m["hits"] = engine.HitJS(game.HitEnd())
+		}
+		return fr
 	})
 	api["ctxAt"] = js.FuncOf(func(this js.Value, a []js.Value) any {
 		if game == nil {

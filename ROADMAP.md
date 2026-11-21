@@ -254,3 +254,14 @@ Waves A to F added breadth (100+ systems). Wave G (Realmforge exports, modding S
 6. Clarity and quality: in-game encyclopedia, better tooltips, a "what can I do here" overview; a balance and pacing pass (nothing has been playtested); performance and save size (a long run's save is about 5 MB); a stability sweep for load crashes (a nil-map crash after load was found and fixed in wave F).
 
 **Rules (unchanged)**: no LLM/AI API calls (grammars, templates and simulation only); agents own new files; coordinator wires hooks; no test suites or playtest bots (fuzz, `go vet`, svelte-check, Realmforge `npm run check` and `selftest` only); close the browser tab after any check.
+
+
+## Next ideas (agreed 2026-11-21)
+Ranked by impact, after the visual, audio and clarity steps of the depth waves above:
+1. **Environmental storytelling** (done 2026-11-21, four scene sets: war, town, wild, delve; also combat feel and visible NPC routines from this list, items 2 and 3): ruins, battlefields, abandoned houses, graves and camps laid out as readable scenes built from real simulated events (a plague house with a diary, a siege wall with arrow-scarred stones, a ruler's last stand, epitaphs of the real dead). Read the world instead of being told about it.
+2. **Combat feel**: damage numbers, hit flashes, screen shake, short pauses on big hits, clearer telegraphs.
+3. **Visible NPC lives**: schedules shown in town zones (sleep, eat, market, worship, home), driven by what the life simulation already knows.
+4. **Relationship and consequence screens**: a web of who loves, owes or hates whom and what your actions changed.
+5. **Load time and save size**: lazy decoding of the world file (the iron-lantern sample is 8.6 MB), smaller saves (a long run is about 5 MB).
+6. **Leftovers from the culture-in-play step**: callers for the unused `dvSay` kinds (apology, praise, insult, curse, oath, gossip opener), `etLawLine` in crime messages, culture trade goods in the trade ledger (`tq`), pack buildings, dress, music and games, and a polish pass on awkward generated lines ("As the gods is my judge", "An oath sworn on the sacred oath", a religion named "No faith").
+Realmforge-side ideas are in `../realmforge/ROADMAP.md` ("More culture depth").

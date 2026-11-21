@@ -633,6 +633,9 @@ func (g *Game) describeTile(x, y int) string {
 		if tg := g.dvTalkTag(a); tg != "" { // how they speak (voice.go)
 			parts = append(parts, "{{K|"+tg+"}}")
 		}
+		if tg := g.rnLookTag(a); tg != "" { // what they are doing (routines.go)
+			parts = append(parts, "{{K|They are "+tg+".}}")
+		}
 		parts = append(parts, fmt.Sprintf("{{K|%s · AV %d DV %d}}", g.FactionName(a.Faction), a.AV(), a.DV()))
 		for _, bp := range a.Body {
 			if bp.Item != nil {

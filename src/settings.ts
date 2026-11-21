@@ -53,6 +53,12 @@ export interface Settings {
 	contextMenu: boolean;
 	/** record keys so a finished run can be replayed */
 	recordReplay: boolean;
+	/** floating damage numbers and hit flashes (src/hitfx.ts) */
+	hitNumbers: boolean;
+	hitShake: boolean;
+	hitPause: boolean;
+	/** town folk follow daily routines (engine/routines.go) */
+	routines: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -82,6 +88,10 @@ export const DEFAULT_SETTINGS: Settings = {
 	tileAnim: true,
 	contextMenu: true,
 	recordReplay: true,
+	hitNumbers: true,
+	hitShake: true,
+	hitPause: true,
+	routines: true,
 };
 
 export const SCALE_OPTIONS = [0.75, 1, 1.25, 1.5] as const;
@@ -125,7 +135,7 @@ function clean(raw: unknown): Settings {
 	if (typeof r.showHints === 'boolean') s.showHints = r.showHints;
 	if (typeof r.autoAim === 'boolean') s.autoAim = r.autoAim;
 	if (typeof r.keymap === 'object' && r.keymap !== null) s.keymap = cleanKeymap(r.keymap);
-	for (const k of ['gamepad', 'gamepadRumble', 'sfxEvents', 'tileVariety', 'tileAnim', 'contextMenu', 'recordReplay'] as const) {
+	for (const k of ['gamepad', 'gamepadRumble', 'sfxEvents', 'tileVariety', 'tileAnim', 'contextMenu', 'recordReplay', 'hitNumbers', 'hitShake', 'hitPause', 'routines'] as const) {
 		if (typeof r[k] === 'boolean') s[k] = r[k] as boolean;
 	}
 	if (typeof r.gamepadDeadzone === 'number' && Number.isFinite(r.gamepadDeadzone)) s.gamepadDeadzone = Math.min(0.7, Math.max(0.1, r.gamepadDeadzone));

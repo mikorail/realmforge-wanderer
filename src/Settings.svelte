@@ -201,6 +201,18 @@
 			<input type="checkbox" checked={settings.tileAnim} onchange={(e) => set('tileAnim', e.currentTarget.checked)} />
 		</label>
 		<label class="row">
+			<span>Damage numbers and hit flashes</span>
+			<input type="checkbox" checked={settings.hitNumbers} onchange={(e) => set('hitNumbers', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Screen shake when hurt</span>
+			<input type="checkbox" checked={settings.hitShake} onchange={(e) => set('hitShake', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Short hit pause on crits and boss hits</span>
+			<input type="checkbox" checked={settings.hitPause} onchange={(e) => set('hitPause', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
 			<span>Reduce motion</span>
 			<input type="checkbox" checked={settings.reduceMotion} onchange={(e) => set('reduceMotion', e.currentTarget.checked)} />
 		</label>
@@ -211,6 +223,10 @@
 		<label class="row">
 			<span>Record replays</span>
 			<input type="checkbox" checked={settings.recordReplay} onchange={(e) => set('recordReplay', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Town folk keep daily routines</span>
+			<input type="checkbox" checked={settings.routines} onchange={(e) => set('routines', e.currentTarget.checked)} />
 		</label>
 		<label class="row">
 			<span>Show hints</span>
