@@ -894,6 +894,12 @@ func (g *Game) cvKmLeft(c *cvCar, pos cvPos) float64 {
 	return float64(len(c.Path)-1-c.stepsDone(pos)) * km
 }
 
+// cvFare is the passage price for km on a laden wagon (about 24 km a day).
+func cvFare(km float64) int { return 4 + int(km/16) }
+
+// cvGuardPay is the guard's pay for km: about twice the food a guard eats on the way (24 km a day).
+func cvGuardPay(km float64) int { return 10 + int(km*3/8) }
+
 func (g *Game) cvJoinOptions(c *cvCar, pos cvPos) []Option {
 	st := g.cv()
 	if j := st.Join; j != nil {
@@ -913,8 +919,8 @@ func (g *Game) cvJoinOptions(c *cvCar, pos cvPos) []Option {
 	}
 	to := c.bound(pos)
 	km := g.cvKmLeft(c, pos)
-	fee := 4 + int(km/16)
-	pay := 10 + int(km/8)
+	fee := cvFare(km)
+	pay := cvGuardPay(km)
 	trip := pos.Trip
 	return []Option{
 		{fmt.Sprintf("{{W|Buy passage to %s (%s).}}", to.Name, g.cuFormat(fee)), func() {

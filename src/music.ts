@@ -5,12 +5,14 @@
 // src/scales.ts) and "pure chiptune" (pulse / triangle / noise only).
 import type { QudMusic } from './qud';
 import { loadSettings, type InstrumentFlavour, type MusicStyle } from './settings';
+import { profileOf, styleKey, type MusicStyleFrame } from './culturemusic';
 import { createGarden, gardenFor, type Garden, type GardenStyle } from './garden';
 import { FEELS, GENERIC, GENRE_COLOUR, MOOD_LEADS, PROFILES, SCALES, type GenreColour, type Profile } from './scales';
 import { INST, clap, createKit, disposeKit, drone2, hit, sweep, tex, type Kit, type TexKind } from './instruments';
 
 export interface MusicHandle {
-	setState(m: QudMusic): void;
+	/** `mstyle` is frame.mstyle; its culture instruments and scale colour the choices only while the cultureMusic pref is on */
+	setState(m: QudMusic, mstyle?: MusicStyleFrame | null): void;
 	setVolume(v: number): void;
 	setEnabled(on: boolean): void;
 	setStyle(s: MusicStyle): void;
@@ -183,7 +185,7 @@ interface Piece {
 }
 
 function pieceKey(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour, fight = false, variant = 0): string {
-	return `${style}|${flavour}|${m.mood}|${m.genre}|${m.seed}|${m.biome | 0}|${(m.season ?? 0) | 0}|${m.sphere ?? ''}|${m.feast ? 1 : 0}|${fight ? 1 : 0}|${variant}`;
+	return `${style}|${flavour}|${m.mood}|${m.genre}|${m.seed}|${m.biome | 0}|${(m.season ?? 0) | 0}|${m.sphere ?? ''}|${styleKey(m)}|${m.feast ? 1 : 0}|${fight ? 1 : 0}|${variant}`;
 }
 
 // exotic / microtonal scales sound broken on these synths: fold them onto a close tonal relative
@@ -229,7 +231,7 @@ function makePiece(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour, f
 	const col: GenreColour = GENRE_COLOUR[m.genre] ?? {};
 	const cfg = MOODS[m.mood] ?? MOODS.wild;
 	const dead = m.mood === 'dead';
-	const sph: Profile | null = m.sphere ? PROFILES[m.sphere] ?? null : null;
+	const sph: Profile | null = (m.sphere || m.mstyle ? profileOf(m) : undefined) ?? null;
 	const prof = sph ?? GENERIC;
 	const dark = m.mood === 'dungeon' || m.mood === 'underdark' || m.mood === 'crypt';
 	const feast = !dead && !!m.feast && m.mood === 'town';
@@ -403,7 +405,8 @@ export function createMusic(): MusicHandle {
 	let volume = 0.35;
 	let style: MusicStyle = 'auto';
 	let flavour: InstrumentFlavour = 'cultural';
-	try { flavour = loadSettings().instrumentFlavour; } catch { /* default */ }
+	let cultureOn = true;
+	try { flavour = loadSettings().instrumentFlavour; cultureOn = loadSettings().cultureMusic !== false; } catch { /* default */ }
 	let flavT = 0;
 	let fxT = 0;
 	let clNow = 0;
@@ -1090,15 +1093,17 @@ export function createMusic(): MusicHandle {
 		flavT = now;
 		try {
 			const f = loadSettings().instrumentFlavour;
+			const cm = loadSettings().cultureMusic !== false;
+			if (cm !== cultureOn) { cultureOn = cm; requeue(); }
 			if (f !== flavour) { flavour = f; requeue(); }
 		} catch { /* settings unavailable */ }
 	}
 
 	return {
-		setState(m: QudMusic) {
+		setState(m: QudMusic, mstyle?: MusicStyleFrame | null) {
 			if (disposed) return;
-			st = m;
 			syncFlavour();
+			st = cultureOn && mstyle ? { ...m, mstyle } : m;
 			const bolt = m.bolt ?? 0;
 			if (thunderOn && lastBolt >= 0 && bolt > lastBolt && enabled && ensure()) thunder();
 			lastBolt = bolt;

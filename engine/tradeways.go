@@ -788,6 +788,13 @@ func (g *Game) tqSpoil(day int) {
 
 // ---------------------------------------------------------------- caravan contracts
 
+// tqDaysPerParasang is the walking allowance per parasang of a contract's distance (a parasang takes
+// about 5 days on foot at 160 km, tvBasePace), on top of the 6 to 11 days of notice.
+const tqDaysPerParasang = 6
+
+// tqGuardFee is the pay for guarding a caravan d parasangs: about twice the food bill of the walk.
+func tqGuardFee(d int) int { return 40 + d*45 }
+
 func (g *Game) tqOffers(bd *BurgData) []*tqContract {
 	day := g.tqToday()
 	bl := g.ws().burgList(g)
@@ -835,13 +842,13 @@ func (g *Game) tqOffers(bd *BurgData) []*tqContract {
 		if g.tq().Taken[id] {
 			continue
 		}
-		c := &tqContract{ID: id, Kind: "haul", Good: best.ID, From: bd.ID, To: to.b.ID, Due: (day/5)*5 + 5 + 6 + to.d*4}
+		c := &tqContract{ID: id, Kind: "haul", Good: best.ID, From: bd.ID, To: to.b.ID, Due: (day/5)*5 + 5 + 6 + to.d*tqDaysPerParasang}
 		if g.tqBanned(to.b.State, best) {
 			continue
 		}
 		if i == 2 {
 			c.Kind, c.Good = "guard", ""
-			c.Fee = 40 + to.d*35
+			c.Fee = tqGuardFee(to.d)
 			c.Bonus = c.Fee / 5
 		} else {
 			c.N = r.Int(6, 16)

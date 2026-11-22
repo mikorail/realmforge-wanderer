@@ -386,6 +386,7 @@ func (g *Game) rtBeginFeast(a *Actor) {
 			intro += fmt.Sprintf("\n\n{{y|The day asks for %s. You are not dressed for it, but you may still take part.}}", rtClean(dress, s.vars))
 		}
 	}
+	intro += g.pdFeast(b, f, dress != "") // pack dress of the day (packdress.go)
 	if s.fr != nil && s.fr.Taboo != "" {
 		intro += "\n\n{{R|Forbidden today:}} " + rtClean(s.fr.Taboo, s.vars)
 		if why := g.rtTabooHit(s.fr.Taboo); why != "" {

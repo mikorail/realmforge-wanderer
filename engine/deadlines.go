@@ -18,6 +18,15 @@ import (
 // reward (gold, rep, XP, an early bonus) when the clock is beaten and a world consequence on lapse
 // (news, the dead of lvSt, reputation). State g.ext("dl"), planet-local ("dl" in unLocalKeys).
 
+// Pacing constants: a deadline window assumes the wanderer covers dlWalkKmPerDay km a day (tvBasePace runs 10 to 36)
+// and then multiplies the whole walk by dlSlack. dlRewardBase is the gold at level 0.
+const (
+	dlWalkKmPerDay = 22.0
+	dlSlack        = 1.35
+)
+
+var dlRewardBase = map[string]int{"plague": 160, "siege": 200, "hostage": 200, "caravan": 40, "festival": 50, "flood": 90, "vault": 260, "relic": 220}
+
 type dlEv struct {
 	ID      int    `json:"id"`
 	Kind    string `json:"k"`
@@ -283,12 +292,12 @@ func (g *Game) dlGenerate() {
 		return
 	}
 	tgt := cands[r.Int(0, len(cands)-1)]
-	dpp := maxf(0.6, g.tvKm()/28)
+	dpp := maxf(0.6, g.tvKm()/dlWalkKmPerDay)
 	days := func(d int) float64 { return float64(d) * dpp }
 	e := &dlEv{ID: st.Next, Kind: kd.ID, Burg: tgt.ID, Site: tgt.P, Start: g.Turn, State: "active", Known: true}
 	st.Next++
 	lvl := g.P.Level
-	base := map[string]int{"plague": 160, "siege": 200, "hostage": 120, "caravan": 40, "festival": 50, "flood": 90, "vault": 260, "relic": 220}[kd.ID]
+	base := dlRewardBase[kd.ID]
 	e.Reward = base + base*lvl/8 + r.Int(0, base/3)
 	near := func(of *BurgData, skip ...int) []*BurgData {
 		o := append([]*BurgData(nil), bl...)
@@ -318,7 +327,7 @@ func (g *Game) dlGenerate() {
 		return out
 	}
 	window := func(total float64) int {
-		return int((total*1.35 + float64(kd.Min) + float64(r.Int(0, 3))) * DayLen)
+		return int((total*dlSlack + float64(kd.Min) + float64(r.Int(0, 3))) * DayLen)
 	}
 	switch kd.ID {
 	case "plague", "siege":

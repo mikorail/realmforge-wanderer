@@ -335,6 +335,13 @@ func ctSquad(h ctHabit) []ctMember {
 	return nil
 }
 
+// Ambush odds, percent per zone entry (or per rest) once a grudge and a known habit exist, and the days of quiet after one.
+const (
+	ctChanceEnter  = 10
+	ctChanceRest   = 30
+	ctCooldownDays = 8
+)
+
 // ctAmbush may send a counter squad into zn; true when it did.
 func (g *Game) ctAmbush(zn *Zone, why string) bool {
 	st := g.ct()
@@ -347,9 +354,9 @@ func (g *Game) ctAmbush(zn *Zone, why string) bool {
 	if gr == nil || len(hs) == 0 {
 		return false
 	}
-	chance := uint64(10)
+	chance := uint64(ctChanceEnter)
 	if why == "rest" {
-		chance = 30
+		chance = ctChanceRest
 	}
 	roll := HashStr(fmt.Sprintf("%s:ct:amb:%s:%d:%s", g.Seed, zn.Key, day, why))
 	if roll%100 >= chance {
@@ -394,7 +401,7 @@ func (g *Game) ctAmbush(zn *Zone, why string) bool {
 		}
 		zn.Actors = append(zn.Actors, a)
 	}
-	st.Next = day + 4 + int(roll%4)
+	st.Next = day + ctCooldownDays + int(roll%4)
 	st.Sent++
 	st.Last = h.ID
 	g.Msg(fmt.Sprintf("{{R|%s step out of the land and into your road. They have learned that %s.}}", gr.Name, h.Know))

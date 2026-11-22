@@ -74,7 +74,7 @@ func ijFatTurn(g *Game) {
 		}
 		st.Fat = maxf(0, st.Fat-rate)
 		if n := ijHealEvery[kind]; n > 0 && !g.ijNoRegen() && g.Turn%n == 0 && p.HP < p.MaxHP && p.St("bleeding") == 0 && g.Hunger < 2400 {
-			p.HP++
+			p.HP = mini(p.MaxHP, p.HP+g.regenStep())
 		}
 	} else {
 		r := 0.05

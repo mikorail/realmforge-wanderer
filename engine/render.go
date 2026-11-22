@@ -634,6 +634,9 @@ func (g *Game) describeTile(x, y int) string {
 		if a.Desc != "" {
 			parts = append(parts, a.Desc)
 		}
+		if s := g.pdLook(a); s != "" { // pack dress by rank (packdress.go)
+			parts = append(parts, s)
+		}
 		if tg := g.dvTalkTag(a); tg != "" { // how they speak (voice.go)
 			parts = append(parts, "{{K|"+tg+"}}")
 		}
@@ -662,6 +665,9 @@ func (g *Game) describeTile(x, y int) string {
 		td = fl
 	}
 	parts = append(parts, td)
+	if s := g.pbLook(z, x, y); s != "" { // pack building style (packbuild.go)
+		parts = append(parts, s)
+	}
 	if z.Fire[y*MW+x] > 0 {
 		parts = append(parts, "{{R|It is on fire.}}")
 	}

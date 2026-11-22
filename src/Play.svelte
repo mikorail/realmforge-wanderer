@@ -372,7 +372,7 @@
 		frame = f;
 		replayTap(api, f);
 		dead = f.dead;
-		music.setState(f.music);
+		music.setState(f.music, f.mstyle);
 		sfx.setState(f.music);
 		gsfx.handleFrame(f, k);
 		hub.frame(f, k);

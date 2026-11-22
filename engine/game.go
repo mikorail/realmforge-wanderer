@@ -461,6 +461,10 @@ func (g *Game) cleanup() {
 	g.Cur.Actors = alive
 }
 
+// regenStep is the HP healed each time natural healing or sleep ticks: 1 plus 1 per 80 MaxHP, so a full heal
+// takes about the same time at level 5 and level 30 (the tick period does not depend on MaxHP).
+func (g *Game) regenStep() int { return 1 + g.P.MaxHP/80 }
+
 // turn: one game minute. Status effects, hunger, thirst, fire, regeneration.
 func (g *Game) turn() {
 	g.Turn++
@@ -512,7 +516,7 @@ func (g *Game) turn() {
 		regen = 6
 	}
 	if g.Turn%regen == 0 && !g.ijNoRegen() && p.HP < p.MaxHP && p.St("bleeding") == 0 && g.Hunger < 2400 && g.Thirst < 1800 {
-		p.HP++
+		p.HP = mini(p.MaxHP, p.HP+g.regenStep())
 	}
 	if p.Pow("regen") >= 3 && g.Turn%200 == 0 {
 		for _, bp := range p.Body {
@@ -1067,6 +1071,18 @@ func (g *Game) nearHostile() bool {
 	return false
 }
 
+// ambushChance is the chance of being waylaid on a crossing that takes cost minutes: a daily rate
+// (wmAmbushBase less 3% a Survival rank, +6% in lawless land) at half strength per day, capped.
+func ambushChance(survival int, lawless bool, cost int) float64 {
+	chance := wmAmbushBase - 0.03*float64(survival)
+	if lawless {
+		chance += 0.06
+	}
+	return math.Min(0.4, 1-math.Pow(1-chance/2, float64(cost)/DayLen))
+}
+
+const wmAmbushBase = 0.12
+
 func (g *Game) WorldMove(dx, dy int) {
 	if shWorldMove(g, dx, dy) { // your own ship (sailing.go)
 		return
@@ -1106,12 +1122,7 @@ func (g *Game) WorldMove(dx, dy int) {
 		}
 	}
 	// ambushes
-	chance := 0.12 - 0.03*float64(g.Skills["survival"])
-	if g.W.State[np] == 0 {
-		chance += 0.06
-	}
-	// a multi-day crossing gives the road more chances, capped so travel stays travel
-	chance = math.Min(0.4, 1-math.Pow(1-chance/2, float64(cost)/DayLen))
+	chance := ambushChance(g.Skills["survival"], g.W.State[np] == 0, cost)
 	if g.W.Burg[np] > 0 {
 		chance = 0
 	}
@@ -1154,7 +1165,7 @@ func (g *Game) gainXP(n int) {
 	for g.XP >= XPFor(g.P.Level) {
 		g.XP -= XPFor(g.P.Level)
 		g.P.Level++
-		hp := maxi(1, 3+g.P.M(TOU)) + g.Skills["endurance"]*3
+		hp := maxi(3, 3+g.P.M(TOU)) + g.Skills["endurance"]*3 // floor 3: a low-Toughness build must not stall at 1 HP a level
 		g.P.MaxHP += hp
 		g.P.HP += hp
 		g.skOnLevel() // SP, MP, AP and attribute gains (leveling.go)

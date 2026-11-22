@@ -150,7 +150,7 @@ func (g *Game) stSetLevel(n int) {
 	}
 	for g.P.Level < n {
 		g.P.Level++
-		hp := maxi(1, 3+g.P.M(TOU)) + g.Skills["endurance"]*3
+		hp := maxi(3, 3+g.P.M(TOU)) + g.Skills["endurance"]*3 // same floor as gainXP
 		g.P.MaxHP += hp
 		g.P.HP += hp
 	}

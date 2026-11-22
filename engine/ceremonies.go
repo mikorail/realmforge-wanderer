@@ -1312,7 +1312,7 @@ func (g *Game) fwDraw() {
 		sc.TextB(x, y, "{{K|Enter to go on.}}", CGray, CBgDark, x+w)
 		return
 	}
-	for _, para := range fwDrawLines(g, c) {
+	for _, para := range append(fwDrawLines(g, c), g.pdCeremony(c)...) { // pdCeremony: pack dress (packdress.go)
 		for _, l := range Wrap(para, w-2) {
 			sc.TextB(x, y, l, CGray, CBgDark, x+w)
 			y++

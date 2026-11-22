@@ -203,7 +203,7 @@ func ijChallengeTurn(g *Game) {
 	if len(st.Mods) == 0 || p == nil {
 		return
 	}
-	if g.ijHas("hungry") && g.Turn%(2+g.Skills["endurance"]) != 0 && !g.slowHunger() {
+	if g.ijHas("hungry") && g.Turn%(2+g.Skills["endurance"]) == 0 && !g.slowHunger() {
 		g.Hunger++
 		g.Thirst++
 	}

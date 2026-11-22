@@ -120,7 +120,7 @@ func (g *Game) tvPass(cost int) (ate, drank, hurt int) {
 	for i := 0; i < cost; i++ {
 		g.Turn++
 		g.mealTick()
-		if g.Turn%(2+g.Skills["endurance"]) != 0 && !g.slowHunger() {
+		if g.Turn%(2+g.Skills["endurance"]) == 0 && !g.slowHunger() { // same cadence as turn() in game.go
 			g.Hunger++
 			g.Thirst++
 		}

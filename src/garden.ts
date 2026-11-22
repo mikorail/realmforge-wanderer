@@ -16,6 +16,7 @@
 import type { QudMusic } from './qud';
 import { INST, type Kit } from './instruments';
 import { SCALES, PROFILES } from './scales';
+import { profileOf, styleKey } from './culturemusic';
 
 export type GardenStyle = 'drift' | 'pastoral' | 'desert';
 
@@ -55,7 +56,7 @@ export function gardenFor(m: QudMusic): GardenStyle {
 }
 
 export function gardenKey(m: QudMusic, gs: GardenStyle): string {
-	return `${gs}|${m.seed}|${m.mood}|${m.genre}|${m.biome | 0}|${(m.season ?? 0) | 0}|${m.sphere ?? ''}|${m.day ? 1 : 0}|${m.feast ? 1 : 0}`;
+	return `${gs}|${m.seed}|${m.mood}|${m.genre}|${m.biome | 0}|${(m.season ?? 0) | 0}|${m.sphere ?? ''}|${styleKey(m)}|${m.day ? 1 : 0}|${m.feast ? 1 : 0}`;
 }
 
 export interface Garden {
@@ -356,7 +357,7 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 		const r = rngOf(hash(key));
 		const night = !m.day || m.mood === 'dead';
 		const scaleName = m.mood === 'dead' ? 'aeolian' : night ? pick(r, ['dorian', 'aeolian', 'majPent', 'lydian']) : pick(r, ['lydian', 'ionian', 'majPent', 'mixolydian', 'dorian']);
-		const x: Ctx = { r, scale: SCALES[scaleName], base: 50 + Math.floor(r() * 8), m, cultural, prof: PROFILES[m.sphere ?? ''] };
+		const x: Ctx = { r, scale: SCALES[scaleName], base: 50 + Math.floor(r() * 8), m, cultural, prof: cultural ? profileOf(m) : PROFILES[m.sphere ?? ''] };
 		const bus = newBus(t0, 6, LEVEL.drift);
 		const voiceKinds = m.mood === 'sea' ? ['glass', 'ep', 'pad'] : m.mood === 'sky' ? ['glass', 'glass', 'ep'] : ['ep', 'piano', 'glass', 'ep'];
 		// Eno loops: incommensurate periods
@@ -438,7 +439,7 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 		const r = rngOf(hash(key));
 		const season = (m.season ?? 0) | 0;
 		const night = !m.day;
-		const prof = cultural ? PROFILES[m.sphere ?? ''] : undefined;
+		const prof = cultural ? profileOf(m) : undefined;
 		const scaleName = season === 2 && r() < 0.6 ? 'dorian' : pick(r, ['ionian', 'ionian', 'mixolydian', 'majPent', 'lydian']);
 		const x: Ctx = { r, scale: SCALES[scaleName], base: 53 + Math.floor(r() * 7), m, cultural, prof };
 		const bus = newBus(t0, 3, LEVEL.pastoral);
@@ -523,7 +524,7 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 	function desertScene(key: string, m: QudMusic, cultural: boolean, t0: number): Scene {
 		const r = rngOf(hash(key));
 		const under = UNDER.has(m.mood);
-		const prof = cultural ? PROFILES[m.sphere ?? ''] : undefined;
+		const prof = cultural ? profileOf(m) : undefined;
 		const near = prof?.scales.filter((s) => DESERT_SCALES.includes(s) || ['uncanny', 'wholetone', 'octatonic', 'bhairav', 'todi'].includes(s)) ?? [];
 		const genreScales: Record<string, string[]> = { cyberpunk: ['aeolian', 'phrygian'], biopunk: ['wholetone', 'phrygDom'], atompunk: ['lydian', 'wholetone'], twilight: ['harmonicMinor', 'aeolian'], wasteland: ['phrygDom', 'minPent'] };
 		const scaleName = near.length && r() < 0.7 ? pick(r, near) : pick(r, genreScales[m.genre] ?? DESERT_SCALES);

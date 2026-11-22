@@ -86,6 +86,8 @@ func (g *Game) acMaterials(bd *BurgData, cu *CultureData, role string) (wall, fl
 		}
 	}
 
+	wall, floor = g.pbMaterials(cu, role, wall, floor) // culture pack buildings (packbuild.go)
+
 	// Genre overrides
 	if genre == "cyberpunk" || genre == "dieselpunk" || genre == "atompunk" {
 		if role == "market" || role == "forge" || role == "barracks" {

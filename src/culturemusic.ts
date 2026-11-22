@@ -148,6 +148,21 @@ export function profileFor(style: MusicStyleFrame | null | undefined, base?: Pro
 	};
 }
 
+/**
+ * The profile the soundtrack (music.ts, garden.ts) should use for a moment: PROFILES[sphere] as before when the place has
+ * no culture-pack style, else that profile with the pack's instruments, scale and forms moved to the front.
+ */
+export function profileOf(m: { sphere?: string; mstyle?: MusicStyleFrame | null }): Profile | undefined {
+	const base = m.sphere ? PROFILES[m.sphere] : undefined;
+	return m.mstyle ? profileFor(m.mstyle, base) : base;
+}
+
+/** a short cache-key part for a style, so scenes and pieces rebuild when the culture's words change */
+export function styleKey(m: { mstyle?: MusicStyleFrame | null }): string {
+	const s = m.mstyle;
+	return s ? `${s.culture}:${(s.instruments ?? []).length}:${s.scaleWord ?? ''}` : '';
+}
+
 // ---------- deterministic phrase grammar ----------
 function hash32(s: string): number {
 	let h = 2166136261 >>> 0;

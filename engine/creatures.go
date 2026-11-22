@@ -169,13 +169,13 @@ func (g *Game) Spawn(id string, lvl int, r *Rng) *Actor {
 	for i := range a.Attr {
 		a.Attr[i] += up / 2
 	}
-	a.MaxHP = t.HP + up*4 + r.Int(0, t.HP/4)
+	a.MaxHP = t.HP + up*5 + r.Int(0, t.HP/4)
 	a.HP = a.MaxHP
 	a.XP = 10 + lvl*lvl*5
 	if t.Bite[0] > 0 {
 		for _, p := range a.Body {
 			if p.Natural != nil {
-				p.Natural.DN, p.Natural.DS, p.Natural.PV = t.Bite[0], t.Bite[1]+up/3, t.Bite[2]+up/4
+				p.Natural.DN, p.Natural.DS, p.Natural.PV = t.Bite[0], t.Bite[1]+up/3, t.Bite[2]+up/3
 				if t.Elem != "" {
 					p.Natural.Elem = t.Elem
 				}

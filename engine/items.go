@@ -105,7 +105,7 @@ func (g *Game) MakeGrenade(kind string, n int) *Item {
 }
 
 func (g *Game) MakeFood(r *Rng, n int) *Item {
-	return &Item{ID: g.newID(), Kind: "food", Name: Pick(r, g.skin().Food), Glyph: '%', F: CBrown, Count: n, Value: 3, Power: 400}
+	return &Item{ID: g.newID(), Kind: "food", Name: Pick(r, g.skin().Food), Glyph: '%', F: CBrown, Count: n, Value: 3, Power: 600}
 }
 
 func (g *Game) MakeWater() *Item {

@@ -135,7 +135,7 @@ func (g *Game) gmSphere() string {
 	return ""
 }
 
-func (g *Game) gmGameName(kind int) string { return gmNames(g.Genre, g.gmSphere())[kind] }
+func (g *Game) gmGameName(kind int) string { return g.pgNames()[kind] } // pack names (packgames.go)
 
 func gmAbs(a int) int {
 	if a < 0 {
@@ -319,7 +319,7 @@ func (g *Game) gmStart(a *Actor) {
 		}, nil)
 		return
 	}
-	names := gmNames(g.Genre, g.gmSphere())
+	names := g.pgNames() // pack names (packgames.go)
 	var opts []Option
 	for i := 0; i < gmGameCount; i++ {
 		i := i
@@ -351,6 +351,7 @@ func (g *Game) gmBetMenu(a *Actor, kind int) {
 	if a.Has("gmboss") {
 		txt = "The pot is yours to name. The prize stays on the table."
 	}
+	txt += g.pgRule(kind) // pack rule text (packgames.go)
 	g.gmMenu("The stake", txt, opts, func() { g.gmDecline(a) })
 }
 
@@ -1043,7 +1044,7 @@ func (g *Game) gmMakeInstrument(set [4]string, kind, q int) *Item {
 }
 
 func (g *Game) gmShop(a *Actor) {
-	set := gmInstSet(g.Genre, g.gmSphere())
+	set := g.pmSet(gmInstSet(g.Genre, g.gmSphere())) // pack instruments (packmusic.go)
 	var opts []Option
 	for k := 0; k < 4; k++ {
 		for _, q := range []int{1, 2, 3} {
@@ -1181,6 +1182,7 @@ func (g *Game) gmBusk(it *Item, mode int) {
 		}
 		tip := crowd*(2+margin)/3 + 1 + st.Fame/10
 		tip += g.cgBuskTip() // verses known in this culture (cultgoods.go)
+		tip += g.pmBuskTip(it) // local instrument and tunes learned (packmusic.go)
 		g.cuEarn(tip)
 		st.Tips += tip
 		gain := 1

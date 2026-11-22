@@ -63,6 +63,8 @@ export interface QudMusic {
 	feast?: boolean; // feast day in this town
 	combat?: boolean; // a hostile is in sight
 	shore?: boolean; // open water fills much of this outdoor zone (surf SFX)
+	/** the place's culture pack music (instruments, scale word, forms); set by music.setState when the cultureMusic pref is on */
+	mstyle?: import('./culturemusic').MusicStyleFrame;
 }
 export interface QudFx {
 	wx?: string; // weather kind id (outdoors only)
