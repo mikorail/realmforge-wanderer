@@ -140,6 +140,34 @@
 	}
 	/** Paint one map cell as a sprite (tile variant over the base sprite); false when the glyph has no sprite. */
 	const pxScratch = {} as PxPose;
+	// box-drawing glyphs as pixel lines: [up, down, left, right] arms, 1 single, 2 double
+	const BOX: Record<string, [number, number, number, number]> = {
+		'─': [0, 0, 1, 1], '│': [1, 1, 0, 0], '┌': [0, 1, 0, 1], '┐': [0, 1, 1, 0], '└': [1, 0, 0, 1], '┘': [1, 0, 1, 0],
+		'├': [1, 1, 0, 1], '┤': [1, 1, 1, 0], '┬': [0, 1, 1, 1], '┴': [1, 0, 1, 1], '┼': [1, 1, 1, 1],
+		'═': [0, 0, 2, 2], '║': [2, 2, 0, 0], '╔': [0, 2, 0, 2], '╗': [0, 2, 2, 0], '╚': [2, 0, 0, 2], '╝': [2, 0, 2, 0],
+		'╠': [2, 2, 0, 2], '╣': [2, 2, 2, 0], '╦': [0, 2, 2, 2], '╩': [2, 0, 2, 2], '╬': [2, 2, 2, 2]
+	};
+	/** a frame piece drawn from whole art pixels (the current fillStyle), centred in the cell; false = not a box glyph */
+	function drawBoxGlyph(ctx: CanvasRenderingContext2D, g: string, x: number, y: number, cw: number, chh: number): boolean {
+		const b = BOX[g];
+		if (!b) return false;
+		const dpr = window.devicePixelRatio || 1;
+		const px = Math.max(1, Math.round((chh / 20) * dpr)) / dpr;
+		const cx = Math.round((x + cw / 2) / px) * px, cy = Math.round((y + chh / 2) / px) * px;
+		const arm = (n: number, horiz: boolean, neg: boolean) => {
+			if (!n) return;
+			const t = n === 2 ? px * 3 : px * 2; // double lines are a heavier pair
+			const len = (horiz ? cw : chh) / 2 + 0.5;
+			const off = -t / 2;
+			if (horiz) ctx.fillRect(neg ? cx - len : cx - t / 2, cy + off, len + t / 2, t);
+			else ctx.fillRect(cx + off, neg ? cy - len : cy - t / 2, t, len + t / 2);
+		};
+		arm(b[0], false, true);
+		arm(b[1], false, false);
+		arm(b[2], true, true);
+		arm(b[3], true, false);
+		return true;
+	}
 	/** canvas text font: VT323 (a pixel font) sized to the cell, or the smooth mono face */
 	function fontStr(): string {
 		if (prefs.pixelFont) return `${Math.max(8, Math.round(Math.min(chh * 1.04, cw * 2.4)))}px "VT323", "Share Tech Mono", Menlo, monospace`;
@@ -532,6 +560,7 @@
 				}
 			}
 			ctx.fillStyle = fg;
+			if (prefs.pixelArt && drawBoxGlyph(ctx, g, x, y, cw, chh)) continue;
 			if (g === '█') ctx.fillRect(x, y, cw + 0.5, chh + 0.5);
 			else if (g === '─') ctx.fillRect(x, y + chh / 2, cw + 0.5, 1);
 			else if (g === '│') ctx.fillRect(x + cw / 2, y, 1, chh + 0.5);

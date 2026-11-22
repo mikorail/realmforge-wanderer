@@ -1,5 +1,6 @@
 // Entry point: pixel-art version of a map cell. Returns true when it drew the cell; false = use the old drawer.
 import { blitSprite } from './render';
+import { shift, flipX, type Rows } from './types';
 import { terrainSprite } from './terrain';
 import { personSprite } from './people';
 import { creatureSprite } from './creatures';
@@ -31,10 +32,35 @@ export function drawPixelTile(ctx: CanvasRenderingContext2D, g: string, fgIdx: n
 export function drawPixelActor(ctx: CanvasRenderingContext2D, a: QudActor, g: string, fg: string, bg: string, x: number, y: number, cw: number, chh: number, frame: number, pose: Pose): boolean {
 	if (!on) return false;
 	const h = hash(a.i, a.i >> 3);
-	const r = a.s || a.p ? personSprite(a, h, pose, frame) : creatureSprite(a, g, h, frame);
+	const person = !!(a.s || a.p);
+	const r = person ? personSprite(a, h, pose, frame) : creatureSprite(a, g, h, frame);
 	if (!r) return false;
-	blitSprite(ctx, r.rows, x, y, cw, chh, { fg, bg, ...r.pal }, 'stand');
+	const rows = person ? r.rows : creatureMotion(r.rows, pose);
+	blitSprite(ctx, rows, x, y, cw, chh, { fg, bg, ...r.pal }, pose.dead > 0.5 ? 'drop' : 'stand');
 	return true;
+}
+
+/** creatures have one still sprite per frame: attack, hurt and death are done by moving and flipping it */
+function creatureMotion(rows: Rows, pose: Pose): Rows {
+	let out: Rows = rows;
+	if (pose.dead > 0) {
+		if (pose.dead > 0.5) {
+			// fallen: belly up, settled on the ground
+			const flipped = [...out].reverse();
+			let last = flipped.length - 1;
+			while (last > 0 && /^\.*$/.test(flipped[last])) last--;
+			return shift(flipX(flipped), 0, flipped.length - 1 - last);
+		}
+		return shift(out, pose.dir, 1);
+	}
+	if (pose.attack > 0) {
+		if (pose.face < 0) out = flipX(out);
+		const lunge = pose.attack < 0.4 ? -1 : pose.attack < 0.7 ? 2 : 1; // draw back, then strike
+		out = shift(out, lunge * (pose.face < 0 ? -1 : 1), 0);
+	} else if (pose.hurt > 0) {
+		out = shift(out, pose.hurt < 0.5 ? pose.dir : 0, 0);
+	}
+	return out;
 }
 
 /**

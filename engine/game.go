@@ -469,7 +469,7 @@ func (g *Game) turn() {
 	if p.Pow("glutton") > 0 {
 		hrate = 2
 	}
-	if g.Turn%(2+g.Skills["endurance"]) != 0 && !g.slowHunger() {
+	if g.Turn%(2+g.Skills["endurance"]) == 0 && !g.slowHunger() { // 1 tick per 2+Endurance minutes: Endurance slows hunger (autotravel's atNeed assumes the same)
 		g.Hunger += hrate
 		g.Thirst++
 	}

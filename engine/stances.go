@@ -198,7 +198,7 @@ func (g *Game) csDefend(d, a *Actor, w *Item, missile bool) bool {
 		key = s.Key
 	}
 	// dodge: agility and acrobatics, hurt by heavy armour, helped by an evasive stance
-	acro := d.Level / 3
+	acro := d.Level / 8 // monsters' stand-in for Acrobatics: level 24 matches a player's rank 3
 	if d == g.P {
 		acro = g.Skills["acrobatics"]
 	}
