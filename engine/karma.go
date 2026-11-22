@@ -750,6 +750,7 @@ func (g *Game) crSwear(a *Actor, id, arg string) {
 	g.crFirst("vowsworn", fmt.Sprintf("%s swore a first vow before %s.", g.P.Name, a.Name))
 	g.crKarma(4, 3, "swore the vow of "+d.Name)
 	g.AddRep(a.Faction, 3, " for a sworn vow")
+	g.loOath(a) // culture voice (culturefill.go)
 	g.talkMenu(fmt.Sprintf("You swear the vow of %s. {{K|%s}}\n\n\"Then it is so. It will be remembered, kept or broken.\"", g.crVowName(v), d.Perk))
 }
 

@@ -474,6 +474,7 @@ func (g *Game) drawWorld() {
 					default:
 						gl, f = 'o', CWhite
 					}
+					gl, f = g.rgWorldGlyph(p, gl, f) // abandoned/ruined/resettled towns (regrowth.go)
 				}
 				for _, mi := range w.monstersAt[p] {
 					if w.Monsters[mi].Slain {
@@ -501,6 +502,7 @@ func (g *Game) drawWorld() {
 					}
 				}
 			}
+			gl, f = g.cvWorldGlyph(p, gl, f) // caravans in view (caravans.go)
 			if questAt[p] && (g.Tick/5)%2 == 0 {
 				gl, f = '!', CYellow
 			}
@@ -554,6 +556,8 @@ func (g *Game) drawWorld() {
 	}
 	info = append(info, g.nmInfo(p)...) // names.go
 	info = append(info, g.shInfo(p)...) // sailing.go
+	info = append(info, g.cvInfo(p)...) // caravans (caravans.go)
+	info = append(info, g.rgInfo(p)...) // town fate (regrowth.go)
 	info = append(info, g.wrInfo(p)...) // wrecks.go
 	g.Popup = nil
 	g.wmInfo = info

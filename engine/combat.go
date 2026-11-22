@@ -276,6 +276,7 @@ func (g *Game) provoke(d *Actor) {
 		return
 	}
 	d.Angry = true
+	g.loHurt(d) // a friendly begs off in their own voice (culturefill.go)
 	g.lvWitness("attack", "You attacked "+d.Name+" in the street.", -6) // neighbours remember (lives.go)
 	if strings.HasPrefix(d.Faction, "state:") {
 		g.uwAssault(d) // bounty for striking townsfolk (crime.go)

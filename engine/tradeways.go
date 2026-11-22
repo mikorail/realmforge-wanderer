@@ -276,6 +276,9 @@ func (g *Game) tqRemember(bd *BurgData) {
 // ---------------------------------------------------------------- goods items
 
 func tqIdx(d *tqGood) int {
+	if i := loTqIdx(d); i >= 0 { // culture-pack goods (culturefill.go)
+		return i
+	}
 	for i := range tqGoods {
 		if &tqGoods[i] == d {
 			return i
@@ -289,6 +292,9 @@ func tqItemGood(it *Item) *tqGood {
 		return nil
 	}
 	i := it.Extra["tq:i"]
+	if i >= loTqBase { // culture-pack goods (culturefill.go)
+		return loTqAt(i - loTqBase)
+	}
 	if i < 0 || i >= len(tqGoods) {
 		return nil
 	}

@@ -75,7 +75,7 @@ func (g *Game) tqGoodsHere() []*tqGood {
 		}
 		out = append(out, d)
 	}
-	return out
+	return append(out, g.loTqGoods()...) // culture-pack trade goods (culturefill.go)
 }
 
 func (g *Game) tqName(d *tqGood) string {
@@ -88,6 +88,9 @@ func (g *Game) tqName(d *tqGood) string {
 }
 
 func tqGoodByID(id string) *tqGood {
+	if d := loTqByID(id); d != nil { // culture-pack goods (culturefill.go)
+		return d
+	}
 	for i := range tqGoods {
 		if tqGoods[i].ID == id {
 			return &tqGoods[i]

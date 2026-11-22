@@ -103,7 +103,7 @@ func (g *Game) talkMenu(text string) {
 	g.Opts = nil
 	add := func(t string, f func()) { g.Opts = append(g.Opts, Option{t, f}) }
 	add("Who are you?", func() { g.talkMenu(g.aboutNPC(a)) })
-	add("What news is there?", func() { g.talkMenu(g.gossip(a)) })
+	add("What news is there?", func() { g.talkMenu(g.loGossipOpen(a) + g.gossip(a)) })
 	if g.canJoinFeast(a) && !g.rtOwnsFeast(a) {
 		_, f := g.feastToday()
 		add("{{W|Join the "+f.Name+".}}", func() { g.joinFeast(a) })
@@ -1015,6 +1015,7 @@ func (g *Game) arenaCheck() {
 	g.ArenaFoes = nil
 	g.Msg(fmt.Sprintf("{{W|Victory! The crowd showers you with %d %s.}}", purse, g.Sk.Currency))
 	g.AddRep(z.Faction, 25, " for your arena victory")
+	g.loCrowdPraise() // culture voice (culturefill.go)
 	if g.ArenaWins == 5 {
 		g.Msg("{{Y|You are hailed as Champion of the Arena!}}")
 		g.deed("quest", fmt.Sprintf("The wanderer %s became champion of the arena in %s.", g.P.Name, z.Name), 0, 0)

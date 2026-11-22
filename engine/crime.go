@@ -244,6 +244,9 @@ func (g *Game) uwAddBounty(state, n int, why string) {
 	st.Bounty[state] = mini(st.Bounty[state]+n, 6000)
 	g.knCrime(g.Cur.Burg, "player", why) // witnessed crimes become spreading facts (knowledge.go)
 	g.Msg(fmt.Sprintf("{{R|Crime witnessed%s! Bounty with %s: %d %s.}}", why, g.uwRealm(state), st.Bounty[state], g.Sk.Currency))
+	if s := g.etLawLine(state, etCrimeFor(n)); s != "" { // local law in the culture's words (etiquette.go)
+		g.Msg("{{K|" + s + "}}")
+	}
 	if state > 0 {
 		g.Rep[uwFac(state)] -= mini(n/5+1, 90)
 		g.compRep(uwFac(state), -mini(n/5+1, 90))

@@ -609,7 +609,7 @@ func (g *Game) tpAskTopic(c *tpCtx, t *tpTopic, page int) {
 		}
 		rec.Fail = day + 1
 		c.op("insult", "pushed me to say what I would not", -3)
-		g.tpShow(c, "{{R|["+label+": Failure]}}\n\n"+c.pick(tpLose[c.tone], t.ID)+"\n\n"+tpMsgCool, []Option{{"{{K|Back.}}", back}}, back)
+		g.tpShow(c, "{{R|["+label+": Failure]}}\n\n"+c.pick(tpLose[c.tone], t.ID)+g.loApology(c.a)+"\n\n"+tpMsgCool, []Option{{"{{K|Back.}}", back}}, back)
 		return
 	}
 	g.tpAnswer(c, t, page, "")

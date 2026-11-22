@@ -420,7 +420,7 @@ func nqAsk(g *Game, a *Actor, p *lvPerson, pr *nqProp) {
 			st := nqSt(g)
 			st.Next[p.Key] = lvDay(g) + 6
 			st.cache = nil
-			g.talkMenu("\"I understand. Another time, perhaps.\"")
+			g.talkMenu("\"I understand. Another time, perhaps.\"" + g.loApology(a))
 		}},
 	}
 }
@@ -447,6 +447,7 @@ func nqAccept(g *Game, a *Actor, p *lvPerson, pr *nqProp) {
 		}
 	}
 	nqSync(g, q)
+	g.loOath(a) // culture voice (culturefill.go)
 	g.Msg("{{W|New request: " + q.Title + "}}")
 	if !st.Firsts["first"] {
 		st.Firsts["first"] = true
@@ -1033,6 +1034,7 @@ func nqFinish(g *Game, q *nqQuest, a *Actor) string {
 	if q.Tpl == "letter" || q.Tpl == "parcel" {
 		line = "{{K|(Delivered.)}}"
 	}
+	g.loPraise(a) // culture voice (culturefill.go)
 	return line + "\n" + strings.Join(notes, " ")
 }
 
