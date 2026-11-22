@@ -166,6 +166,9 @@ export function createEffects(canvas: HTMLCanvasElement): FxHandle {
 		if (!fx || fx.ind || !fx.wx) return;
 		const ov = fx.ov ?? '', inten = fx.in ?? 0, col = wxColor(fx.wx);
 		const rgb = `${col[0]},${col[1]},${col[2]}`;
+		const PXs = Math.max(1, Math.round((chh / 20) * dpr)) / dpr; // one art pixel in css px
+		const sn = (v: number) => Math.round(v / PXs) * PXs;
+		ctx.imageSmoothingEnabled = false;
 		if (ov === 'fog' || fx.wx === 'blizzard') {
 			const white = fx.wx === 'blizzard';
 			const bw = W * 0.7, bh = H * 0.9;
@@ -204,9 +207,7 @@ export function createEffects(canvas: HTMLCanvasElement): FxHandle {
 		const storm = ov === 'storm';
 		const rain = ov === 'rain' || storm;
 		if (rain) {
-			ctx.strokeStyle = `rgba(${rgb},0.55)`;
-			ctx.lineWidth = 1;
-			ctx.beginPath();
+			ctx.fillStyle = `rgba(${rgb},0.6)`;
 			const hail: number[] = [];
 			for (let i = 0; i < count; i++) {
 				if (storm && i % 7 === 0) hail.push(i);
@@ -221,36 +222,27 @@ export function createEffects(canvas: HTMLCanvasElement): FxHandle {
 					S[i] = 0.12;
 					continue;
 				}
-				ctx.moveTo(X[i], Y[i]);
-				ctx.lineTo(X[i] - VX[i] * 0.03, Y[i] - VY[i] * 0.03);
+				// a rain streak: a short vertical dash of art pixels
+				ctx.fillRect(sn(X[i]), sn(Y[i]), PXs, PXs * 3);
 			}
-			ctx.stroke();
-			// splashes
-			ctx.fillStyle = `rgba(${rgb},0.5)`;
-			ctx.beginPath();
+			// splashes: a tiny pixel crown that spreads for a moment
+			ctx.fillStyle = `rgba(${rgb},0.6)`;
 			for (let i = 0; i < count; i++) {
 				if (S[i] > 0) {
-					const r = 1 + (0.12 - S[i]) * 14;
-					ctx.moveTo(X[i] + r * 1.6, G[i]);
-					ctx.ellipse(X[i], G[i], r * 1.6, r * 0.6, 0, 0, 6.283);
+					const wide = S[i] > 0.06 ? 1 : 2;
+					ctx.fillRect(sn(X[i]) - PXs * wide, sn(G[i]), PXs * (1 + wide * 2), PXs);
+					if (wide === 1) ctx.fillRect(sn(X[i]), sn(G[i]) - PXs, PXs, PXs);
 				}
 			}
-			ctx.fill();
 			if (hail.length) {
-				ctx.fillStyle = 'rgba(240,248,255,0.85)';
-				ctx.beginPath();
-				for (const i of hail) {
-					ctx.moveTo(X[i] + 1.6, Y[i]);
-					ctx.arc(X[i], Y[i], 1.6, 0, 6.283);
-				}
-				ctx.fill();
+				ctx.fillStyle = 'rgba(240,248,255,0.9)';
+				for (const i of hail) ctx.fillRect(sn(X[i]), sn(Y[i]), PXs * 2, PXs * 2);
 			}
 			for (let i = 0; i < count; i++) if (X[i] < -20 || X[i] > W + 20) spawn(i, false);
 			return;
 		}
 		const snow = ov === 'snow';
 		ctx.fillStyle = snow ? 'rgba(250,252,255,0.85)' : ov === 'ash' ? 'rgba(175,175,175,0.7)' : `rgba(${rgb},${ov === 'dust' ? 0.5 : 0.75})`;
-		ctx.beginPath();
 		for (let i = 0; i < count; i++) {
 			X[i] += VX[i] * dt;
 			Y[i] += VY[i] * dt;
@@ -260,14 +252,13 @@ export function createEffects(canvas: HTMLCanvasElement): FxHandle {
 			const sway = snow || ov === 'spore' ? Math.sin(t * 0.0012 + i) * cw * 0.6 : 0;
 			const x = X[i] + sway;
 			if (ov === 'dust') {
-				ctx.rect(x, Y[i], 4 + (i % 3), 1);
+				ctx.fillRect(sn(x), sn(Y[i]), PXs * (2 + (i % 3)), PXs);
 			} else {
-				const r = snow ? 1 + (i % 3) * 0.6 : ov === 'ash' ? 1.2 : 1.4 + (i % 3) * 0.5;
-				ctx.moveTo(x + r, Y[i]);
-				ctx.arc(x, Y[i], r, 0, 6.283);
+				// flakes, ash and spores are square art pixels: 1 or 2 across
+				const sz = snow ? (i % 3 === 0 ? 2 : 1) : ov === 'ash' ? 1 : 1 + (i % 3 === 0 ? 1 : 0);
+				ctx.fillRect(sn(x), sn(Y[i]), PXs * sz, PXs * sz);
 			}
 		}
-		ctx.fill();
 	}
 
 	function drawLight(t: number, animate: boolean) {

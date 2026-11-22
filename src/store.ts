@@ -2,7 +2,7 @@
  * Runs live in IndexedDB, deflated: the world file a run was started on plus the engine's save.
  * One run per world seed. Meta is kept beside them so the title screen can list runs cheaply.
  */
-import { deflateSync, inflateSync, strToU8, strFromU8 } from 'fflate';
+import { deflateSync, inflateSync, gunzipSync, strToU8, strFromU8 } from 'fflate';
 
 const DB = 'realmforge-wanderer';
 
@@ -39,16 +39,48 @@ function req<T>(r: IDBRequest<T>): Promise<T> {
 	});
 }
 
-const pack = (s: string) => deflateSync(strToU8(s), { level: 6 });
-const unpack = (b: Uint8Array) => strFromU8(inflateSync(b));
+/**
+ * New writes are gzip through the browser's CompressionStream (native and off the main thread, so a big autosave
+ * does not freeze play). Reads sniff the header: gzip (1f 8b) is streamed, anything else is an old zlib deflate and
+ * goes through inflateSync, so earlier saves keep loading. No CompressionStream: fall back to fflate deflate.
+ */
+const hasStreams = typeof CompressionStream !== 'undefined' && typeof DecompressionStream !== 'undefined';
+
+async function pipe(bytes: Uint8Array, t: { readable: ReadableStream<Uint8Array>; writable: WritableStream<Uint8Array> }): Promise<Uint8Array> {
+	const w = t.writable.getWriter();
+	void w.write(bytes as never).then(() => w.close());
+	return new Uint8Array(await new Response(t.readable).arrayBuffer());
+}
+
+async function pack(s: string): Promise<Uint8Array> {
+	const raw = strToU8(s);
+	if (hasStreams) {
+		try {
+			return await pipe(raw, new CompressionStream('gzip') as never);
+		} catch {
+			/* fall through */
+		}
+	}
+	return deflateSync(raw, { level: 6 });
+}
+
+async function unpack(b: Uint8Array): Promise<string> {
+	if (b.length > 2 && b[0] === 0x1f && b[1] === 0x8b) {
+		if (hasStreams) return strFromU8(await pipe(b, new DecompressionStream('gzip') as never));
+		return strFromU8(gunzipSync(b));
+	}
+	return strFromU8(inflateSync(b));
+}
 
 export async function saveRun(meta: RunMeta, save: string, world?: string) {
 	if (!save) return;
 	const db = await open();
+	// compress first: an IndexedDB transaction closes if it waits on anything but its own requests
+	const [packedSave, packedWorld] = await Promise.all([pack(save), world ? pack(world) : Promise.resolve(null)]);
 	const tx = db.transaction(['meta', 'save', 'world'], 'readwrite');
 	tx.objectStore('meta').put(meta, meta.seed);
-	tx.objectStore('save').put(pack(save), meta.seed);
-	if (world) tx.objectStore('world').put(pack(world), meta.seed);
+	tx.objectStore('save').put(packedSave, meta.seed);
+	if (packedWorld) tx.objectStore('world').put(packedWorld, meta.seed);
 	await new Promise<void>((res, rej) => {
 		tx.oncomplete = () => res();
 		tx.onerror = () => rej(tx.error);
@@ -69,7 +101,7 @@ export async function loadRun(seed: string): Promise<{ save: string; world: stri
 	const db = await open();
 	const tx = db.transaction(['save', 'world']);
 	const [s, w] = await Promise.all([req<Uint8Array | undefined>(tx.objectStore('save').get(seed)), req<Uint8Array | undefined>(tx.objectStore('world').get(seed))]);
-	return s && w ? { save: unpack(s), world: unpack(w) } : null;
+	return s && w ? { save: await unpack(s), world: await unpack(w) } : null;
 }
 
 export async function deleteRun(seed: string) {

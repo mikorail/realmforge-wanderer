@@ -1,6 +1,9 @@
 package engine
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"reflect"
+)
 
 // Plug-in points: feature files register here from init() instead of editing the core loop,
 // input or renderer. Each registry is called from exactly one place (noted beside it).
@@ -28,6 +31,7 @@ func (g *Game) ext(key string, mk func() any) any {
 	v := mk()
 	if raw, ok := g.Store[key]; ok {
 		_ = json.Unmarshal(raw, v)
+		extFillNil(v, mk)
 	}
 	g.extLive[key] = v
 	return v
@@ -61,4 +65,27 @@ func (g *Game) SetPref(k string, v bool) {
 		g.Prefs = map[string]bool{}
 	}
 	g.Prefs[k] = v
+}
+
+// extFillNil repairs a loaded state: a map or pointer field that JSON null (or an old save)
+// left nil gets the fresh value mk() built, so writes after load never hit a nil map.
+func extFillNil(v any, mk func() any) {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() || rv.Elem().Kind() != reflect.Struct {
+		return
+	}
+	fresh := reflect.ValueOf(mk())
+	if fresh.Kind() != reflect.Ptr || fresh.IsNil() || fresh.Type() != rv.Type() {
+		return
+	}
+	e, f := rv.Elem(), fresh.Elem()
+	for i := 0; i < e.NumField(); i++ {
+		fd := e.Field(i)
+		if !fd.CanSet() {
+			continue
+		}
+		if (fd.Kind() == reflect.Map || fd.Kind() == reflect.Ptr) && fd.IsNil() && !f.Field(i).IsNil() {
+			fd.Set(f.Field(i))
+		}
+	}
 }
