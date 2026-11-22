@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fetchWorld } from './worldfetch';
 	/** Title → choose a world (bundled sample or a Realmforge export) → chargen → play. Saved runs continue from the title. */
 	import { replayResume, replayReset } from './replay';
 	import { onMount } from 'svelte';
@@ -125,9 +126,8 @@
 		phase = 'loading';
 		busy = `Fetching ${s.name}…`;
 		try {
-			const r = await fetch(import.meta.env.BASE_URL + 'worlds/' + s.file);
-			if (!r.ok) throw new Error(`could not load ${s.file}`);
-			await startWorld(await r.text());
+			const text = await fetchWorld(s.file, (f) => (busy = `Fetching ${s.name}… ${Math.round(f * 100)}%`));
+			await startWorld(text);
 		} catch (e) {
 			fail(e);
 		}
@@ -157,9 +157,7 @@
 			phase = 'loading';
 			busy = `Reading seed ${seed}…`;
 			const s = samples[seedWorldIndex(seed, samples.length)];
-			const r = await fetch(import.meta.env.BASE_URL + 'worlds/' + s.file);
-			if (!r.ok) throw new Error(`could not load ${s.file}`);
-			const text = await r.text();
+			const text = await fetchWorld(s.file);
 			const a = await engine();
 			const opts = a.init(text);
 			if (typeof opts !== 'string') throw new Error(opts.error);

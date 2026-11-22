@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 
 	"wanderer/engine"
@@ -56,6 +57,10 @@ func main() {
 		g.IconRowsJSON()
 		g.IconStatusJSON()
 		g.PiSleepers()
+		g.TeleJSON()
+		g.TipJSON()
+		g.TipAtJSON(r.Int(0, 80), r.Int(0, 25))
+		g.HereJSON()
 		if sn := g.SoundInfo(); sn != nil {
 			engine.SoundJS(sn)
 		}
@@ -84,6 +89,20 @@ func main() {
 				panic(err)
 			}
 			fmt.Printf("step %d mode=%s zone=%s turn=%d save=%dKB zones=%d planet=%d\n", i, g.Mode, g.CurKey, g.Turn, len(s)/1024, len(g.Zones), g.PlanetIndex())
+			if os.Getenv("SAVESIZE") != "" { // biggest saved feature states (ext keys)
+				type kv struct {
+					k string
+					n int
+				}
+				var top []kv
+				for k, v := range g.Store {
+					top = append(top, kv{k, len(v)})
+				}
+				sort.Slice(top, func(a, b int) bool { return top[a].n > top[b].n })
+				for j := 0; j < len(top) && j < 8; j++ {
+					fmt.Printf("    %-8s %6d KB\n", top[j].k, top[j].n/1024)
+				}
+			}
 		}
 		if g.Dead {
 			fmt.Println("died:", g.DeathText)
