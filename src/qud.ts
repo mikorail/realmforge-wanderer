@@ -42,6 +42,8 @@ export interface QudFrame {
 	foley?: import('./foley').FoleyEvent[];
 	mstyle?: import('./culturemusic').MusicStyleFrame;
 	/** a rectangle of grid cells the engine blanked for a large sprite: the speaker (talk, trade) or the paper doll (character sheet) */
+	tip?: string;
+	here?: string;
 	portrait?: { x: number; y: number; w: number; h: number; kind: 'talk' | 'trade' | 'sheet'; actor: import('./actorsprites').QudActor; mood?: import('./portraitfx').PortraitFace };
 }
 export interface QudMusic {
@@ -88,6 +90,7 @@ export interface QudApi {
 	ctx(x: number, y: number): string;
 	ctxDo(id: string, x: number, y: number): QudFrame | Err | null;
 	ctxAt(): string;
+	tipAt(x: number, y: number): string;
 	pref(key: string, on: boolean): void;
 	deeds(): string;
 	/** life summary + score (engine/halloffame.go) */

@@ -242,8 +242,12 @@
 			<input type="checkbox" checked={settings.cultureTiles} onchange={(e) => set('cultureTiles', e.currentTarget.checked)} />
 		</label>
 		<label class="row">
-			<span>Culture trim on town buildings</span>
+			<span>Pixel art sprites</span>
 			<input type="checkbox" checked={settings.pixelArt} onchange={(e) => set('pixelArt', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
+			<span>Snap tiles to whole pixels (crisp, can leave margins)</span>
+			<input type="checkbox" checked={settings.pixelSnap} onchange={(e) => set('pixelSnap', e.currentTarget.checked)} />
 		</label>
 		<label class="row">
 			<span>Spell particles and auras</span>

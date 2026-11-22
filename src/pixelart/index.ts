@@ -6,6 +6,9 @@ import { creatureSprite } from './creatures';
 import type { QudActor } from '../actorsprites';
 import type { Pose } from '../poses';
 
+/** things that stand on the ground and throw a shadow (the rest is ground, floor and walls) */
+const OBJECTS = new Set('♣♠↑τΓφ‼ⁿ▲%*¥δOΩ╥π▬¶ΨЖŦ■Θ§≡∩Φ+/⊞∏╫|‡XΛo'.split(''));
+
 let on = true;
 export const setPixelArt = (v: boolean): void => {
 	on = v;
@@ -21,7 +24,7 @@ export function drawPixelTile(ctx: CanvasRenderingContext2D, g: string, fgIdx: n
 	if (!on) return false;
 	const rows = terrainSprite(g, fgIdx, bgIdx, hash(gx, gy), frame, nm);
 	if (!rows) return false;
-	blitSprite(ctx, rows, x, y, cw, chh, { fg, bg });
+	blitSprite(ctx, rows, x, y, cw, chh, { fg, bg }, OBJECTS.has(g) ? 'drop' : 'none');
 	return true;
 }
 
@@ -30,7 +33,7 @@ export function drawPixelActor(ctx: CanvasRenderingContext2D, a: QudActor, g: st
 	const h = hash(a.i, a.i >> 3);
 	const r = a.s || a.p ? personSprite(a, h, pose, frame) : creatureSprite(a, g, h, frame);
 	if (!r) return false;
-	blitSprite(ctx, r.rows, x, y, cw, chh, { fg, bg, ...r.pal });
+	blitSprite(ctx, r.rows, x, y, cw, chh, { fg, bg, ...r.pal }, 'stand');
 	return true;
 }
 

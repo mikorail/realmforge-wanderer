@@ -54,6 +54,12 @@ func frameOf(g *engine.Game, out engine.Out) any {
 	if s := g.IconRowsJSON(); s != "" { // item icons per list row (engine/iconinfo.go)
 		fr["icons"] = s
 	}
+	if s := g.TipJSON(); s != "" { // detail tip for the selected thing (engine/tipinfo.go)
+		fr["tip"] = s
+	}
+	if s := g.HereJSON(); s != "" { // key labels for the "What can I do here" screen (engine/hereinfo.go)
+		fr["here"] = s
+	}
 	if s := g.IconStatusJSON(); s != "" { // sidebar status icons
 		fr["status"] = s
 	}
@@ -370,6 +376,12 @@ func main() {
 			m["foley"] = game.FoleyEnd()                               // item and material sounds (engine/foleyinfo.go)
 		}
 		return fr
+	})
+	api["tipAt"] = js.FuncOf(func(this js.Value, a []js.Value) any {
+		if game == nil || len(a) < 2 {
+			return ""
+		}
+		return game.TipAtJSON(a[0].Int(), a[1].Int())
 	})
 	api["ctxAt"] = js.FuncOf(func(this js.Value, a []js.Value) any {
 		if game == nil {

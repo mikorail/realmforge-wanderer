@@ -75,14 +75,71 @@ function compile(rows: Rows, p: PCtx): HTMLCanvasElement {
 	return cv;
 }
 
-/** blit a sprite into the css rect of one map cell, pixelated, bottom-centred */
-export function blitSprite(ctx: CanvasRenderingContext2D, rows: Rows, x: number, y: number, cw: number, chh: number, p: PCtx): void {
+const silCache = new Map<string, { cv: HTMLCanvasElement; low: number; x0: number; x1: number }>();
+
+/** the sprite as a flat black silhouette, plus its lowest opaque row and that row's extent (for the contact shadow) */
+function silhouette(rows: Rows): { cv: HTMLCanvasElement; low: number; x0: number; x1: number } {
+	const key = rows.join('');
+	let s = silCache.get(key);
+	if (s) return s;
+	if (silCache.size > 3000) silCache.clear();
+	const cv = document.createElement('canvas');
+	cv.width = PW;
+	cv.height = PH;
+	const c = cv.getContext('2d')!;
+	const img = c.createImageData(PW, PH);
+	let low = -1, x0 = PW, x1 = -1;
+	for (let y = 0; y < PH; y++) {
+		const row = rows[y] ?? '';
+		for (let x = 0; x < PW; x++) {
+			if ((row[x] ?? '.') === '.') continue;
+			const i = (y * PW + x) * 4;
+			img.data[i + 3] = 255;
+			if (y > low) {
+				low = y;
+				x0 = x;
+				x1 = x;
+			} else if (y === low) {
+				if (x < x0) x0 = x;
+				if (x > x1) x1 = x;
+			}
+		}
+	}
+	c.putImageData(img, 0, 0);
+	s = { cv, low, x0, x1 };
+	silCache.set(key, s);
+	return s;
+}
+
+export type Shadow = 'none' | 'drop' | 'stand';
+
+/** blit a sprite into the css rect of one map cell, pixelated, bottom-centred.
+ *  shadow: 'drop' = a flat shadow thrown down-right (trees, props); 'stand' = drop + a contact shadow under the feet (actors). */
+export function blitSprite(ctx: CanvasRenderingContext2D, rows: Rows, x: number, y: number, cw: number, chh: number, p: PCtx, shadow: Shadow = 'none'): void {
 	const dpr = window.devicePixelRatio || 1;
 	let s = Math.min((cw * dpr) / PW, (chh * dpr) / PH);
 	if (s >= 2) s = Math.floor(s); // whole device pixels per art pixel when there is room
 	const dw = (PW * s) / dpr, dh = (PH * s) / dpr;
 	const prev = ctx.imageSmoothingEnabled;
 	ctx.imageSmoothingEnabled = false;
-	ctx.drawImage(compile(rows, p), x + (cw - dw) / 2, y + (chh - dh), dw, dh);
+	const dx = x + (cw - dw) / 2, dy = y + (chh - dh), px = dw / PW;
+	if (shadow !== 'none') {
+		const sil = silhouette(rows);
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(x, y, cw, chh);
+		ctx.clip();
+		if (shadow === 'stand' && sil.low >= 0) {
+			// contact shadow: a flat dark patch under the feet, one art pixel wider each side
+			ctx.globalAlpha = 0.5;
+			ctx.fillStyle = '#000';
+			const row = Math.min(PH - 1, sil.low + 1);
+			ctx.fillRect(dx + (sil.x0 - 1) * px, dy + row * px, (sil.x1 - sil.x0 + 3) * px, px);
+		}
+		ctx.globalAlpha = 0.38;
+		ctx.drawImage(sil.cv, dx + px, dy + px, dw, dh); // thrown down and to the right (light from the top left)
+		ctx.restore();
+	}
+	ctx.drawImage(compile(rows, p), dx, dy, dw, dh);
 	ctx.imageSmoothingEnabled = prev;
 }

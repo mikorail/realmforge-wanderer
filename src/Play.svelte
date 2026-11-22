@@ -451,6 +451,14 @@
 		chh = scale === 'auto' ? fit : Math.max(8, Math.floor(fit * scale));
 		cw = Math.max(5, Math.floor(chh * 0.6));
 		const dpr = window.devicePixelRatio || 1;
+		if (prefs.pixelArt && prefs.pixelSnap && scale === 'auto') {
+			// one art pixel = u whole device pixels (sprites are 12x20): crisp, even pixels
+			const u = Math.floor(Math.min((W * dpr) / (frame.w * 12), (H * dpr) / (frame.h * 20)));
+			if (u >= 1 && (20 * u) / dpr >= chh * 0.8) {
+				cw = (12 * u) / dpr;
+				chh = (20 * u) / dpr;
+			}
+		}
 		canvas.width = frame.w * cw * dpr;
 		canvas.height = frame.h * chh * dpr;
 		canvas.style.width = `${frame.w * cw}px`;
@@ -662,7 +670,7 @@
 	</div>
 </div>
 {#if !touch}
-	<Tooltip {canvas} cell={() => ({ cw, chh })} {lookup} />
+	<Tooltip {canvas} cell={() => ({ cw, chh })} {lookup} engineTip={frame.tip ?? null} deep={(x, y) => api.tipAt(x, y)} here={frame.here ?? null} keymap={prefs.keymap} />
 	<IconCard {canvas} cell={() => ({ cw, chh })} rows={iconRows} enabled={prefs.itemIcons} />
 {/if}
 <StatusStrip {canvas} cell={() => ({ cw, chh })} status={iconStatus} cols={frame.w} enabled={prefs.itemIcons} />
