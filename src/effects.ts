@@ -23,18 +23,28 @@ function mulberry32(a: number) {
 }
 const rnd = mulberry32(0x5eed1234);
 
-function glowSprite(rgb: RGB | null, size = 128): HTMLCanvasElement {
+function glowSprite(rgb: RGB | null, size = 28): HTMLCanvasElement {
+	// pixel-art light pool: a small grid of hard bands (no gradient), scaled up with nearest-neighbour
 	const c = document.createElement('canvas');
 	c.width = c.height = size;
 	const g = c.getContext('2d')!;
 	const [r, gg, b] = rgb ?? [255, 255, 255];
-	const gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-	gr.addColorStop(0, `rgba(${r},${gg},${b},1)`);
-	gr.addColorStop(0.35, `rgba(${r},${gg},${b},0.75)`);
-	gr.addColorStop(0.7, `rgba(${r},${gg},${b},0.25)`);
-	gr.addColorStop(1, `rgba(${r},${gg},${b},0)`);
-	g.fillStyle = gr;
-	g.fillRect(0, 0, size, size);
+	const img = g.createImageData(size, size);
+	const h = size / 2;
+	for (let y = 0; y < size; y++) {
+		for (let x = 0; x < size; x++) {
+			const d = Math.hypot(x + 0.5 - h, y + 0.5 - h) / h;
+			// 4 bands, with a one-pixel checker between bands so the edge dithers instead of banding hard
+			const dith = (x + y) & 1;
+			const a = d < 0.3 ? 1 : d < 0.52 ? 0.78 : d < 0.7 ? (dith ? 0.5 : 0.78) : d < 0.84 ? (dith ? 0.18 : 0.5) : d < 1 ? (dith ? 0 : 0.18) : 0;
+			const i = (y * size + x) * 4;
+			img.data[i] = r;
+			img.data[i + 1] = gg;
+			img.data[i + 2] = b;
+			img.data[i + 3] = Math.round(a * 255);
+		}
+	}
+	g.putImageData(img, 0, 0);
 	return c;
 }
 
@@ -146,7 +156,7 @@ export function createEffects(canvas: HTMLCanvasElement): FxHandle {
 		const key = rgb.join(',');
 		let b = bankC.get(key);
 		if (!b) {
-			b = glowSprite(rgb, 128);
+			b = glowSprite(rgb, 32);
 			bankC.set(key, b);
 		}
 		return b;
@@ -276,6 +286,7 @@ export function createEffects(canvas: HTMLCanvasElement): FxHandle {
 			dctx.fillStyle = blood ? `rgba(60,6,12,${a})` : `rgba(8,14,46,${a})`;
 			dctx.fillRect(0, 0, dw, dh);
 			dctx.globalCompositeOperation = 'destination-out';
+			dctx.imageSmoothingEnabled = false;
 			for (const l of fx.lights) {
 				const f = animate ? flick(l, t) : 1;
 				const R = l.r * chh * 1.15 * f * ds * dpr;
@@ -283,6 +294,7 @@ export function createEffects(canvas: HTMLCanvasElement): FxHandle {
 				dctx.drawImage(glowW, (l.x + 0.5) * cw * ds * dpr - R, (l.y + 0.5) * chh * ds * dpr - R, R * 2, R * 2);
 			}
 			dctx.globalAlpha = 1;
+			ctx.imageSmoothingEnabled = false;
 			ctx.drawImage(dark, 0, 0, W, H);
 			// warm glow where the dark is cut open
 			ctx.globalCompositeOperation = 'lighter';

@@ -246,6 +246,10 @@
 			<input type="checkbox" checked={settings.pixelArt} onchange={(e) => set('pixelArt', e.currentTarget.checked)} />
 		</label>
 		<label class="row">
+			<span>Pixel font for the map screen text</span>
+			<input type="checkbox" checked={settings.pixelFont} onchange={(e) => set('pixelFont', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
 			<span>Snap tiles to whole pixels (crisp, can leave margins)</span>
 			<input type="checkbox" checked={settings.pixelSnap} onchange={(e) => set('pixelSnap', e.currentTarget.checked)} />
 		</label>

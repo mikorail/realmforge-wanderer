@@ -140,6 +140,11 @@
 	}
 	/** Paint one map cell as a sprite (tile variant over the base sprite); false when the glyph has no sprite. */
 	const pxScratch = {} as PxPose;
+	/** canvas text font: VT323 (a pixel font) sized to the cell, or the smooth mono face */
+	function fontStr(): string {
+		if (prefs.pixelFont) return `${Math.max(8, Math.round(Math.min(chh * 1.04, cw * 2.4)))}px "VT323", "Share Tech Mono", Menlo, monospace`;
+		return `${Math.round(chh * 0.86)}px "Share Tech Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace`;
+	}
 	function paintSprite(ctx: CanvasRenderingContext2D, f: QudFrame, i: number, a?: QudActor): boolean {
 		if (prefs.pixelArt) {
 			const gx0 = i % f.w, gy0 = Math.floor(i / f.w);
@@ -179,7 +184,7 @@
 	function bobTick(t: number) {
 		const ctx = canvas?.getContext('2d');
 		if (!ctx || !fxOn() || frame.mode !== 'main' || prefs.reduceMotion || reducedMq?.matches) return;
-		const mainFont = `${Math.round(chh * 0.86)}px "Share Tech Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace`;
+		const mainFont = fontStr();
 		if (prefs.tileAnim && prefs.tileVariety && animCells.length && tickTileAnim(t)) {
 			for (const i of animCells) repaintCell(ctx, i);
 		}
@@ -496,7 +501,7 @@
 		const who = new Map<number, QudActor>();
 		if (useSprites) for (const a of f.actors ?? []) who.set(a.y * f.w + a.x, a);
 		whoNow = who;
-		const mainFont = `${Math.round(chh * 0.86)}px "Share Tech Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace`;
+		const mainFont = fontStr();
 		ctx.font = mainFont;
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'middle';
@@ -635,7 +640,7 @@
 		resetPoses();
 		startGamepad((k) => { if (!settingsOpen && !saga) send(k); }, () => frame, { enabled: prefs.gamepad, onSettings: () => (settingsOpen = true) });
 		// fonts load after first paint: redraw once they are in
-		void document.fonts?.ready.then(draw);
+		void Promise.resolve(document.fonts?.load('16px "VT323"')).finally(() => void document.fonts?.ready.then(draw));
 		return () => {
 			reducedMq?.removeEventListener('change', onred);
 			fxh?.dispose();
