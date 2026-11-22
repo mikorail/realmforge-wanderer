@@ -71,6 +71,7 @@ export interface Settings {
 	spellFx: boolean;
 	/** culture building trim on town walls, roofs, doors (src/culturetiles.ts) */
 	cultureTiles: boolean;
+	pixelArt: boolean;
 	/** audio depth (src/audiohub.ts): all quiet by default */
 	soundscapes: boolean;
 	voices: boolean;
@@ -119,6 +120,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	itemIcons: true,
 	spellFx: true,
 	cultureTiles: true,
+	pixelArt: true,
 	soundscapes: true,
 	voices: true,
 	speechBlips: false,
@@ -169,7 +171,7 @@ function clean(raw: unknown): Settings {
 	if (typeof r.showHints === 'boolean') s.showHints = r.showHints;
 	if (typeof r.autoAim === 'boolean') s.autoAim = r.autoAim;
 	if (typeof r.keymap === 'object' && r.keymap !== null) s.keymap = cleanKeymap(r.keymap);
-	for (const k of ['gamepad', 'gamepadRumble', 'sfxEvents', 'tileVariety', 'tileAnim', 'contextMenu', 'recordReplay', 'hitNumbers', 'hitShake', 'hitPause', 'routines', 'gearSprites', 'actorPoses', 'portraitFaces', 'itemIcons', 'spellFx', 'cultureTiles', 'soundscapes', 'voices', 'speechBlips', 'musicLayers', 'stingers', 'foley', 'cultureMusic'] as const) {
+	for (const k of ['gamepad', 'gamepadRumble', 'sfxEvents', 'tileVariety', 'tileAnim', 'contextMenu', 'recordReplay', 'hitNumbers', 'hitShake', 'hitPause', 'routines', 'gearSprites', 'actorPoses', 'portraitFaces', 'itemIcons', 'spellFx', 'cultureTiles', 'pixelArt', 'soundscapes', 'voices', 'speechBlips', 'musicLayers', 'stingers', 'foley', 'cultureMusic'] as const) {
 		if (typeof r[k] === 'boolean') s[k] = r[k] as boolean;
 	}
 	if (typeof r.gamepadDeadzone === 'number' && Number.isFinite(r.gamepadDeadzone)) s.gamepadDeadzone = Math.min(0.7, Math.max(0.1, r.gamepadDeadzone));

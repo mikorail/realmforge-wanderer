@@ -1,10 +1,14 @@
 <script lang="ts" module>
 	import type { QudActor } from './actorsprites';
+	import { parseTip, lineKind, parseHere, hereLabels, type EngineTip } from './tips';
+	import type { Keymap } from './keymap';
 
 	export interface Tip {
 		title: string;
 		sub?: string;
 		tone?: 'hostile' | 'friendly' | 'neutral';
+		/** detailed engine lines (leading + good, - bad, ! warning) */
+		lines?: string[];
 	}
 
 	/** map glyph to a short name, for terrain and things with no actor record */
@@ -37,7 +41,33 @@
 </script>
 
 <script lang="ts">
-	let { canvas, cell, lookup }: { canvas: HTMLCanvasElement | null; cell: () => { cw: number; chh: number }; lookup: (gx: number, gy: number) => Tip | null } = $props();
+	// Optional wiring (all may be left out): `engineTip` = frame.tip (cursor / inventory / trade detail, shown as a panel at the
+	// canvas's lower right), `deep` = (x, y) => qud.tipAt(x, y) string for richer hover text, `here` = frame.here and `keymap`
+	// = prefs.keymap so the "What can I do here" screen shows the player's rebound keys.
+	let { canvas, cell, lookup, engineTip = null, deep = null, here = null, keymap = {} }: {
+		canvas: HTMLCanvasElement | null;
+		cell: () => { cw: number; chh: number };
+		lookup: (gx: number, gy: number) => Tip | null;
+		engineTip?: string | EngineTip | null;
+		deep?: ((gx: number, gy: number) => string | null | undefined) | null;
+		here?: string | { cells: { x: number; y: number; w: number; k: string }[] } | null;
+		keymap?: Keymap;
+	} = $props();
+
+	let panel = $derived(parseTip(engineTip));
+	let overlay = $derived(hereLabels(parseHere(here), keymap));
+	let box = $state({ left: 0, top: 0, w: 0, h: 0, cw: 8, chh: 16 });
+	function measure() {
+		if (!canvas) return;
+		const r = canvas.getBoundingClientRect();
+		const { cw, chh } = cell();
+		box = { left: r.left, top: r.top, w: r.width, h: r.height, cw, chh };
+	}
+	$effect(() => {
+		void panel;
+		void overlay;
+		measure();
+	});
 
 	let tip = $state<Tip | null>(null);
 	let at = $state({ x: 0, y: 0 });
@@ -64,6 +94,8 @@
 		timer = setTimeout(() => {
 			timer = null;
 			tip = lookup(gx, gy);
+			const d = parseTip(deep ? deep(gx, gy) : null);
+			if (d) tip = { title: d.t, sub: d.l.map((x) => lineKind(x).text).join(' · '), tone: d.tone ?? tip?.tone ?? 'neutral', lines: d.l };
 		}, 250);
 	}
 
@@ -87,9 +119,22 @@
 {#if tip}
 	<div class="tip {tip.tone ?? 'neutral'}" style:left="{Math.min(at.x + 14, (typeof window !== 'undefined' ? window.innerWidth : 9999) - 230)}px" style:top="{at.y + 16}px" role="tooltip">
 		<b>{tip.title}</b>
-		{#if tip.sub}<span>{tip.sub}</span>{/if}
+		{#if tip.lines}
+			{#each tip.lines as ln}{@const k = lineKind(ln)}<span class="l {k.kind}">{k.text}</span>{/each}
+		{:else if tip.sub}<span>{tip.sub}</span>{/if}
 	</div>
 {/if}
+
+{#if panel}
+	<div class="tip panel {panel.tone ?? 'neutral'}" style:right="{Math.max(8, (typeof window !== 'undefined' ? window.innerWidth : 0) - box.left - box.w + 8)}px" style:bottom="{Math.max(8, (typeof window !== 'undefined' ? window.innerHeight : 0) - box.top - box.h + box.chh * 7)}px" role="tooltip">
+		<b>{panel.t}</b>
+		{#each panel.l as ln}{@const k = lineKind(ln)}<span class="l {k.kind}">{k.text}</span>{/each}
+	</div>
+{/if}
+
+{#each overlay as c}
+	<span class="rebound" style:left="{box.left + c.x * box.cw}px" style:top="{box.top + c.y * box.chh}px" style:width="{c.w * box.cw}px" style:height="{box.chh}px">[{c.label}]</span>
+{/each}
 
 <style>
 	.tip {
@@ -112,6 +157,30 @@
 	}
 	.tip span {
 		color: #9ab;
+	}
+	.tip.panel {
+		max-width: 340px;
+		padding: 5px 9px;
+		gap: 1px;
+	}
+	.tip .l.good {
+		color: #8d9;
+	}
+	.tip .l.bad {
+		color: #e88;
+	}
+	.tip .l.warn {
+		color: #ec7;
+	}
+	.rebound {
+		position: fixed;
+		z-index: 19;
+		background: #0b1316;
+		color: #e8d36a;
+		font: 12px/1.2 'Share Tech Mono', 'DejaVu Sans Mono', Menlo, Consolas, monospace;
+		pointer-events: none;
+		overflow: hidden;
+		white-space: nowrap;
 	}
 	.tip.hostile {
 		border-color: #a33;

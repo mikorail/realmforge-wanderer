@@ -242,6 +242,10 @@
 			<input type="checkbox" checked={settings.cultureTiles} onchange={(e) => set('cultureTiles', e.currentTarget.checked)} />
 		</label>
 		<label class="row">
+			<span>Culture trim on town buildings</span>
+			<input type="checkbox" checked={settings.pixelArt} onchange={(e) => set('pixelArt', e.currentTarget.checked)} />
+		</label>
+		<label class="row">
 			<span>Spell particles and auras</span>
 			<input type="checkbox" checked={settings.spellFx} onchange={(e) => set('spellFx', e.currentTarget.checked)} />
 		</label>

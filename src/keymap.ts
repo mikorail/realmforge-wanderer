@@ -144,6 +144,15 @@ export function physKey(e: { key: string; code: string }): string {
 	return NUMPAD[e.code] ? e.code : e.key;
 }
 
+/** e.key with Caps Lock undone: i is i and Shift+i is I whether or not Caps Lock is on (the engine tells i and I apart) */
+function plainKey(e: KeyboardEvent): string {
+	const k = e.key;
+	if (k.length === 1 && k.toLowerCase() !== k.toUpperCase() && typeof e.getModifierState === 'function' && e.getModifierState('CapsLock')) {
+		return e.shiftKey ? k.toUpperCase() : k.toLowerCase();
+	}
+	return k;
+}
+
 const LABELS: Record<string, string> = {
 	' ': 'Space', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
 	Numpad1: 'Num1', Numpad2: 'Num2', Numpad3: 'Num3', Numpad4: 'Num4', Numpad5: 'Num5', Numpad6: 'Num6', Numpad7: 'Num7', Numpad8: 'Num8', Numpad9: 'Num9',
@@ -232,9 +241,11 @@ export function setKeymap(km: Keymap | undefined | null): void {
  * `mode` is `frame.mode`; outside REMAP_MODES the raw key is returned untouched.
  */
 export function mapKey(e: KeyboardEvent, mode?: string): string | null {
-	const raw = NUMPAD[e.code] ?? e.key;
+	// Caps Lock is undone only on map screens; screens that read typed text keep the typed case
+	const pk = mode === undefined || REMAP_MODES.has(mode) ? plainKey(e) : e.key;
+	const raw = NUMPAD[e.code] ?? pk;
 	if (!cur.active || (mode !== undefined && !REMAP_MODES.has(mode))) return raw;
-	const p = physKey(e);
+	const p = NUMPAD[e.code] ? e.code : pk;
 	const hit = cur.map.get(p);
 	if (hit !== undefined) return hit;
 	if (cur.swallow.has(p)) return null;

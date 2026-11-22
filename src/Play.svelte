@@ -1,5 +1,9 @@
 <script lang="ts">
 	/** The game screen: draws the engine's character grid on a canvas and forwards keys and clicks. */
+	import { pixelCell, pixelBlit } from './pixelpass';
+	import { drawPixelTile, drawPixelActor, drawPixelPortrait, setPixelArt } from './pixelart/index';
+	import { tileAnimFrame as pxFrame } from './spriteanim';
+	import { poseOf as pxPoseOf, type Pose as PxPose } from './poses';
 	import { onMount, onDestroy } from 'svelte';
 	import type { QudApi, QudFrame } from './qud';
 	import { saveRun, deleteRun } from './store';
@@ -128,16 +132,30 @@
 		hitfx?.setOptions({ numbers: prefs.hitNumbers, shake: prefs.hitShake, pause: prefs.hitPause, reduced: prefs.reduceMotion || !!reducedMq?.matches });
 		spellfx?.setOptions({ enabled: prefs.spellFx, reduced: prefs.reduceMotion || !!reducedMq?.matches });
 		setCultureTileOptions({ enabled: prefs.cultureTiles });
+		setPixelArt(prefs.pixelArt);
 		setGearPrefs({ gearSprites: prefs.gearSprites });
 		setPosePrefs({ actorPoses: prefs.actorPoses });
 		setSpriteAnimPrefs({ reduceMotion: prefs.reduceMotion || !!reducedMq?.matches, tileVariety: prefs.tileVariety, tileAnim: prefs.tileAnim });
 		fxh?.setFrame(frame);
 	}
 	/** Paint one map cell as a sprite (tile variant over the base sprite); false when the glyph has no sprite. */
+	const pxScratch = {} as PxPose;
 	function paintSprite(ctx: CanvasRenderingContext2D, f: QudFrame, i: number, a?: QudActor): boolean {
+		if (prefs.pixelArt) {
+			const gx0 = i % f.w, gy0 = Math.floor(i / f.w);
+			const fi = f.f.charCodeAt(i) - 65, bi = f.b.charCodeAt(i) - 65;
+			const x1 = gx0 * cw, y1 = gy0 * chh;
+			if (a) {
+				if (drawPixelActor(ctx, a, glyphsNow[i], palette[fi], palette[bi], x1, y1, cw, chh, pxFrame(), pxPoseOf(a.i, performance.now(), pxScratch))) return true;
+			} else if (drawPixelTile(ctx, glyphsNow[i], fi, bi, palette[fi], palette[bi], gx0, gy0, x1, y1, cw, chh, pxFrame(), neighbourMask(glyphsNow, f.w, f.h, gx0, gy0, glyphsNow[i]))) return true;
+		}
+		if (!prefs.pixelArt) return paintSpriteRaw(ctx, f, i, a, (i % f.w) * cw, Math.floor(i / f.w) * chh, cw, chh);
+		const x0 = (i % f.w) * cw, y0 = Math.floor(i / f.w) * chh;
+		return pixelCell(ctx, x0, y0, cw, chh, window.devicePixelRatio || 1, !!a, (c, w, h) => paintSpriteRaw(c, f, i, a, 0, 0, w, h));
+	}
+	function paintSpriteRaw(ctx: CanvasRenderingContext2D, f: QudFrame, i: number, a: QudActor | undefined, x: number, y: number, cw: number, chh: number): boolean {
 		const g = glyphsNow[i];
 		const gx = i % f.w, gy = Math.floor(i / f.w);
-		const x = gx * cw, y = gy * chh;
 		const fgIdx = f.f.charCodeAt(i) - 65, bgIdx = f.b.charCodeAt(i) - 65;
 		const fg = palette[fgIdx];
 		const base = drawProceduralCell(ctx, g, fgIdx, bgIdx, fg, palette, gx, gy, x, y, cw, chh, a);
@@ -195,7 +213,9 @@
 			if (c.a.p) ctx.translate(sh.x, 0);
 			if (prefs.tileAnim) applyActorMotion(ctx, m, x, y, cw, chh);
 			else ctx.translate(0, bobOffset(c.a.i, t) * Math.max(0.6, chh / 18));
-			drawProceduralCell(ctx, c.g, c.fgIdx, c.bgIdx, c.fg, palette, c.gx, c.gy, x, y, cw, chh, c.a);
+			if (prefs.pixelArt && drawPixelActor(ctx, c.a, c.g, c.fg, palette[c.bgIdx], x, y, cw, chh, pxFrame(), pxPoseOf(c.a.i, t, pxScratch))) { /* pixel art */ }
+			else if (prefs.pixelArt) pixelCell(ctx, x, y, cw, chh, window.devicePixelRatio || 1, true, (pc, w, h) => { drawProceduralCell(pc, c.g, c.fgIdx, c.bgIdx, c.fg, palette, c.gx, c.gy, 0, 0, w, h, c.a); return true; });
+			else drawProceduralCell(ctx, c.g, c.fgIdx, c.bgIdx, c.fg, palette, c.gx, c.gy, x, y, cw, chh, c.a);
 			ctx.restore();
 		}
 		ctx.font = mainFont;
@@ -519,11 +539,10 @@
 		ctx.clip();
 		ctx.fillStyle = bg;
 		ctx.fillRect(px, py, pw, ph);
-		const gr = ctx.createRadialGradient(px + pw / 2, py + ph * 0.55, 2, px + pw / 2, py + ph * 0.55, Math.max(pw, ph) * 0.75);
-		gr.addColorStop(0, 'rgba(255,255,255,0.18)');
-		gr.addColorStop(1, 'rgba(255,255,255,0)');
-		ctx.fillStyle = gr;
-		ctx.fillRect(px, py, pw, ph);
+		ctx.fillStyle = 'rgba(255,255,255,0.07)';
+		ctx.fillRect(px + pw * 0.12, py + ph * 0.1, pw * 0.76, ph * 0.8);
+		ctx.fillStyle = 'rgba(255,255,255,0.06)';
+		ctx.fillRect(px + pw * 0.24, py + ph * 0.2, pw * 0.52, ph * 0.6);
 		ctx.fillStyle = 'rgba(0,0,0,0.3)';
 		ctx.fillRect(px, py + ph * 0.9, pw, ph * 0.1);
 		// a sprite is built for a cell about 0.6 as wide as it is tall: keep that shape, as large as fits
@@ -532,10 +551,21 @@
 		const reduce = prefs.reduceMotion || !!reducedMq?.matches;
 		const sx = px + (pw - sw) / 2;
 		const sy = py + 2 + portraitBreath(performance.now(), sh, reduce);
+		if (prefs.pixelArt && drawPixelPortrait(ctx, p.actor, '#c8b27a', bg, sx, sy, sw, sh, pxFrame(), pxPoseOf(p.actor.i, performance.now(), pxScratch))) {
+			/* hand-drawn pixel sprite */
+		} else if (prefs.pixelArt) {
+			// vector drawers through the pixel pass: a coarse grid, hard edges, outline
+			pixelBlit(ctx, sx, sy, sw, sh, 26, 42, (c, w, h) => {
+				drawActorSprite(c, p.actor, ' ', '#ffffff', palette, 0, 0, 0, w, h);
+				if (prefs.portraitFaces && p.mood && p.actor.s) drawFace(c, p.mood, p.actor.s, 0, 0, w, h, {}, { id: p.actor.i, reduceMotion: true, key: p.kind + ':' + p.actor.i });
+				return true;
+			}, { outline: true, levels: 7 });
+		} else {
 		drawActorSprite(ctx, p.actor, ' ', '#ffffff', palette, 0, sx, sy, sw, sh);
 		// a face with the speaker's mood, for people only (creatures have a template and no species)
 		if (prefs.portraitFaces && p.mood && p.actor.s) {
 			if (drawFace(ctx, p.mood, p.actor.s, sx, sy, sw, sh, {}, { id: p.actor.i, reduceMotion: reduce, key: p.kind + ':' + p.actor.i })) faceRedraw();
+		}
 		}
 		ctx.restore();
 		ctx.strokeStyle = palette[11] ?? '#3a8a9a';

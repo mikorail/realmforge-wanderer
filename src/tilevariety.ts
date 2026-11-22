@@ -123,8 +123,13 @@ function classify(g: string, fgIdx: number, bgIdx: number): Kind | null {
 	return null;
 }
 
+import { BUILD_ANIMATED } from './pixelart/terrain_build';
+/** glyphs the pixel-art tiles animate (water, spray, geyser, fumarole, coral, crystal, beehive, quicksand, lava) */
+const PIXEL_ANIM = new Set<string>(['~', '≈', '░', '¤', '∴', '¥', '*', 'δ', ':', '║', ...BUILD_ANIMATED]);
+
 /** True for glyph/colour pairs that animate: Play keeps a list of these visible cells and repaints them on each tickTileAnim() frame. */
 export function isAnimatedTile(g: string, fgIdx: number, bgIdx = 0): boolean {
+	if (PIXEL_ANIM.has(g) && fgIdx !== 1) return true; // pixelart/terrain_nature.ts animates these
 	const k = classify(g, fgIdx, bgIdx);
 	return !!k && ANIMATED.has(k);
 }
