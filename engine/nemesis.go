@@ -908,6 +908,10 @@ func (g *Game) nxDossier() []string {
 			L = append(L, rv...)
 		}
 	}
+	if ct := g.ctDossier(); len(ct) > 0 { // counters.go: what hunters have learned about your habits
+		L = append(L, "", "{{C|What they know about you}}")
+		L = append(L, ct...)
+	}
 	return L
 }
 

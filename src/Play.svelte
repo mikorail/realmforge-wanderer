@@ -350,7 +350,7 @@
 		hub.frame(f, k);
 		draw();
 		fxh?.setFrame(f);
-		hitfx?.setTelegraphs(f.tele);
+		hitfx?.setTelegraphs(typeof f.tele === 'string' ? (JSON.parse(f.tele) as { x: number; y: number }[]) : undefined);
 		setSleepers(f.sleepers);
 		if ((f.icons ?? '') !== iconsRaw) {
 			iconsRaw = f.icons ?? '';

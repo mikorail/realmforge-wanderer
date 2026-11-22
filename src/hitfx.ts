@@ -183,9 +183,16 @@ export function createHitFx(canvas: HTMLCanvasElement, getMetrics: () => HitMetr
 		ctx.clearRect(0, 0, m.cols * cw, m.rows * chh);
 		// telegraphs
 		if (tele.length) {
-			const pulse = opt.reduced ? 0.14 : 0.1 + 0.06 * Math.sin(t * 0.008);
-			ctx.fillStyle = `rgba(220,40,40,${pulse})`;
-			for (const c of tele) ctx.fillRect(c.x * cw, c.y * chh, cw, chh);
+			// a pixel-checker warning: alternate art pixels, the checker flips on a slow beat
+			const pulse = opt.reduced ? 0.5 : 0.35 + 0.25 * (Math.sin(t * 0.009) > 0 ? 1 : 0);
+			const px = Math.max(1, Math.round((chh / 20) * dpr)) / dpr;
+			const flip = opt.reduced ? 0 : Math.floor(t / 260) & 1;
+			ctx.fillStyle = `rgba(230,50,40,${pulse})`;
+			for (const c of tele) {
+				const x0 = c.x * cw, y0 = c.y * chh;
+				for (let yy = 0, iy = 0; yy < chh - 0.01; yy += px, iy++)
+					for (let xx = 0, ix = 0; xx < cw - 0.01; xx += px, ix++) if (((ix + iy + flip) & 1) === 0) ctx.fillRect(x0 + xx, y0 + yy, px, px);
+			}
 		}
 		// flashes
 		if (flashes.length) {

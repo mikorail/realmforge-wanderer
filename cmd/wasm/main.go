@@ -54,6 +54,9 @@ func frameOf(g *engine.Game, out engine.Out) any {
 	if s := g.IconRowsJSON(); s != "" { // item icons per list row (engine/iconinfo.go)
 		fr["icons"] = s
 	}
+	if s := g.TeleJSON(); s != "" { // winding-up foes (engine/teleinfo.go)
+		fr["tele"] = s
+	}
 	if s := g.TipJSON(); s != "" { // detail tip for the selected thing (engine/tipinfo.go)
 		fr["tip"] = s
 	}
