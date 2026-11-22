@@ -33,6 +33,10 @@ function lookup(ch: string, p: PCtx): RGB | null {
 		case 'D': return dark(fg, 0.62);
 		case 'd': return dark(fg, 0.34);
 		case 'F': return fg;
+		// floor tones: the tile colour sunk towards the background so a floor never competes with walls, people and objects
+		case 's': return mix(fg, parse(p.bg, [10, 10, 14]), 0.5);
+		case 'S': return mix(fg, parse(p.bg, [10, 10, 14]), 0.68);
+		case 'Z': return mix(fg, parse(p.bg, [10, 10, 14]), 0.82);
 		case 'l': return light(fg, 0.32);
 		case 'L': return light(fg, 0.62);
 		case 'k': return parse(p.skin, [214, 160, 120]);

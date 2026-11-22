@@ -5,6 +5,7 @@
 //   .  transparent
 //   o  outline (near black, tinted by the cell background)
 //   ramp of the tile's own colour (fg): D darkest, d dark, F base, l light, L lightest
+//   floor tones (the tile colour sunk towards the background): s light, S base, Z dark
 //   skin ramp (species/individual): K dark, k base, j light
 //   hair ramp: H dark, h base
 //   accent (a second cloth/trim colour): A dark, a base

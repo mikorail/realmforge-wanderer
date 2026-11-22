@@ -805,6 +805,9 @@ func (g *Game) MoveP(dx, dy int) {
 			g.spend(1000)
 			return
 		}
+		if g.npcSwap(a, dx, dy, nx, ny) { // peaceful people never wall you in (swap.go)
+			return
+		}
 		g.openTalk(a)
 		return
 	}
