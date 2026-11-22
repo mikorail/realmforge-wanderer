@@ -484,7 +484,11 @@
 		chh = scale === 'auto' ? fit : Math.max(8, Math.floor(fit * scale));
 		cw = Math.max(5, Math.floor(chh * 0.6));
 		const dpr = window.devicePixelRatio || 1;
-		if (prefs.pixelArt && prefs.pixelSnap && scale === 'auto') {
+		if (prefs.pixelArt && prefs.pixelZoom > 0) {
+			// a fixed art-pixel size: cells are 12 x 20 art pixels of that many device pixels
+			cw = (12 * prefs.pixelZoom) / dpr;
+			chh = (20 * prefs.pixelZoom) / dpr;
+		} else if (prefs.pixelArt && prefs.pixelSnap && scale === 'auto') {
 			// one art pixel = u whole device pixels (sprites are 12x20): crisp, even pixels
 			const u = Math.floor(Math.min((W * dpr) / (frame.w * 12), (H * dpr) / (frame.h * 20)));
 			if (u >= 1 && (20 * u) / dpr >= chh * 0.8) {

@@ -250,6 +250,16 @@
 			<input type="checkbox" checked={settings.pixelFont} onchange={(e) => set('pixelFont', e.currentTarget.checked)} />
 		</label>
 		<label class="row">
+			<span>Pixel tile size (large tiles scroll the map)</span>
+			<select value={String(settings.pixelZoom)} onchange={(e) => set('pixelZoom', Number(e.currentTarget.value))}>
+				<option value="0">Fit the window</option>
+				<option value="1">1 device pixel per art pixel</option>
+				<option value="2">2 (large)</option>
+				<option value="3">3 (huge)</option>
+				<option value="4">4 (giant)</option>
+			</select>
+		</label>
+		<label class="row">
 			<span>Snap tiles to whole pixels (crisp, can leave margins)</span>
 			<input type="checkbox" checked={settings.pixelSnap} onchange={(e) => set('pixelSnap', e.currentTarget.checked)} />
 		</label>

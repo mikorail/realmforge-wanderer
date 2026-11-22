@@ -74,6 +74,8 @@ export interface Settings {
 	pixelArt: boolean;
 	pixelSnap: boolean;
 	pixelFont: boolean;
+	/** art pixel size in device pixels: 0 = fit the window, 1 to 3 = fixed (the map scrolls when it does not fit) */
+	pixelZoom: number;
 	/** audio depth (src/audiohub.ts): all quiet by default */
 	soundscapes: boolean;
 	voices: boolean;
@@ -125,6 +127,7 @@ export const DEFAULT_SETTINGS: Settings = {
 	pixelArt: true,
 	pixelSnap: true,
 	pixelFont: true,
+	pixelZoom: 0,
 	soundscapes: true,
 	voices: true,
 	speechBlips: false,
@@ -153,6 +156,7 @@ function clean(raw: unknown): Settings {
 	if (r.musicRev !== 2 && s.musicStyle === 'chiptune') s.musicStyle = 'auto';
 	s.musicRev = 2;
 	if (r.instrumentFlavour === 'cultural' || r.instrumentFlavour === 'chiptune') s.instrumentFlavour = r.instrumentFlavour;
+	if (typeof r.pixelZoom === 'number' && [0, 1, 2, 3, 4].includes(r.pixelZoom)) s.pixelZoom = r.pixelZoom;
 	const sc = r.scale;
 	if (sc === 'auto') s.scale = 'auto';
 	else if (typeof sc === 'number' && (SCALE_OPTIONS as readonly number[]).includes(sc)) s.scale = sc;
