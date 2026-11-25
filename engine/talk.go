@@ -808,6 +808,8 @@ func (g *Game) price(it *Item, buy bool) int {
 		f *= g.rtPriceMod(g.Talk)        // holy days (rituals.go)
 		f *= g.etPriceMod()              // insult surcharge (etiquette.go)
 		f *= g.saPriceMod(g.Talk)        // favour discounts, cold towns after threats (socialplay.go)
+		f *= fqPriceMod(g, g.Talk, true) // faction chain perks (factionquests.go)
+		f *= rsPriceMod(g)               // realm crisis effects (realmstory.go)
 		if f < 0.75 {
 			f = 0.75
 		}
@@ -824,6 +826,7 @@ func (g *Game) price(it *Item, buy bool) int {
 	}
 	f *= clPriceMod(g, g.Talk, it)    // curio dealers and fences pay more for small things (clutter.go)
 	f *= hmPriceMod(g, g.Talk, false) // displayed sets (display.go)
+	f *= fqPriceMod(g, g.Talk, false) // faction chain perks (factionquests.go)
 	f *= pltPriceMod(g, false)        // trade-hub worlds (planettraits.go)
 	return maxi(1, int(float64(v)*f*g.lqPriceFactor(false)))
 }
