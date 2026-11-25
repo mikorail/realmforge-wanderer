@@ -393,6 +393,9 @@ func (g *Game) craftRecipe(rc *cRecipe) string {
 		st.takeEssence()
 	}
 	it := rc.Make()
+	ln := wkRepairLine(it) // quality grade at craft time (workshop.go)
+	q, _ := g.wkRoll(ln, it.Tier)
+	g.wkApplyQuality(it, q, g.wkRank(ln))
 	g.give(it)
 	g.spend(2000)
 	return "You craft " + it.Display() + "."

@@ -94,6 +94,9 @@ func (g *Game) swing(a, d *Actor, w *Item) {
 	dmg += g.csDmgMod(a, d, w)                          // stances (stances.go)
 	dmg = g.bwDamageMod(d, a, bwTypeOf(w, w.Name), dmg) // resistances (foes.go)
 	dmg += dmg * g.ssSneakBonus(a, d) / 100             // sneak attacks (stealth.go)
+	if a == g.P && g.hnl().unaware[d.ID] {              // clean shot on unaware game (hunting.go)
+		dmg += dmg / 4
+	}
 	if a.St("mighty") > 0 {
 		dmg += 2
 	}
