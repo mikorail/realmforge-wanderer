@@ -347,7 +347,8 @@ export function createWeatherSfx(): SfxHandle {
 	}
 	function applyVolume() {
 		if (!ctx || !master) return;
-		master.gain.setTargetAtTime(enabled ? volume : 0, ctx.currentTime, 0.3);
+		master.gain.cancelScheduledValues(ctx.currentTime);
+		master.gain.setTargetAtTime(enabled ? volume : 0, ctx.currentTime, 0.02);
 	}
 	function start() {
 		if (timer !== null) return;

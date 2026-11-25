@@ -109,6 +109,7 @@
 		music.setVolume(prefs.musicVolume);
 		music.setStyle(prefs.musicStyle);
 		music.setFlavour(prefs.instrumentFlavour);
+		music.setCultureMusic(prefs.cultureMusic);
 		sfx.setEnabled(prefs.sfx);
 		sfx.setVolume(prefs.sfxVolume);
 		// thunder plays on the SFX bus when it is on, so the music leaves it out
@@ -275,6 +276,12 @@
 		palette = paletteFor(next.palette);
 		applyAudio();
 		applyEngine();
+		const fresh = api.frame();
+		if (fresh) {
+			frame = fresh;
+			minimapFrame = fresh;
+		}
+		applyFx();
 		resize();
 	}
 

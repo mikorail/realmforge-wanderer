@@ -18,6 +18,8 @@ export interface MusicHandle {
 	setStyle(s: MusicStyle): void;
 	/** instrument flavour; also picked up from the saved settings, so wiring it is optional */
 	setFlavour(f: InstrumentFlavour): void;
+	/** toggle culture-pack bias immediately */
+	setCultureMusic(on: boolean): void;
 	/** thunder on lightning strikes; off while the weather SFX layer (src/weathersfx.ts) plays it instead */
 	setThunder(on: boolean): void;
 	dispose(): void;
@@ -571,10 +573,9 @@ export function createMusic(): MusicHandle {
 
 	function applyVolume() {
 		if (!ctx) return;
-		// the very first start fades in over a couple of seconds; later changes are quick
-		const tau = enabled && !started ? 0.7 : 0.06;
 		if (enabled) started = true;
-		master.gain.setTargetAtTime(enabled ? volume * 0.8 : 0, ctx.currentTime, tau);
+		master.gain.cancelScheduledValues(ctx.currentTime);
+		master.gain.setTargetAtTime(enabled ? volume * 0.8 : 0, ctx.currentTime, 0.015);
 	}
 
 	// ----- voices -----
@@ -1049,17 +1050,25 @@ export function createMusic(): MusicHandle {
 		}
 
 		// garden styles (drift / pastoral / desert) play outside combat; the sequencer keeps the fights
+		const instant = forceSwap;
+		forceSwap = false;
 		const gs = gardenStyle();
 		if (gs && garden) {
-			if (cur) { retire(cur, now + 0.05, 2.5); cur = null; activeKey = ''; }
-			garden.tick(st, gs, flavour === 'cultural', now);
+			if (cur) { retire(cur, now + 0.02, instant ? 0.05 : 2.5); cur = null; activeKey = ''; }
+			garden.tick(st, gs, flavour === 'cultural', now, instant);
 			return;
 		}
-		if (garden?.playing) { garden.stop(now + 0.05, 2.5); activeKey = ''; pendingKey = keyNow(); }
+		if (garden?.playing) { garden.stop(now + 0.02, instant ? 0.05 : 2.5); activeKey = ''; pendingKey = keyNow(); }
 
-		if (!cur || cur.done) {
+		if (instant && cur && pendingKey !== null) {
+			retire(cur, now + 0.02, 0.05);
+			cur = newPlayer(makePiece(st, style, flavour, fight, variant), now + 0.02);
+			activeKey = pendingKey;
+			pendingKey = null;
+			bpm = targetBpm(cur.piece, dNow);
+		} else if (!cur || cur.done) {
 			if (pendingKey !== null) {
-				cur = newPlayer(makePiece(st, style, flavour, fight, variant), now + 0.05);
+				cur = newPlayer(makePiece(st, style, flavour, fight, variant), now + 0.02);
 				activeKey = pendingKey;
 				pendingKey = null;
 				bpm = targetBpm(cur.piece, dNow);
@@ -1086,11 +1095,16 @@ export function createMusic(): MusicHandle {
 	function stopTimer() {
 		if (timer !== null) { clearInterval(timer); timer = null; }
 	}
-	function requeue() {
+	let forceSwap = false;
+	function requeue(instant = false) {
 		if (!st) return;
 		const key = keyNow();
 		pendingKey = key === activeKey ? null : key;
-		if (enabled && ensure()) startTimer();
+		if (instant) forceSwap = true;
+		if (enabled && ensure()) {
+			startTimer();
+			if (instant) tick();
+		}
 	}
 	function syncFlavour() {
 		const now = Date.now();
@@ -1135,13 +1149,20 @@ export function createMusic(): MusicHandle {
 			syncFlavour();
 			if (sty === style) return;
 			style = sty;
-			requeue();
+			requeue(true);
 		},
 		setFlavour(f: InstrumentFlavour) {
 			if (disposed || f === flavour) return;
 			flavour = f;
 			flavT = Date.now();
-			requeue();
+			requeue(true);
+		},
+		setCultureMusic(on: boolean) {
+			if (disposed || on === cultureOn) return;
+			cultureOn = on;
+			flavT = Date.now();
+			if (st) st = cultureOn && rawMstyle ? { ...st, mstyle: rawMstyle } : { ...st, mstyle: undefined };
+			requeue(true);
 		},
 		setThunder(on: boolean) {
 			thunderOn = on;
@@ -1153,14 +1174,15 @@ export function createMusic(): MusicHandle {
 				if (suspendT !== null) { clearTimeout(suspendT); suspendT = null; }
 				if (!ensure()) return;
 				applyVolume();
-				if (cur) cur.nextT = Math.max(cur.nextT, ctx!.currentTime + 0.05);
+				if (cur) cur.nextT = Math.max(cur.nextT, ctx!.currentTime + 0.02);
 				startTimer();
+				tick();
 			} else {
 				stopTimer();
 				applyVolume();
 				const c = ctx;
 				if (suspendT !== null) clearTimeout(suspendT);
-				if (c) suspendT = setTimeout(() => { suspendT = null; if (!enabled && c.state === 'running') c.suspend().catch(() => {}); }, 400);
+				if (c) suspendT = setTimeout(() => { suspendT = null; if (!enabled && c.state === 'running') c.suspend().catch(() => {}); }, 60);
 			}
 		},
 		dispose() {

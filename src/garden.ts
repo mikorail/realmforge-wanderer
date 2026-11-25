@@ -61,7 +61,7 @@ export function gardenKey(m: QudMusic, gs: GardenStyle, cultural = true): string
 
 export interface Garden {
 	/** schedule audio up to the look-ahead; call from the music timer */
-	tick(m: QudMusic, gs: GardenStyle, cultural: boolean, now: number): void;
+	tick(m: QudMusic, gs: GardenStyle, cultural: boolean, now: number, instant?: boolean): void;
 	/** fade everything out (combat starts, or the style changed) */
 	stop(at: number, fade?: number): void;
 	readonly playing: boolean;
@@ -681,12 +681,13 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 
 	return {
 		get playing() { return scene !== null; },
-		tick(m, gs, cultural, now) {
+		tick(m, gs, cultural, now, instant) {
 			const key = gardenKey(m, gs, cultural);
 			if (!scene || scene.key !== key) {
-				const at = now + 0.05;
-				if (scene) retire(scene.bus, at, 5);
-				scene = gs === 'pastoral' ? pastoralScene(key, m, cultural, at + (scene ? 1.5 : 0)) : gs === 'desert' ? desertScene(key, m, cultural, at) : driftScene(key, m, cultural, at);
+				const at = now + (instant ? 0.02 : 0.05);
+				if (scene) retire(scene.bus, at, instant ? 0.05 : 5);
+				const gap = !instant && scene ? 1.5 : 0;
+				scene = gs === 'pastoral' ? pastoralScene(key, m, cultural, at + gap) : gs === 'desert' ? desertScene(key, m, cultural, at) : driftScene(key, m, cultural, at);
 			}
 			scene.run(now + AHEAD, m);
 		},

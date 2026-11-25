@@ -603,7 +603,7 @@ export function createSoundscape(ctx: AudioContext, dest: AudioNode): Soundscape
 	function levelMaster() {
 		const on = enabled && !disposed;
 		master.gain.cancelScheduledValues(ctx.currentTime);
-		master.gain.setTargetAtTime(on ? volume : 0, ctx.currentTime, 0.7);
+		master.gain.setTargetAtTime(on ? volume : 0, ctx.currentTime, 0.025);
 	}
 	function sceneToKey(s: SoundSceneIn | null | undefined, c?: AmbientContext): string {
 		if (!s || !s.place) return '';
@@ -665,7 +665,7 @@ export function createSoundscape(ctx: AudioContext, dest: AudioNode): Soundscape
 				if (scene) { applyBeds(plan(scene, amb)); startTimer(); }
 			} else {
 				stopTimer(); next.clear();
-				window.setTimeout(() => { if (!enabled) clearBeds(); }, 3000);
+				window.setTimeout(() => { if (!enabled) clearBeds(); }, 150);
 			}
 		},
 		setVolume(v) { volume = clamp01(v); levelMaster(); },
