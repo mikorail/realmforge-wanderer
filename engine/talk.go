@@ -807,6 +807,7 @@ func (g *Game) price(it *Item, buy bool) int {
 		f *= pltPriceMod(g, true)        // trade-hub worlds (planettraits.go)
 		f *= g.rtPriceMod(g.Talk)        // holy days (rituals.go)
 		f *= g.etPriceMod()              // insult surcharge (etiquette.go)
+		f *= g.saPriceMod(g.Talk)        // favour discounts, cold towns after threats (socialplay.go)
 		if f < 0.75 {
 			f = 0.75
 		}

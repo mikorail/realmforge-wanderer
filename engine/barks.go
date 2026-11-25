@@ -256,6 +256,11 @@ func (g *Game) baBark(st *baState, ear bool) bool {
 	}
 	a := pool[int(baHash(g, "who", g.Turn)%uint64(len(pool)))]
 	text := g.baLine(st, a)
+	if baHash(g, "rm", g.Turn)%6 == 0 {
+		if s := rmLine(g, a); s != "" {
+			text = s
+		}
+	}
 	if text == "" {
 		return false
 	}
