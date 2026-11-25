@@ -69,6 +69,9 @@ func (g *Game) greeting(a *Actor) string {
 	if sg := g.swGreeting(a); sg != "" {
 		return sg
 	}
+	if sg := sqGreetLine(g, a); sg != "" { // besieged or occupied town (sieges.go)
+		return sg
+	}
 	if s := g.rtClergyGreet(a); s != "" { // priests greet by faith (rituals.go)
 		return s
 	}
@@ -810,6 +813,8 @@ func (g *Game) price(it *Item, buy bool) int {
 		f *= g.saPriceMod(g.Talk)        // favour discounts, cold towns after threats (socialplay.go)
 		f *= fqPriceMod(g, g.Talk, true) // faction chain perks (factionquests.go)
 		f *= rsPriceMod(g)               // realm crisis effects (realmstory.go)
+		f *= sqPriceMod(g, g.Talk, it, true) // siege rationing (sieges.go)
+		f *= mgPriceFor(g, it)               // lean years of the herds (monsterecology.go)
 		if f < 0.75 {
 			f = 0.75
 		}
@@ -828,6 +833,7 @@ func (g *Game) price(it *Item, buy bool) int {
 	f *= hmPriceMod(g, g.Talk, false) // displayed sets (display.go)
 	f *= fqPriceMod(g, g.Talk, false) // faction chain perks (factionquests.go)
 	f *= pltPriceMod(g, false)        // trade-hub worlds (planettraits.go)
+	f *= sqPriceMod(g, g.Talk, it, false) // siege rationing (sieges.go)
 	return maxi(1, int(float64(v)*f*g.lqPriceFactor(false)))
 }
 

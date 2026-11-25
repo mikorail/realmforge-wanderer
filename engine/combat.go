@@ -250,6 +250,7 @@ func (g *Game) hurt(d *Actor, n int, src *Actor, cause string) {
 	g.csOnHurt(d, n, src)
 	if d == g.P {
 		g.ijOnHurt(d, n, src, cause) // permanent injuries (injuries.go)
+		dzOnHit(g, src, d, n)        // afflictions from the thing that hit you (afflictions.go)
 	}
 	if src == g.P && d != g.P && !g.Hostile(d) {
 		g.provoke(d)

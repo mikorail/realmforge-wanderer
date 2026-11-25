@@ -48,6 +48,11 @@ func init() {
 	zoneHooks = append(zoneHooks, rgZone)
 	enterHooks = append(enterHooks, rgEnter)
 	turnHooks = append(turnHooks, rgTurn)
+	sqFallSink = func(g *Game, burg, to int) { // a besieged town fell (sieges.go)
+		s := g.rg()
+		s.Burned[burg] = g.Day()
+		s.Why[burg] = "blood"
+	}
 }
 
 type rgState struct {

@@ -269,6 +269,10 @@ func (g *Game) baBark(st *baState, ear bool) bool {
 		if s := fvLine(g, a); s != "" {
 			text = s
 		}
+	case h == 5:
+		if s := mgLine(g, a); s != "" {
+			text = s
+		}
 	}
 	if text == "" {
 		return false

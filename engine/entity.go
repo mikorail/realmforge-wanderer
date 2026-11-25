@@ -199,6 +199,7 @@ func (a *Actor) Score(i int) int {
 	}
 	v += ijScoreMod(a, i) // injuries (injuries.go)
 	v += hmScoreMod(a, i) // heirloom display bonus (display.go)
+	v += dzScoreMod(a, i) // afflictions (afflictions.go)
 	return v
 }
 
