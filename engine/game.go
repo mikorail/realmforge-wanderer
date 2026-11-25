@@ -812,6 +812,9 @@ func (g *Game) MoveP(dx, dy int) {
 		return
 	}
 	t := z.At(nx, ny)
+	if drBump(g, nx, ny) { // dungeon mechanisms: levers, braziers, rune doors, idols (delvemech.go)
+		return
+	}
 	if sxBump(g, nx, ny) { // secret doors, panels, hollow things (secrets.go)
 		return
 	}
