@@ -38,6 +38,7 @@
 	import { drawFace, portraitBreath } from './portraitfx';
 	import IconCard from './IconCard.svelte';
 	import StatusStrip from './StatusStrip.svelte';
+	import Minimap from './Minimap.svelte';
 	import type { IconRowInfo, IconStatusInfo } from './icons';
 	import { drawVignette, vignetteKindForCue, cueLabel, type VignetteKind } from './vignettes';
 
@@ -63,6 +64,8 @@
 	const enginePalette: string[] = JSON.parse(api.palette());
 	let prefs = $state<Prefs>(loadSettings());
 	let settingsOpen = $state(false);
+	let minimapOpen = $state(false);
+	let minimapFrame = $state<QudFrame>(first);
 	let saga = $state<SagaData | null>(null);
 	let dead = $state(first.dead);
 	let beatCard = $state<{ kind: VignetteKind; label: string; seed: string; isDeath: boolean } | null>(null);
@@ -376,6 +379,7 @@
 	}
 	function applyFrame(f: QudFrame, k?: string) {
 		frame = f;
+		minimapFrame = f;
 		replayTap(api, f);
 		dead = f.dead;
 		if (f.dead && !deathDismissed) {
@@ -753,10 +757,22 @@
 <div class="chrome">
 	{#if dead}<button class="quit" style:opacity="1" onclick={readSaga} title="Read the saga of this life (S)">Read your saga</button>{/if}
 	{#if dead && hid}<button class="quit" style:opacity="1" onclick={() => (rpId = hid)} title="Watch this life again">Watch replay</button>{/if}
+	<button
+		class="quit mm-toggle"
+		class:active={minimapOpen}
+		onclick={(e) => {
+			minimapOpen = !minimapOpen;
+			e.currentTarget.blur();
+		}}
+		title="Toggle district minimap"
+		aria-label="Toggle district minimap"
+		aria-pressed={minimapOpen}
+	>M</button>
 	<button class="gear" bind:this={gear} onclick={() => (settingsOpen = true)} title="Settings (`)" aria-label="Settings">⚙</button>
 	<button class="quit" onclick={retire} title="End this life honourably and enter the Hall of Fame">Retire</button>
 	<button class="quit" onclick={quit} title="Save and return to the title screen">Save &amp; quit</button>
 </div>
+<Minimap frame={minimapFrame} open={minimapOpen} onclose={() => (minimapOpen = false)} {palette} reduceMotion={prefs.reduceMotion} />
 {#if beatCard && !saga}
 	<div class="beat-card" class:death={beatCard.isDeath} role="status" aria-live="polite">
 		<canvas bind:this={beatCanvas} aria-hidden="true"></canvas>
@@ -826,8 +842,13 @@
 		line-height: 1.3;
 	}
 	.gear:hover,
-	.quit:hover {
+	.quit:hover,
+	.mm-toggle.active {
 		opacity: 1;
+	}
+	.mm-toggle.active {
+		border-color: #c8a258;
+		color: #f3e0b2;
 	}
 	.beat-card {
 		position: fixed;

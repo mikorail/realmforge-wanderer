@@ -18,8 +18,18 @@ export interface SoundSceneIn {
 	event: string;
 }
 
+export interface AmbientContext {
+	ph?: number; // 0..1 day phase (0 = midnight, 0.5 = noon, 0.75 = dusk)
+	dl?: number; // 0..1 daylight
+	mood?: string; // music mood ('town', 'wild', etc.)
+	danger?: number; // 0..1 danger level
+	doom?: number; // 0..1 world-scale threat
+	combat?: boolean;
+	nearTavern?: boolean;
+}
+
 export interface Soundscape {
-	set(scene: SoundSceneIn | null | undefined): void;
+	set(scene: SoundSceneIn | null | undefined, ctx?: AmbientContext): void;
 	setEnabled(on: boolean): void;
 	setVolume(v: number): void;
 	dispose(): void;
@@ -27,6 +37,40 @@ export interface Soundscape {
 
 type Levels = Record<string, number>;
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+
+const TOWN_PLACES = new Set(['street', 'market', 'tavern', 'temple', 'forge', 'harbor']);
+function isTown(s: SoundSceneIn, ctx?: AmbientContext): boolean {
+	return TOWN_PLACES.has(s.place) || ctx?.mood === 'town';
+}
+/** Smooth 0.12..1 activity factor for markets: full by day, gently fading down through dusk/night. */
+function marketActivity(s: SoundSceneIn, ctx?: AmbientContext): number {
+	const ph = ctx?.ph;
+	if (ph !== undefined && Number.isFinite(ph)) {
+		if (ph >= 0.28 && ph <= 0.68) return 1;
+		if (ph >= 0.20 && ph < 0.28) return 0.12 + 0.88 * ((ph - 0.20) / 0.08);
+		if (ph > 0.68 && ph <= 0.84) return 1 - 0.88 * ((ph - 0.68) / 0.16);
+		return 0.12;
+	}
+	if (ctx?.dl !== undefined && Number.isFinite(ctx.dl)) {
+		return 0.12 + 0.88 * clamp01((ctx.dl - 0.15) / 0.55);
+	}
+	return s.night ? 0.14 : 1;
+}
+function bellWindow(ctx?: AmbientContext): '' | 'noon' | 'dusk' {
+	const ph = ctx?.ph;
+	if (ph === undefined || !Number.isFinite(ph)) return '';
+	if (ph >= 0.44 && ph <= 0.56) return 'noon';
+	if (ph >= 0.70 && ph <= 0.82) return 'dusk';
+	return '';
+}
+function isWarTown(s: SoundSceneIn, ctx?: AmbientContext): boolean {
+	if (s.event === 'war' || s.event === 'siege' || /war|siege|raid|battle/i.test(s.event || '')) return true;
+	return isTown(s, ctx) && ((ctx?.danger ?? 0) >= 0.55 || !!ctx?.combat || (ctx?.doom ?? 0) >= 0.65);
+}
+function isNearTavern(s: SoundSceneIn, ctx?: AmbientContext): boolean {
+	const n = s.near || {};
+	return s.place === 'tavern' || !!n.tavern || !!n.inn || !!n.hearth || !!ctx?.nearTavern || (!!n.fire && isTown(s, ctx));
+}
 
 function hash(s: string): number {
 	let h = 2166136261;
@@ -43,7 +87,7 @@ function mulberry32(a: number): () => number {
 }
 
 /** plan maps a scene onto bed levels 0..1 (each bed has its own peak scale, all far below -26 dBFS). */
-export function plan(s: SoundSceneIn | null | undefined): Levels {
+export function plan(s: SoundSceneIn | null | undefined, ctx?: AmbientContext): Levels {
 	const L: Levels = {};
 	if (!s || !s.place) return L;
 	const add = (k: string, v: number) => { v = clamp01(v); if (v > 0.01) L[k] = Math.max(L[k] ?? 0, v); };
@@ -55,9 +99,10 @@ export function plan(s: SoundSceneIn | null | undefined): Levels {
 	else if (ev === 'curfew') crowd *= 0.25;
 	else if (ev === 'feast' || ev === 'festival') crowd = Math.min(1, crowd * 1.3 + 0.15);
 	const windy = !!s.weather && /storm|tempest|blizzard|sandstorm|radstorm/.test(s.weather);
+	const mAct = marketActivity(s, ctx);
 	switch (s.place) {
 		case 'street': add('street', 0.7 * out); add('crowd', crowd); break;
-		case 'market': add('market', 0.35 + 0.65 * crowd); add('street', 0.25 * out); break;
+		case 'market': add('market', (0.35 + 0.65 * crowd) * mAct); add('street', 0.25 * out); break;
 		case 'tavern': add('tavern', Math.max(0.45, crowd)); break;
 		case 'temple': add('temple', 0.85); add('crowd', crowd * 0.35); break;
 		case 'forge': add('forge', 0.8); add('crowd', crowd * 0.4); add('street', 0.2 * out); break;
@@ -89,6 +134,7 @@ export function plan(s: SoundSceneIn | null | undefined): Levels {
 	else if (n.fountain) add('fountain', 0.6);
 	else if (n.water && s.place !== 'harbor' && s.place !== 'coast' && s.place !== 'shipdeck' && s.place !== 'underwater') add('brook', 0.5 * out);
 	if (n.altar && s.place !== 'temple') add('temple', 0.35);
+	if (isNearTavern(s, ctx)) add('hearth', s.place === 'tavern' ? 0.85 : 0.55);
 	if (n.machine) {
 		const g = s.genre;
 		add(g === 'cyberpunk' ? 'm-cyber' : g === 'biopunk' ? 'm-bio' : g === 'steampunk' ? 'm-steam' : 'm-hum', 0.8);
@@ -107,13 +153,16 @@ interface Bus { dry: AudioNode; wet: AudioNode }
 const GAIN: Record<string, number> = {
 	street: 0.05, crowd: 0.09, market: 0.1, tavern: 0.1, temple: 0.03, forge: 0.06, harbor: 0.1, shipdeck: 0.08,
 	forest: 0.1, grass: 0.09, desert: 0.1, mountain: 0.1, swamp: 0.05, snow: 0.09, cave: 0.04, dungeon: 0.08,
-	crypt: 0.03, mine: 0.05, tower: 0.09, underwater: 0.1, camp: 0.04, lava: 0.07, crickets: 0.025,
+	crypt: 0.03, mine: 0.05, tower: 0.09, underwater: 0.1, camp: 0.04, hearth: 0.032, lava: 0.07, crickets: 0.025,
 	'm-cyber': 0.03, 'm-steam': 0.05, 'm-bio': 0.05, 'm-hum': 0.04, brook: 0.05, waterfall: 0.06, fountain: 0.05,
 };
 
 export function createSoundscape(ctx: AudioContext, dest: AudioNode): Soundscape {
 	let enabled = true, volume = 1, disposed = false;
 	let scene: SoundSceneIn | null = null;
+	let amb: AmbientContext | undefined = undefined;
+	let lastPh: number | undefined = undefined;
+	let lastBellAt = -999;
 	let sceneKey = '';
 	let rnd = mulberry32(1);
 
@@ -263,6 +312,10 @@ export function createSoundscape(ctx: AudioContext, dest: AudioNode): Soundscape
 				chain(r, out, { f: 120, q: 1, base: 0.3, mods: [[0.07, 0.2]] });
 				break;
 			case 'camp': chain(r, out, { buf: brown, f: 200, type: 'lowpass', base: 0.2, mods: [[0.3, 0.1]] }); break;
+			case 'hearth':
+				chain(r, out, { buf: brown, f: 185, type: 'lowpass', base: 0.42, mods: [[0.08, 0.16], [0.23, 0.08]] });
+				chain(r, out, { f: 520, q: 1.4, base: 0.07, mods: [[0.14, 0.05]] });
+				break;
 			case 'lava': chain(r, out, { buf: brown, f: 140, type: 'lowpass', base: 0.6, mods: [[0.2, 0.3], [0.53, 0.2]] }); break;
 			case 'crickets': {
 				const g = gain(r, 0), g2 = gain(r, 0);
@@ -388,6 +441,89 @@ export function createSoundscape(ctx: AudioContext, dest: AudioNode): Soundscape
 	const bell = (t: number, f: number, peak: number, wet = 0.3) => {
 		[[1, 1], [2.0, 0.5], [2.76, 0.35], [5.4, 0.15]].forEach(([r, v]) => tone(t, f * r, f * r * 0.998, 'sine', 0.004, 4.5 / r ** 0.3, peak * v, wet));
 	};
+	/** Distant church/temple bells: soft warm lowpass-filtered chimes with gentle attack. */
+	function distantBell(t: number, f: number, strikes: number) {
+		const lp = ctx.createBiquadFilter();
+		lp.type = 'lowpass';
+		lp.frequency.value = 1450;
+		send(lp, bus, 0.45, 0.85);
+		const partials: [number, number][] = [[1, 1], [2.0, 0.45], [2.76, 0.28], [4.07, 0.12]];
+		for (let k = 0; k < strikes; k++) {
+			const st = t + k * 1.85;
+			const decayScale = k === strikes - 1 ? 1.25 : 0.95;
+			for (const [r, v] of partials) {
+				if (!room(st + 4.0)) continue;
+				const o = ctx.createOscillator(), g = ctx.createGain();
+				o.type = 'sine';
+				o.frequency.setValueAtTime(f * r, st);
+				o.frequency.exponentialRampToValueAtTime(Math.max(20, f * r * 0.997), st + 3.8 * decayScale);
+				ampEnv(g, st, 0.015, (3.8 * decayScale) / r ** 0.35, 0.018 * v);
+				o.connect(g).connect(lp);
+				o.start(st);
+				o.stop(st + 4.1 * decayScale);
+				hook(o, [o, g]);
+			}
+		}
+		window.setTimeout(() => { try { lp.disconnect(); } catch { /* ok */ } }, Math.ceil((strikes * 1.85 + 5.5) * 1000));
+	}
+	/** Distant war drums: faint, muffled 4-beat cadence for besieged or war-torn towns. */
+	function warDrumCadence(t: number) {
+		const hits: [number, number, number, number][] = [
+			[0, 68, 42, 0.026],
+			[0.42, 60, 38, 0.018],
+			[0.72, 64, 40, 0.022],
+			[1.24, 56, 36, 0.025],
+		];
+		for (const [off, f0, f1, peak] of hits) {
+			const st = t + off;
+			if (!room(st + 0.65)) continue;
+			const o = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
+			o.type = 'triangle';
+			o.frequency.setValueAtTime(f0, st);
+			o.frequency.exponentialRampToValueAtTime(f1, st + 0.55);
+			lp.type = 'lowpass';
+			lp.frequency.value = 240;
+			ampEnv(g, st, 0.008, 0.55, peak);
+			o.connect(lp).connect(g);
+			send(g, bus, 0.4, 0.8);
+			o.start(st);
+			o.stop(st + 0.6);
+			hook(o, [o, lp, g]);
+		}
+	}
+	/** Warm tavern fiddle motif: gentle 4-5 note bowed folk phrase in the local culture scale. */
+	function fiddlePhrase(t: number, cu: string) {
+		const sc = SCALES[PROFILES[cu]?.scales[0] ?? 'dorian'] ?? SCALES.dorian;
+		const root = 293.66 * Math.pow(2, ((hash(cu || 'tavern') % 5) - 2) / 12);
+		const len = 4 + (rnd() > 0.5 ? 1 : 0);
+		let idx = Math.floor(rnd() * Math.min(4, sc.length));
+		let cur = t;
+		for (let i = 0; i < len; i++) {
+			const deg = sc[Math.max(0, Math.min(sc.length - 1, idx))];
+			const freq = root * Math.pow(2, deg / 12);
+			const dur = i === len - 1 ? 0.68 : rr(0.36, 0.52);
+			if (room(cur + dur + 0.1)) {
+				const o1 = ctx.createOscillator(), o2 = ctx.createOscillator();
+				const bp = ctx.createBiquadFilter(), lp = ctx.createBiquadFilter(), g = ctx.createGain();
+				const vib = ctx.createOscillator(), vg = ctx.createGain();
+				o1.type = 'sawtooth'; o1.frequency.setValueAtTime(freq, cur);
+				o2.type = 'triangle'; o2.frequency.setValueAtTime(freq * 1.002, cur);
+				vib.frequency.value = 5.2; vg.gain.value = freq * 0.008;
+				vib.connect(vg).connect(o1.frequency);
+				bp.type = 'bandpass'; bp.frequency.value = 950; bp.Q.value = 1.6;
+				lp.type = 'lowpass'; lp.frequency.value = 2200;
+				ampEnv(g, cur, 0.09, dur, 0.015);
+				o1.connect(bp); o2.connect(bp);
+				bp.connect(lp).connect(g);
+				send(g, bus, 0.18, 0.9);
+				o1.start(cur); o2.start(cur); vib.start(cur);
+				o1.stop(cur + dur + 0.12); o2.stop(cur + dur + 0.12); vib.stop(cur + dur + 0.12);
+				hook(o1, [o1, o2, vib, vg, bp, lp, g]);
+			}
+			cur += dur * 0.88;
+			idx = Math.max(0, Math.min(sc.length - 1, idx + (rnd() > 0.5 ? 1 : -1)));
+		}
+	}
 
 	interface Shot { gap: [number, number]; w: (s: SoundSceneIn, L: Levels) => number; fire: (t: number, s: SoundSceneIn) => void }
 	const rr = (a: number, b: number) => a + rnd() * (b - a);
@@ -396,13 +532,30 @@ export function createSoundscape(ctx: AudioContext, dest: AudioNode): Soundscape
 	const SHOTS: Record<string, Shot> = {
 		clink: { gap: [3, 8], w: (s, L) => L.tavern ? 1 : 0, fire: t => { const f = rr(1900, 2600); tone(t, f, f, 'sine', 0.002, 0.3, 0.025); tone(t, f * 1.5, f * 1.5, 'sine', 0.002, 0.2, 0.015); } },
 		laugh: { gap: [14, 30], w: (s, L) => L.tavern || (s.event === 'festival' && L.crowd) ? 1 : 0, fire: t => { const f = rr(150, 210); for (let i = 0; i < 4; i++) voice(t + i * 0.13, f * (1 - i * 0.05), f * (0.9 - i * 0.05), 0.11, 0.028, [800, 1300]); } },
-		hawker: { gap: [5, 11], w: (s, L) => L.market ? 1 : 0, fire: t => { const f = rr(180, 280); voice(t, f, f * 1.45, 0.35, 0.03, [700, 1150]); voice(t + 0.4, f * 1.4, f * 1.1, 0.4, 0.03, [550, 1000]); } },
+		hawker: {
+			gap: [5, 11],
+			w: (s, L) => {
+				if (!L.market) return 0;
+				const act = marketActivity(s, amb);
+				return act > 0.22 ? act : 0;
+			},
+			fire: (t, s) => {
+				const act = marketActivity(s, amb);
+				const peak = 0.012 + 0.018 * act;
+				const f = rr(180, 280);
+				voice(t, f, f * 1.45, 0.35, peak, [700, 1150]);
+				voice(t + 0.4, f * 1.4, f * 1.1, 0.4, peak, [550, 1000]);
+			},
+		},
 		steps: { gap: [4, 9], w: (s, L) => (L.street && !s.indoors) ? 1 : 0, fire: t => { for (let i = 0; i < 3; i++) burst(t + i * 0.42, 0.07, 'lowpass', 500, 0.7, 0.03); } },
 		cart: { gap: [25, 50], w: (s, L) => (L.street && !s.indoors) ? 1 : 0, fire: t => burst(t, 3.2, 'lowpass', 160, 0.7, 0.03, 0, 1.0) },
 		clang: { gap: [3, 7], w: (s, L) => L.forge ? 1 : 0, fire: t => { const f = rr(480, 640); [1, 2.4, 4.1].forEach((r, i) => tone(t, f * r, f * r, 'sine', 0.001, 0.9 / (1 + i), 0.04 / (1 + i))); burst(t, 0.03, 'highpass', 3000, 0.7, 0.03); } },
 		bell: { gap: [18, 40], w: (s, L) => (L.temple && s.place === 'temple') || (s.event === 'festival' && L.crowd) ? 1 : 0, fire: t => { const root = 110 * Math.pow(2, (hash(scene?.culture ?? 'x') % 7) / 12); bell(t, root * 4, 0.03); } },
+		townBell: { gap: [24, 44], w: (s) => (isTown(s, amb) && bellWindow(amb) ? 1 : 0), fire: (t, s) => { const root = 130.8 * Math.pow(2, (hash(s.culture || 'town') % 7) / 12); distantBell(t, root * 2, bellWindow(amb) === 'noon' ? 3 : 2); } },
 		toll: { gap: [10, 18], w: s => s.event === 'plague' ? 1 : 0, fire: t => bell(t, 110, 0.035, 0.4) },
 		drum: { gap: [6, 14], w: s => s.event === 'war' ? 1 : 0, fire: t => { tone(t, 70, 40, 'sine', 0.005, 0.5, 0.04, 0.35); tone(t + 0.35, 60, 38, 'sine', 0.005, 0.5, 0.03, 0.35); } },
+		wardrum: { gap: [7, 13], w: (s) => (isWarTown(s, amb) ? 1 : 0), fire: (t) => warDrumCadence(t) },
+		fiddle: { gap: [13, 25], w: (s) => (isNearTavern(s, amb) ? 1 : 0), fire: (t, s) => fiddlePhrase(t, s.culture || 'tavern') },
 		gull: { gap: [6, 16], w: (s, L) => (L.harbor && day(s) && !s.indoors) ? 1 : 0, fire: t => { const n = 2 + Math.floor(rnd() * 2); for (let i = 0; i < n; i++) tone(t + i * 0.45, rr(1700, 2100), rr(2400, 2900), 'sine', 0.05, 0.35, 0.025, 0, 40); } },
 		slap: { gap: [3, 7], w: (s, L) => L.harbor || L.shipdeck ? 1 : 0, fire: t => burst(t, 0.3, 'lowpass', 700, 0.7, 0.03, 0, 0.08, 250) },
 		creak: { gap: [5, 12], w: (s, L) => L.shipdeck ? 1 : L.harbor || L.mine || L.tower ? 0.5 : 0, fire: t => { const f = rr(70, 110); tone(t, f, f * rr(0.6, 1.3), 'sawtooth', 0.3, 0.6, 0.02, s_wet(), 3); } },
@@ -429,7 +582,7 @@ export function createSoundscape(ctx: AudioContext, dest: AudioNode): Soundscape
 	function tick() {
 		if (disposed || !enabled || !scene || ctx.state !== 'running') return;
 		const now = ctx.currentTime, horizon = now + 0.6;
-		const Ls = plan(scene);
+		const Ls = plan(scene, amb);
 		for (const [id, sh] of Object.entries(SHOTS)) {
 			const w = sh.w(scene, Ls);
 			if (w <= 0) { next.delete(id); continue; }
@@ -452,10 +605,14 @@ export function createSoundscape(ctx: AudioContext, dest: AudioNode): Soundscape
 		master.gain.cancelScheduledValues(ctx.currentTime);
 		master.gain.setTargetAtTime(on ? volume : 0, ctx.currentTime, 0.7);
 	}
-	function sceneToKey(s: SoundSceneIn | null | undefined): string {
+	function sceneToKey(s: SoundSceneIn | null | undefined, c?: AmbientContext): string {
 		if (!s || !s.place) return '';
 		const n = s.near || {};
-		let k = `${s.place}|${s.crowd}|${s.indoors ? 1 : 0}|${s.night ? 1 : 0}|${s.weather}|${s.genre}|${s.culture}|${s.event}|${s.depth}|`;
+		const mStep = Math.round(marketActivity(s, c) * 10);
+		const bw = bellWindow(c);
+		const wt = isWarTown(s, c) ? 1 : 0;
+		const nt = isNearTavern(s, c) ? 1 : 0;
+		let k = `${s.place}|${s.crowd}|${s.indoors ? 1 : 0}|${s.night ? 1 : 0}|${s.weather}|${s.genre}|${s.culture}|${s.event}|${s.depth}|${mStep}|${bw}|${wt}|${nt}|`;
 		for (const key of Object.keys(n).sort()) if (n[key]) k += key + ',';
 		return k;
 	}
@@ -466,16 +623,38 @@ export function createSoundscape(ctx: AudioContext, dest: AudioNode): Soundscape
 	}
 
 	return {
-		set(s) {
+		set(s, c) {
 			if (disposed) return;
-			const key = sceneToKey(s);
+			const prevPh = lastPh;
+			const curPh = c?.ph;
+			lastPh = curPh;
+			amb = c;
+			// Trigger a soft distant church/temple bell right as noon (0.50) or dusk (0.75) arrives in a town
+			if (
+				enabled &&
+				s &&
+				ctx.state === 'running' &&
+				isTown(s, c) &&
+				prevPh !== undefined &&
+				curPh !== undefined &&
+				ctx.currentTime - lastBellAt > 25
+			) {
+				const crossedNoon = prevPh < 0.5 && curPh >= 0.5;
+				const crossedDusk = prevPh < 0.75 && curPh >= 0.75;
+				if (crossedNoon || crossedDusk) {
+					lastBellAt = ctx.currentTime;
+					const root = 130.8 * Math.pow(2, (hash(s.culture || 'town') % 7) / 12);
+					distantBell(ctx.currentTime + 0.08, root * 2, crossedNoon ? 3 : 2);
+				}
+			}
+			const key = sceneToKey(s, c);
 			if (key === sceneKey) return;
 			const prevPlace = scene?.place;
 			sceneKey = key;
 			scene = key ? s! : null;
 			if (scene && scene.place !== prevPlace) { rnd = mulberry32(hash(scene.place + scene.genre + scene.culture)); next.clear(); }
 			if (!enabled) return;
-			applyBeds(scene ? plan(scene) : {});
+			applyBeds(scene ? plan(scene, amb) : {});
 			if (scene) startTimer(); else stopTimer();
 		},
 		setEnabled(on) {
@@ -483,7 +662,7 @@ export function createSoundscape(ctx: AudioContext, dest: AudioNode): Soundscape
 			enabled = on;
 			levelMaster();
 			if (on) {
-				if (scene) { applyBeds(plan(scene)); startTimer(); }
+				if (scene) { applyBeds(plan(scene, amb)); startTimer(); }
 			} else {
 				stopTimer(); next.clear();
 				window.setTimeout(() => { if (!enabled) clearBeds(); }, 3000);

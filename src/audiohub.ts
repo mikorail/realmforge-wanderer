@@ -157,8 +157,21 @@ export function createAudioHub(opts: { duckBase: (factor: number) => void }): Au
 			syncRun();
 			const me = f.actors?.find((a) => a.p);
 			const listener = me ? { x: me.x, y: me.y } : { x: 40, y: 12 };
+			const nearTavern =
+				f.sound?.place === 'tavern' ||
+				!!f.sound?.near?.tavern ||
+				!!f.sound?.near?.inn ||
+				(f.actors?.some((a) => !a.ho && !!a.r && /inn|tavern|barkeep|bard|minstrel|brewer/i.test(a.r)) ?? false);
 			try {
-				sc?.set(f.sound);
+				sc?.set(f.sound, {
+					ph: f.fx?.ph,
+					dl: f.fx?.dl,
+					mood: f.music?.mood,
+					danger: f.music?.danger,
+					doom: f.music?.doom,
+					combat: f.music?.combat,
+					nearTavern,
+				});
 				voices?.play(f.vox, listener);
 				layers?.setMusic(f.music, f.cuex);
 				layers?.cue(f.cues);
