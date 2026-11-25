@@ -529,7 +529,7 @@ func (g *Game) htMakeJob(giver *Actor) *htJob {
 	j.GuardN = clampi(2+t.Guards+r.Int(0, 1)+tier/2, 2, 4)
 	j.Dogs = r.Chance(0.35)
 	j.Alarms = r.Chance(0.5 + 0.1*float64(tier))
-	j.ShiftHr = r.Int(21, 23)
+	j.ShiftHr = rnGuardShiftHour()
 	j.Want = r.Int(0, len(t.Loot)-1)
 	lvl := maxi(1, g.P.Level)
 	j.Payout = (260 + 170*j.Tier + 90*tier) * (100 + 4*lvl) / 100
@@ -1291,7 +1291,7 @@ func (g *Game) htPanelCheck(j *htJob) {
 }
 
 func (g *Game) htMoveGuards(j *htJob) {
-	changing := g.htHour() == j.ShiftHr && g.htMinute() < 15
+	changing := g.rnGuardChanging()
 	for i := range j.Guards {
 		gd := &j.Guards[i]
 		a := g.htActor(gd.ID)
@@ -1328,7 +1328,7 @@ func (g *Game) htMoveGuards(j *htJob) {
 }
 
 func (g *Game) htSight(j *htJob) {
-	changing := g.htHour() == j.ShiftHr && g.htMinute() < 15
+	changing := g.rnGuardChanging()
 	dis := g.htDisguised(j)
 	for i := range j.Guards {
 		gd := j.Guards[i]

@@ -75,8 +75,8 @@ interface Look {
 	glow?: string; // aura colour
 }
 
-const SKIN_HUMAN = ['#f0c7a0', '#d9a577', '#b57d54', '#8a5a3b', '#5d3b27', '#f5d9bd'];
-const HAIR = ['#2a1b12', '#5a3a1e', '#8a6a2a', '#c9a24a', '#a8441d', '#d8d0c0', '#101010'];
+const SKIN_HUMAN = ['#f0c7a0', '#d9a577', '#c8926a', '#b57d54', '#8a5a3b', '#5d3b27', '#482d1e', '#f5d9bd'];
+const HAIR = ['#2a1b12', '#5a3a1e', '#6e3b1f', '#8a6a2a', '#c9a24a', '#d8c89e', '#a8441d', '#9e4b2b', '#d8d0c0', '#a8adb8', '#101010', '#1d2230', '#5c2330'];
 
 const SPECIES: Record<string, Look> = {
 	human: { h: 0.92, w: 1, hd: 1, skin: SKIN_HUMAN, hair: HAIR, head: 'round', ears: 'round', snout: 0, tail: 'none', horns: 'none', eye: '#1a1410' },
@@ -142,9 +142,9 @@ function lookFor(sp: string): Look {
 interface Outfit {
 	cloth: string[]; // body colours
 	trim: string;
-	head: 'none' | 'helm' | 'hood' | 'cap' | 'hat' | 'goggles' | 'mask' | 'crown' | 'turban' | 'circlet' | 'bandana';
+	head: 'none' | 'helm' | 'hood' | 'cap' | 'hat' | 'goggles' | 'mask' | 'crown' | 'turban' | 'circlet' | 'bandana' | 'feathered' | 'widebrim' | 'wreath' | 'cowl' | 'mitre';
 	back: 'none' | 'cloak' | 'pack' | 'quiver' | 'cape';
-	item: 'none' | 'sword' | 'dagger' | 'axe' | 'club' | 'bow' | 'spear' | 'staff' | 'wand' | 'book' | 'hammer' | 'purse' | 'wrench' | 'orb' | 'lantern' | 'knives';
+	item: 'none' | 'sword' | 'dagger' | 'axe' | 'club' | 'bow' | 'spear' | 'staff' | 'wand' | 'book' | 'hammer' | 'purse' | 'wrench' | 'orb' | 'lantern' | 'knives' | 'lute' | 'flask' | 'scroll' | 'rapier' | 'horn' | 'censer';
 	shield?: boolean;
 	boots?: string; // footwear colour
 	gloves?: string; // handwear colour
@@ -174,10 +174,43 @@ const ROLES: Record<string, Outfit> = {
 	bandit: { cloth: ['#4a3a2a', '#3a3a3a'], trim: '#8a3a2a', head: 'bandana', back: 'none', item: 'dagger', armor: 1 },
 	notable: { cloth: ['#7a2a5a', '#2a4a7a', '#8a6a1a'], trim: '#f0d060', head: 'circlet', back: 'cape', item: 'none', fine: true },
 	noble: { cloth: ['#7a2a5a', '#2a4a7a', '#8a6a1a'], trim: '#f0d060', head: 'crown', back: 'cape', item: 'none', fine: true },
-	villager: { cloth: ['#8a6a4a', '#6a7a4a', '#7a5a6a', '#5a6a8a', '#8a7a3a', '#6a5a4a'], trim: '#b8a078', head: 'none', back: 'none', item: 'none' },
+	villager: { cloth: ['#8a6a4a', '#6a7a4a', '#7a5a6a', '#5a6a8a', '#8a7a3a', '#6a5a4a', '#4a6a7a', '#8a4a52', '#5a7a5a', '#7a6a3a', '#6a4a7a', '#9a6a4a'], trim: '#b8a078', head: 'none', back: 'none', item: 'none' },
 	farmer: { cloth: ['#8a7a3a', '#6a7a4a'], trim: '#c8b060', head: 'hat', back: 'none', item: 'none' },
 	sailor: { cloth: ['#3a5a8a', '#e0e0e8'], trim: '#c9ccd2', head: 'bandana', back: 'none', item: 'none' },
+	huntsman: { cloth: ['#3a5a34', '#5a4a2e'], trim: '#b89a64', head: 'hood', back: 'cloak', item: 'bow', armor: 1 },
+	warden: { cloth: ['#2e523a', '#485838'], trim: '#c9c090', head: 'cap', back: 'cloak', item: 'spear', armor: 2 },
+	inquisitor: { cloth: ['#6e1d26', '#2e2a34', '#4e1e2c'], trim: '#e8c850', head: 'widebrim', back: 'cloak', item: 'censer', armor: 1, fine: true },
+	pilgrim: { cloth: ['#8a6f48', '#745e40', '#6d6252'], trim: '#c8b078', head: 'widebrim', back: 'pack', item: 'staff' },
+	chronicler: { cloth: ['#38487a', '#5a324e', '#325a52'], trim: '#e8d890', head: 'cap', back: 'none', item: 'scroll', fine: true },
+	librarian: { cloth: ['#2d5a62', '#4c3866', '#5a4432'], trim: '#e0d090', head: 'goggles', back: 'none', item: 'book', fine: true },
+	bard: { cloth: ['#9a2e46', '#2e7458', '#6a3488', '#b06424'], trim: '#f0d060', head: 'feathered', back: 'cape', item: 'lute', fine: true },
+	alchemist: { cloth: ['#3a6a58', '#4a4e78', '#685432'], trim: '#78e0a0', head: 'goggles', back: 'pack', item: 'flask' },
+	fence: { cloth: ['#3b3844', '#4a3642', '#3a443c'], trim: '#c8a850', head: 'hat', back: 'cloak', item: 'purse' },
+	nomad: { cloth: ['#b88248', '#9a5838', '#c8a66a'], trim: '#e8d090', head: 'turban', back: 'cloak', item: 'spear' },
+	assassin: { cloth: ['#24242c', '#362028', '#202c2a'], trim: '#a83a3a', head: 'cowl', back: 'cloak', item: 'knives', armor: 1 },
+	artificer: { cloth: ['#7c5028', '#4a5a68', '#6a422c'], trim: '#e0a838', head: 'goggles', back: 'pack', item: 'wrench', armor: 1, fine: true },
+	druid: { cloth: ['#345c36', '#4a5e32', '#524834'], trim: '#88c860', head: 'wreath', back: 'cloak', item: 'staff' },
+	herald: { cloth: ['#2a4e8c', '#982834', '#2e6a4a'], trim: '#f0d060', head: 'feathered', back: 'cape', item: 'horn', fine: true },
+	executioner: { cloth: ['#262428', '#4c1e22'], trim: '#8a909a', head: 'cowl', back: 'none', item: 'axe', armor: 1 },
+	duellist: { cloth: ['#2c5868', '#8a2a38', '#343c68'], trim: '#e8d890', head: 'feathered', back: 'cape', item: 'rapier', armor: 1, fine: true },
 };
+
+const ROLE_ALIASES: [RegExp, string][] = [
+	[/inquisitor|witch[- ]?hunter|zealot/, 'inquisitor'],
+	[/executioner|headsman/, 'executioner'],
+	[/duell?ist|fencer|swashbuckler|bravo/, 'duellist'],
+	[/herald|crier|trumpeter|messenger/, 'herald'],
+	[/bard|minstrel|troubadour|skald|musician/, 'bard'],
+	[/druid|archdruid|grove[- ]?keeper/, 'druid'],
+	[/artificer|engineer|inventor|clockwork|mechanist/, 'artificer'],
+	[/alchem|transmuter|elixir/, 'alchemist'],
+	[/chronicler|annalist|historian|archivist/, 'chronicler'],
+	[/librar|curator|bookkeeper/, 'librarian'],
+	[/pilgrim|wayfarer|penitent/, 'pilgrim'],
+	[/fence|smuggler|broker/, 'fence'],
+	[/assassin|cutthroat|slayer|shadowblade/, 'assassin'],
+	[/nomad|caravan|desert|bedouin|wanderer/, 'nomad'],
+];
 
 const WEAPON_ITEM: Record<string, Outfit['item']> = {
 	longblade: 'sword', shortblade: 'dagger', axe: 'axe', cudgel: 'club', missile: 'bow', spear: 'spear', staff: 'staff', flail: 'club',
@@ -228,7 +261,18 @@ function applyGear(out: Outfit, a: QudActor) {
 function outfitFor(a: QudActor, h: number): Outfit {
 	let o: Outfit | undefined;
 	if (a.p && a.c) o = CALLINGS[a.c];
-	if (!o && a.r) o = ROLES[a.r];
+	if (!o && a.r) {
+		const rl = a.r.toLowerCase();
+		o = ROLES[rl];
+		if (!o) {
+			for (const [re, key] of ROLE_ALIASES) {
+				if (re.test(rl)) {
+					o = ROLES[key];
+					break;
+				}
+			}
+		}
+	}
 	if (!o) o = ROLES.villager;
 	const out = { ...o };
 	if (a.w && a.p) {
@@ -355,6 +399,42 @@ function drawItem(c: Ctx, item: Outfit['item'], hx: number, hy: number, u: numbe
 		case 'lantern':
 			c.fillStyle = '#ffd24a';
 			ell(c, hx, hy, u * 0.07, v * 0.07);
+			break;
+		case 'lute':
+			c.fillStyle = '#9a6838';
+			ell(c, hx, hy + v * 0.02, u * 0.1, v * 0.09);
+			c.strokeStyle = '#6a4420';
+			line(c, hx, hy - v * 0.06, hx + flip * u * 0.08, hy - v * 0.28, lw * 0.9);
+			break;
+		case 'flask':
+			c.fillStyle = '#58d8a0';
+			ell(c, hx, hy + v * 0.02, u * 0.07, v * 0.06);
+			c.fillStyle = '#d8e8f0';
+			c.fillRect(hx - u * 0.03, hy - v * 0.07, u * 0.06, v * 0.05);
+			break;
+		case 'scroll':
+			c.fillStyle = '#e8dec0';
+			c.fillRect(hx - u * 0.05, hy - v * 0.12, u * 0.1, v * 0.16);
+			c.fillStyle = trim;
+			c.fillRect(hx - u * 0.06, hy - v * 0.05, u * 0.12, v * 0.025);
+			break;
+		case 'rapier':
+			c.strokeStyle = steel;
+			line(c, hx, hy, hx + flip * u * 0.08, hy - v * 0.44, Math.max(1, lw * 0.65));
+			c.fillStyle = trim;
+			ell(c, hx, hy - v * 0.03, u * 0.07, v * 0.04);
+			break;
+		case 'horn':
+			c.fillStyle = '#e8c44a';
+			poly(c, [hx, hy - v * 0.02, hx + flip * u * 0.2, hy - v * 0.14, hx + flip * u * 0.22, hy + v * 0.02]);
+			break;
+		case 'censer':
+			c.strokeStyle = trim;
+			line(c, hx, hy, hx, hy + v * 0.1, Math.max(1, lw * 0.6));
+			c.fillStyle = '#e8b840';
+			ell(c, hx, hy + v * 0.12, u * 0.07, v * 0.06);
+			c.fillStyle = '#ff6a30';
+			ell(c, hx, hy + v * 0.12, u * 0.03, v * 0.03);
 			break;
 		default:
 			break;
@@ -710,15 +790,26 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 	// hair, beard
 	if (hair && L.head !== 'skull') {
 		c.fillStyle = hair;
-		const style = (seed >>> 24) % 4;
+		const style = (seed >>> 24) % 6;
 		c.beginPath();
 		c.arc(cx, headY - hh2 * 0.1, hw * 1.02, Math.PI, 0);
 		c.fill();
 		if (style === 1 || style === 3) {
 			c.fillRect(cx - hw * 1.02, headY - hh2 * 0.1, hw * 0.28, hh2 * (style === 3 ? 1.5 : 0.9));
 			c.fillRect(cx + hw * 0.74, headY - hh2 * 0.1, hw * 0.28, hh2 * (style === 3 ? 1.5 : 0.9));
+		} else if (style === 2) {
+			ell(c, cx, headY - hh2 * 0.95, hw * 0.35, hw * 0.35);
+		} else if (style === 4) {
+			// side braid
+			c.fillRect(cx - hw * 1.02, headY - hh2 * 0.05, hw * 0.26, hh2 * 1.85);
+			c.fillStyle = o.trim;
+			c.fillRect(cx - hw * 1.04, headY + hh2 * 1.5, hw * 0.3, hh2 * 0.18);
+		} else if (style === 5) {
+			// curly tufts
+			ell(c, cx - hw * 0.65, headY - hh2 * 0.75, hw * 0.35, hw * 0.3);
+			ell(c, cx + hw * 0.65, headY - hh2 * 0.75, hw * 0.35, hw * 0.3);
+			ell(c, cx, headY - hh2 * 0.95, hw * 0.38, hw * 0.3);
 		}
-		if (style === 2) ell(c, cx, headY - hh2 * 0.95, hw * 0.35, hw * 0.35);
 	}
 	if (L.beard) {
 		c.fillStyle = hair ?? '#c9c0b0';
@@ -836,6 +927,44 @@ export function drawPersonSprite(c: Ctx, a: QudActor, fg: string, palette: strin
 		case 'turban':
 			c.fillStyle = cloth;
 			ell(c, cx, headY - hh2 * 0.5, hw * 1.1, hh2 * 0.7);
+			break;
+		case 'feathered':
+			c.fillStyle = shade(cloth, -0.15);
+			c.fillRect(cx - hw * 1.25, headY - hh2 * 0.52, hw * 2.5, hh2 * 0.2);
+			c.beginPath();
+			c.arc(cx, headY - hh2 * 0.45, hw * 0.95, Math.PI, 0);
+			c.fill();
+			c.fillStyle = '#e04848';
+			poly(c, [cx - hw * 0.5, headY - hh2 * 0.85, cx - hw * 1.25, headY - hh2 * 1.75, cx - hw * 0.2, headY - hh2 * 1.05]);
+			break;
+		case 'widebrim':
+			c.fillStyle = shade(cloth, -0.25);
+			c.fillRect(cx - hw * 1.9, headY - hh2 * 0.48, hw * 3.8, hh2 * 0.2);
+			poly(c, [cx - hw * 0.85, headY - hh2 * 0.48, cx - hw * 0.6, headY - hh2 * 1.45, cx + hw * 0.6, headY - hh2 * 1.45, cx + hw * 0.85, headY - hh2 * 0.48]);
+			c.fillStyle = o.trim;
+			c.fillRect(cx - hw * 0.8, headY - hh2 * 0.62, hw * 1.6, hh2 * 0.14);
+			break;
+		case 'wreath':
+			c.strokeStyle = '#3c8a3c';
+			c.lineWidth = Math.max(1.2, u * 0.08);
+			c.beginPath();
+			c.ellipse(cx, headY - hh2 * 0.55, hw * 1.0, hh2 * 0.24, 0, Math.PI, 0);
+			c.stroke();
+			c.fillStyle = '#f0d060';
+			ell(c, cx, headY - hh2 * 0.78, hw * 0.16, hw * 0.16);
+			break;
+		case 'cowl':
+			c.fillStyle = shade(cloth, -0.25);
+			ell(c, cx, headY, hw * 1.08, hh2 * 1.08);
+			c.fillStyle = L.eye;
+			c.fillRect(cx - hw * 0.5, headY - hh2 * 0.1 + eo, es, eh);
+			c.fillRect(cx + hw * 0.5 - es, headY - hh2 * 0.1 + eo, es, eh);
+			break;
+		case 'mitre':
+			c.fillStyle = cloth;
+			poly(c, [cx - hw * 0.9, headY - hh2 * 0.45, cx, headY - hh2 * 1.7, cx + hw * 0.9, headY - hh2 * 0.45]);
+			c.fillStyle = o.trim;
+			c.fillRect(cx - hw * 0.85, headY - hh2 * 0.62, hw * 1.7, hh2 * 0.16);
 			break;
 		default:
 			break;

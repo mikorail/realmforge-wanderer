@@ -122,7 +122,7 @@ func (g *Game) uwIllegal(it *Item, state int) bool {
 	if uwIsStolen(it) && uwStolenFrom(it) == state {
 		return true
 	}
-	if uwIsPoison(it) || uwIsForged(it) {
+	if uwIsPoison(it) || uwIsForged(it) || it.Extra["hnp"] > 0 {
 		return true
 	}
 	l := g.uwLawsFor(state)

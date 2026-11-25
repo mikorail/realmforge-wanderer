@@ -145,7 +145,9 @@ const TUFT_A = dc('.l..F', '..lF.', '.dFd.');
 const TUFT_B = dc('l.F', 'lFd', 'dFd');
 const TUFT_C = dc('..l...', 'l.l.F.', '.lFlF.', '.dFFd.');
 const SPROUT = dc('.l.', 'dFd');
+const FERN = dc('..l.', 'lFl.', '.eE.', '..E.');
 const flowerDec = (c: string, mid: string) => dc('.' + c + '.', c + mid + c, '.e.');
+const flowerClump = (c: string, c2: string) => dc(c + '..' + c2, '.e.e', 'e.' + c + '.');
 const PEB_A = dc('mg.', 'gGo');
 const PEB_B = dc('.mg.', 'mggG', 'oGGo');
 const PEB_C = dc('m...', 'G.g.', '...G');
@@ -164,17 +166,24 @@ const MOSS_A = dc('..lFl..', '.lFFFd.', 'lFdFFdD', '.dFdD..');
 const MOSS_B = dc('lFl.', 'FdFd', '.dD.');
 const CAP_A = dc('.lL.', 'lFFd', '.tT.');
 const CAP_B = dc('lL', 'tT');
+const CAP_C = dc('.rR.', 'rxRr', '.tt.');
 const SPORE = dc('L..', '..l', '.L.');
 const SHARD = dc('L', 'F', 'd');
 const GLINT = dc('.x.', 'lLd');
+const GLINT_B = dc('.x.', 'xcx', '.c.');
 const EMBER = dc('n.', '.R');
-const FLOWERS = ['q', 'y', 'x', 'p', 'n'];
+const FLOWERS = ['q', 'y', 'x', 'p', 'n', 'c', 'r'];
 
 function grassGround(h: number): string[] {
-	let r = scatter(specks(h), [TUFT_A, TUFT_B, TUFT_C, SPROUT], h, 2 + ((h >>> 20) % 3));
-	if ((h >>> 24) % 6 === 0) {
+	let r = scatter(specks(h), [TUFT_A, TUFT_B, TUFT_C, SPROUT, FERN], h, 2 + ((h >>> 20) % 3));
+	const fRoll = (h >>> 24) % 6;
+	if (fRoll === 0) {
 		const c = pick(FLOWERS, h, 27);
 		r = over(r, flowerDec(c, c === 'y' ? 'n' : 'y'), 1 + ((h >>> 9) % 8), 4 + ((h >>> 13) % 12));
+	} else if (fRoll === 1) {
+		const c1 = pick(FLOWERS, h, 27);
+		const c2 = pick(FLOWERS, h, 19);
+		r = over(r, flowerClump(c1, c2), 1 + ((h >>> 11) % 7), 3 + ((h >>> 15) % 13));
 	}
 	if ((h >>> 28) % 5 === 0) r = over(r, PEB_A, 2 + ((h >>> 3) % 7), 2 + ((h >>> 17) % 15));
 	return r;
@@ -202,9 +211,13 @@ function saltGround(h: number): string[] {
 }
 const roadGround = (h: number) =>
 	scatter(over(specks(h, { D: 'd', d: 'D' }), specks(h, { D: 'F', d: 'l' }, 4)), [PEB_A, PEB_C, CLOD, PEB_B], h, 2 + ((h >>> 20) % 2));
-const mossGround = (h: number) => scatter(specks(h), [MOSS_A, MOSS_B, MOSS_B, SPROUT], h, 2 + ((h >>> 20) % 2));
-const fungusGround = (h: number) => scatter(specks(h), [CAP_A, CAP_B, SPORE, CAP_B], h, 2 + ((h >>> 20) % 3));
-const crystalSand = (h: number) => scatter(specks(h, { D: 'd', d: 'l' }), [SHARD, GLINT, SHARD, SPORE], h, 2 + ((h >>> 20) % 2));
+function mossGround(h: number): string[] {
+	let r = scatter(specks(h), [MOSS_A, MOSS_B, MOSS_B, SPROUT], h, 2 + ((h >>> 20) % 2));
+	if ((h >>> 25) % 5 === 0) r = over(r, CAP_C, 1 + ((h >>> 7) % 7), 4 + ((h >>> 11) % 12));
+	return r;
+}
+const fungusGround = (h: number) => scatter(specks(h), [CAP_A, CAP_B, CAP_C, SPORE, CAP_B], h, 2 + ((h >>> 20) % 3));
+const crystalSand = (h: number) => scatter(specks(h, { D: 'd', d: 'l' }), [SHARD, GLINT, GLINT_B, SHARD, SPORE], h, 2 + ((h >>> 20) % 3));
 
 const BONES = bot(
 	'...oLLo.....',
@@ -870,6 +883,28 @@ const GIANT_MUSH = mk(
 	'..ottTTTTo..',
 	'...o.o.o.o..'
 );
+const GIANT_MUSH_B = mk(
+	'............',
+	'....oddo....',
+	'..odlLLldo..',
+	'.dlLLcLFFdo.',
+	'.lLcLFFlFFd.',
+	'dlLFFFFcFFdo',
+	'dLFFlFFFFFdo',
+	'dFFFFFdFFFDo',
+	'oDdDDDDDDDDo',
+	'.oDcDcDcDco.',
+	'....tttT....',
+	'....ttTT....',
+	'....ctTT....',
+	'....ttTT....',
+	'....ttTTo...',
+	'....ttTTo...',
+	'....ttTTo...',
+	'...tttTTTo..',
+	'..ottTTTTo..',
+	'...o.o.o.o..'
+);
 const SMALL_MUSH = bot(
 	'......lLl...',
 	'..lL.lLFFd..',
@@ -880,6 +915,17 @@ const SMALL_MUSH = bot(
 	'...tTlLFFd..',
 	'..otToDtTDo.',
 	'...o.o.o.o..'
+);
+const SMALL_MUSH_B = bot(
+	'....lLLl....',
+	'...lLxLFd...',
+	'...dDDDDd...',
+	'.lL..tT..lL.',
+	'lLFd.tT.lLFd',
+	'dDDo.tT.dDDo',
+	'.tT..tT..tT.',
+	'otTootTootTo',
+	'..o..oo..o..'
 );
 
 const FLOWER_BED = bot(
@@ -892,6 +938,18 @@ const FLOWER_BED = bot(
 	'..Ee.eE..e..',
 	'..e..e..Ee..',
 	'..EeeEe.eE..',
+	'...EoEoEoE..'
+);
+const FLOWER_BED_B = bot(
+	'....lL......',
+	'...lFqF..lL.',
+	'.lL.dFd.lFyF',
+	'lFcF.e...dFd',
+	'.dFd.Ee...e.',
+	'..e..eE..Ee.',
+	'..Ee.e..e.e.',
+	'..eEeeEe.Ee.',
+	'..EeEeEeEeE.',
 	'...EoEoEoE..'
 );
 const LILY = bot(
@@ -1028,7 +1086,30 @@ const CRYSTAL = mk(
 	'ogGGgGGGgGGo',
 	'.o.o.o.o.o..'
 );
+const CRYSTAL_B = mk(
+	'............',
+	'............',
+	'............',
+	'...L....L...',
+	'...Lo..lLo..',
+	'..lLFo.lLFo.',
+	'..lLFd.lLFd.',
+	'.LlLFd.lLFdL',
+	'lFlLFdlLFdlF',
+	'lFdLFdlLFdFd',
+	'.lFdLFdLFdF.',
+	'.lFdFFdLFd..',
+	'..dFdFDlFd..',
+	'..dFdFDdFd..',
+	'..dDdlFDdD..',
+	'..dDdlFDdDo.',
+	'.odDDdDDDDo.',
+	'.oGgGGgGGGo.',
+	'ogGGgGGGgGGo',
+	'.o.o.o.o.o..'
+);
 const CRYSTAL_TIPS: [number, number][] = [[5, 2], [10, 6], [2, 7]];
+const CRYSTAL_TIPS_B: [number, number][] = [[3, 3], [8, 3], [1, 7], [11, 7]];
 
 const CORAL = bot(
 	'..l.....l...',
@@ -1274,8 +1355,8 @@ function natural(g: string, fgIdx: number, bgIdx: number, h: number, frame: numb
 			return tree(r, h, frame, 5);
 		}
 		case '♠':
-			if (fgIdx === 13) return GIANT_MUSH;
-			if (fgIdx === 12) return SMALL_MUSH;
+			if (fgIdx === 13) return (h & 1) ? GIANT_MUSH_B : GIANT_MUSH;
+			if (fgIdx === 12) return (h & 1) ? SMALL_MUSH_B : SMALL_MUSH;
 			{
 				const r = BUSHES[h & 1].slice();
 				if ((h >>> 6) % 3 === 0) {
@@ -1301,17 +1382,31 @@ function natural(g: string, fgIdx: number, bgIdx: number, h: number, frame: numb
 		}
 		case '‼':
 			return tree(BAMBOO, h, frame, 3);
-		case '°':
-			return bgIdx === 4 ? LILY : (h & 1 ? flipX(FLOWER_BED) : FLOWER_BED);
+		case '°': {
+			if (bgIdx === 4) return LILY;
+			const bed = (h >>> 2) & 1 ? FLOWER_BED_B : FLOWER_BED;
+			return h & 1 ? flipX(bed) : bed;
+		}
 		case 'ⁿ': {
 			const r = STUMP.slice();
-			if ((h >>> 5) % 3 === 0) { put(r, 1, 16, 'e'); put(r, 2, 17, 'E'); put(r, 1, 17, 'e'); }
+			const mod = (h >>> 5) % 4;
+			if (mod === 0) { put(r, 1, 16, 'e'); put(r, 2, 17, 'E'); put(r, 1, 17, 'e'); }
+			else if (mod === 1) { put(r, 8, 16, 'q'); put(r, 9, 16, 'y'); put(r, 9, 17, 't'); }
 			return r;
 		}
 		case '*': {
 			if (fgIdx === 15 || fgIdx === 16 || fgIdx === 17 || mem) return null; // lanterns
-			const r = CRYSTAL.slice();
-			if (t < 2) { const [x, y] = CRYSTAL_TIPS[(h >>> 3) % 3]; put(r, x, y, 'x'); }
+			const alt = (h & 1) === 1;
+			const r = (alt ? CRYSTAL_B : CRYSTAL).slice();
+			const tips = alt ? CRYSTAL_TIPS_B : CRYSTAL_TIPS;
+			if (t < 2) {
+				const [x, y] = tips[(h >>> 3) % tips.length];
+				put(r, x, y, 'x');
+				if (y + 1 < PH) put(r, x, y + 1, 'L');
+			} else if (t === 4 || t === 5) {
+				const [x, y] = tips[((h >>> 3) + 1) % tips.length];
+				put(r, x, y, 'c');
+			}
 			return r;
 		}
 		case '¥': {
@@ -1335,7 +1430,15 @@ function natural(g: string, fgIdx: number, bgIdx: number, h: number, frame: numb
 					r = over(r, SULFUR_KNOBS, 6, 12);
 					return bend(r, sh, 0, PH);
 				}
-				return bend(BOULDER, sh, 0, PH);
+				const b = BOULDER.slice();
+				if ((h >>> 6) % 4 === 0) {
+					// mossy boulder cap
+					put(b, 4, 6, 'e'); put(b, 5, 6, 'e'); put(b, 6, 6, 'E'); put(b, 5, 7, 'E');
+				} else if ((h >>> 6) % 4 === 1) {
+					// quartz/crystal glint embedded in stone
+					put(b, 3, 10, 'x'); put(b, 4, 10, 'c'); put(b, 7, 12, 'L');
+				}
+				return bend(b, sh, 0, PH);
 			}
 			if (fgIdx === 1) return bend(RUBBLE, sh, 0, PH);
 			return null;

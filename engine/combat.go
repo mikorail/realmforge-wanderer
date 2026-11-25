@@ -379,6 +379,7 @@ func (g *Game) die(cause string, src *Actor) {
 	g.Msg("{{R|" + g.DeathText + "}}")
 	g.deed("death", fmt.Sprintf("The wanderer %s, %s, perished in %s, killed by %s.", g.P.Name, g.Sk.Calling(g.Calling), g.Cur.Name, who), 0, 0)
 	g.agOnDeath(false) // will and age note (aging.go)
+	g.lpOnDeath()      // legacy succession record (legacyplay.go)
 	g.Mode = "dead"
 	g.qcOnDeath() // roleplay mode offers the last town checkpoint (modes.go)
 }

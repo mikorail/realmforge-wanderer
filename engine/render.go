@@ -1034,6 +1034,8 @@ func (g *Game) drawDead() {
 		"Your death has been written into the chronicle.", "{{Y|[S] read your saga}}")
 	if h := g.fmHeir(); h != nil {
 		lines = append(lines, "", "{{Y|[H] continue the run as your heir, "+h.Name+"}}")
+	} else if g.lpHasHeir() {
+		lines = append(lines, "", "{{Y|[H] choose a descendant to continue the legacy}}")
 	}
 	lines = append(lines, "", "{{W|[Enter] return to Realmforge}}")
 	h := len(lines) + 4

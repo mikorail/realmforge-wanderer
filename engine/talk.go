@@ -232,6 +232,9 @@ func (g *Game) gossip(a *Actor) string {
 	if s := g.hfGossip(a); s != "" { // past lives of this world (halloffame.go)
 		return s
 	}
+	if s := g.lpGossip(a); s != "" { // legacy forebear legends (legacyplay.go)
+		return s
+	}
 	if s := g.fmGossip(a); s != "" { // songs of your deeds (family.go)
 		return s
 	}

@@ -47,16 +47,19 @@ type rnState struct {
 	Day int           `json:"d,omitempty"`
 	Err map[int]rnErr `json:"e,omitempty"`
 
-	tr      map[int]*rnAct
-	zc      *rnZone
-	dm      map[int]*rnMap
-	dmZone  *Zone
-	bud     int
-	budTurn int
-	claim   map[int]rnClaim
-	lastMsg int
-	festKey int
-	fest    string
+	tr          map[int]*rnAct
+	zc          *rnZone
+	dm          map[int]*rnMap
+	dmZone      *Zone
+	bud         int
+	budTurn     int
+	claim       map[int]rnClaim
+	lastMsg     int
+	festKey     int
+	fest        string
+	hostiles    []*Actor
+	hostileTurn int
+	hostileZone *Zone
 }
 
 // rnAct is the transient routine state of one actor.
@@ -87,6 +90,9 @@ type rnAct struct {
 	guard      bool
 	shopLabel  string
 	profDone   bool
+	bed        int  // cached daily bedtime minute
+	up         int  // cached daily wake minute
+	off        int  // cached schedule offset minute
 	init       bool // started the talk we are in
 	tmp        rnErr
 }
@@ -113,6 +119,7 @@ func init() {
 func rnEnter(g *Game, zn *Zone) {
 	st := rnSt(g)
 	st.zc, st.dm, st.dmZone = nil, nil, nil
+	st.hostiles, st.hostileZone = nil, nil
 	st.tr = map[int]*rnAct{}
 	st.claim = map[int]rnClaim{}
 }
@@ -336,6 +343,9 @@ func (g *Game) rnStateFor(a *Actor) *rnAct {
 	}
 	if !s.profDone {
 		s.profDone = true
+		s.bed = 1260 + int(rnHash(a.ID, "bed")%100)
+		s.up = 270 + int(rnHash(a.ID, "up")%60)
+		s.off = int(rnHash(a.ID, "off") % 40)
 		txt := strings.ToLower(a.Title + " " + a.Role)
 		if k, ok := lvb(g).Bind[a.ID]; ok {
 			if p := lvSt(g).People[k]; p != nil {
@@ -410,9 +420,21 @@ func (g *Game) rnEligible(a *Actor) bool {
 }
 
 // rnThreat: a hostile creature close by; the normal AI takes over.
+// Caches living hostile/angry actors once per turn+zone to avoid O(N^2) scans.
 func (g *Game) rnThreat(a *Actor) bool {
-	for _, o := range g.Cur.Actors {
-		if o != a && o.HP > 0 && o.AI != "follower" && (o.AI == "hostile" || o.Angry) && dist(a, o) < 14 {
+	st := rnSt(g)
+	if st.hostileZone != g.Cur || st.hostileTurn != g.Turn {
+		st.hostileZone = g.Cur
+		st.hostileTurn = g.Turn
+		st.hostiles = st.hostiles[:0]
+		for _, o := range g.Cur.Actors {
+			if o.HP > 0 && o.AI != "follower" && (o.AI == "hostile" || o.Angry) {
+				st.hostiles = append(st.hostiles, o)
+			}
+		}
+	}
+	for _, o := range st.hostiles {
+		if o != a && o.HP > 0 && dist(a, o) < 14 {
 			return true
 		}
 	}
@@ -531,6 +553,15 @@ func (g *Game) rnRainy() bool {
 	return w != nil && w.Kind != nil && w.Kind.Overlay == "rain"
 }
 
+// rnGuardShiftHour returns the evening guard shift-change hour (21:00, matching rnPlan's 1260 min boundary).
+func rnGuardShiftHour() int { return 21 }
+
+// rnGuardChanging reports whether town guards are within 15 minutes of a patrol/post shift change (05:00 or 21:00).
+func (g *Game) rnGuardChanging() bool {
+	m := (g.Turn + startMinutes) % DayLen
+	return (m >= 1260 && m < 1275) || (m >= 300 && m < 315)
+}
+
 func (g *Game) rnPlan(a *Actor, s *rnAct) string {
 	m := (g.Turn + startMinutes) % DayLen
 	if s.guard {
@@ -545,12 +576,10 @@ func (g *Game) rnPlan(a *Actor, s *rnAct) string {
 		}
 		return "sleep"
 	}
-	bed := 1260 + int(rnHash(a.ID, "bed")%100)
-	up := 270 + int(rnHash(a.ID, "up")%60)
-	if m >= bed || m < up {
+	if m >= s.bed || m < s.up {
 		return "sleep"
 	}
-	mm := (m - int(rnHash(a.ID, "off")%40) + DayLen) % DayLen
+	mm := (m - s.off + DayLen) % DayLen
 	if g.rnRainy() && !roofed(g.Cur.At(a.X, a.Y)) && rnHash(a.ID, "rain", g.Day())%2 == 0 {
 		return "shelter"
 	}
@@ -570,26 +599,40 @@ func (g *Game) rnPlan(a *Actor, s *rnAct) string {
 	return "dusk"
 }
 
+var (
+	rnSitesWell   = []string{"well"}
+	rnSitesEat    = []string{"tavern", "stall", "square"}
+	rnSitesTavern = []string{"tavern"}
+	rnSitesHoly   = []string{"altar", "square"}
+	rnSitesFeast  = []string{"square", "stall"}
+	rnSleepSites  = []string{"bed", "roof"}
+	rnErrandSites = map[string][]string{
+		"market": {"stall", "square"},
+		"well":   {"well", "stall"},
+		"square": {"square"},
+	}
+)
+
 func (g *Game) rnSiteOrder(a *Actor, s *rnAct, act string) []string {
 	switch act {
 	case "well":
-		return []string{"well"}
+		return rnSitesWell
 	case "work":
 		if s.job == "idle" && rnHash(a.ID, "idle", g.Day())%5 >= 2 {
 			return nil // an ordinary day of wandering
 		}
 		return rnWorkSites[s.job]
 	case "eat":
-		return []string{"tavern", "stall", "square"}
+		return rnSitesEat
 	case "dusk":
 		if rnHash(a.ID, "dusk", g.Day())%2 == 0 {
-			return []string{"tavern"}
+			return rnSitesTavern
 		}
 	case "gather":
 		if g.rnFestKind() == "holy" {
-			return []string{"altar", "square"}
+			return rnSitesHoly
 		}
-		return []string{"square", "stall"}
+		return rnSitesFeast
 	}
 	return nil
 }
@@ -742,7 +785,7 @@ func (g *Game) rnDoSleep(a *Actor, s *rnAct) bool {
 	if s.key != "sleep/bed" || s.dest < 0 || !g.rnFree(a, s.dest) || s.blocked >= 6 {
 		home := a.HomeY*MW + a.HomeX
 		best, bd, kind := -1, 1<<20, "bed"
-		for _, name := range []string{"bed", "roof"} {
+		for _, name := range rnSleepSites {
 			rad := 30
 			if name == "roof" {
 				rad = 20
@@ -945,7 +988,7 @@ func (g *Game) rnDoErrand(a *Actor, s *rnAct) bool {
 	case "visit":
 		return g.rnVisit(a, s, e)
 	case "market", "well", "square":
-		sites := map[string][]string{"market": {"stall", "square"}, "well": {"well", "stall"}, "square": {"square"}}[e.K]
+		sites := rnErrandSites[e.K]
 		for _, site := range sites {
 			if len(g.rnZoneOf().sites[site]) == 0 || !g.rnGoto(a, s, "errand", site, true) {
 				continue

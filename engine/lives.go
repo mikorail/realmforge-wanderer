@@ -888,11 +888,20 @@ func lvApply(g *Game, a *Actor, p *lvPerson, zn *Zone) {
 	}
 	a.Name = p.Name
 	a.Proper = true
-	a.Title = lvTitleOf(p)
+	if a.Title == "" || a.Title == a.Role || a.Title == g.roleTitle(a.Role) {
+		a.Title = lvTitleOf(p)
+	}
 	age := p.lvAge(lvYear(g))
-	a.Desc = fmt.Sprintf("Aged %d, %s of %s. %s Seems %s.", age, lvAn(a.Title), lvBurgName(g, p.Home), lvWants(p), lvMoodWord(p))
+	lvDesc := fmt.Sprintf("Aged %d, %s of %s. %s Seems %s.", age, lvAn(a.Title), lvBurgName(g, p.Home), lvWants(p), lvMoodWord(p))
 	if p.Species != "" && p.Species != "human" && g.W.specByID[p.Species] != nil {
-		a.Desc = fmt.Sprintf("A %s. ", strings.ToLower(g.W.specByID[p.Species].Adj)) + a.Desc
+		lvDesc = fmt.Sprintf("A %s. ", strings.ToLower(g.W.specByID[p.Species].Adj)) + lvDesc
+	}
+	if a.Has("hzhomeless") && a.Desc != "" {
+		if !strings.Contains(a.Desc, "Aged ") {
+			a.Desc = a.Desc + " " + lvDesc
+		}
+	} else {
+		a.Desc = lvDesc
 	}
 }
 

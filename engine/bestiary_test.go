@@ -146,18 +146,23 @@ func TestBestiaryKeepsExistingZoneGeneration(t *testing.T) {
 		if !reflect.DeepEqual(a.T, b.T) {
 			t.Fatalf("zone %s terrain changed", a.Key)
 		}
-		var na []string
-		for _, x := range a.Actors {
-			if !strings.HasPrefix(x.Tpl, "bs_") || x.Has("ntpar") || x.Has("ntyg") {
-				na = append(na, x.Tpl+"@"+x.Name)
-			}
+		if len(a.Actors) < len(b.Actors) {
+			t.Fatalf("zone %s lost actors: %d < %d", a.Key, len(a.Actors), len(b.Actors))
 		}
-		var nb []string
+		var na, nb []string
+		for _, x := range a.Actors[:len(b.Actors)] {
+			na = append(na, x.Tpl+"@"+x.Name)
+		}
 		for _, x := range b.Actors {
 			nb = append(nb, x.Tpl+"@"+x.Name)
 		}
 		if !reflect.DeepEqual(na, nb) {
 			t.Fatalf("zone %s actors changed:\n%v\n%v", a.Key, na, nb)
+		}
+		for _, x := range a.Actors[len(b.Actors):] {
+			if !strings.HasPrefix(x.Tpl, "bs_") {
+				t.Fatalf("zone %s bsZone added non-bestiary actor %s@%s", a.Key, x.Tpl, x.Name)
+			}
 		}
 	}
 }

@@ -137,6 +137,32 @@ func fvActByID(id string) *fvAct {
 	return nil
 }
 
+type fvExtPlay func(g *Game, b *BurgData, f *FeastData, ch int) (mod int, wild bool, pre string, ok bool)
+
+var fvExtPlays = map[string]fvExtPlay{}
+
+// fvRegisterAct adds a custom festival contest from another file (e.g. hunting.go).
+func fvRegisterAct(act fvAct, kinds []string, play fvExtPlay) {
+	if fvActByID(act.ID) == nil {
+		fvActs = append(fvActs, act)
+	}
+	for _, k := range kinds {
+		found := false
+		for _, id := range fvKindActs[k] {
+			if id == act.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			fvKindActs[k] = append(fvKindActs[k], act.ID)
+		}
+	}
+	if play != nil {
+		fvExtPlays[act.ID] = play
+	}
+}
+
 // fvRuns lists the activities running on this feast.
 func fvRuns(f *FeastData) []*fvAct {
 	var out []*fvAct
@@ -1019,6 +1045,14 @@ func (g *Game) fvPlay(b *BurgData, f *FeastData, a *fvAct, ch int) {
 			mod = g.checkMod("acrobatics")
 		default:
 			mod = (g.checkMod("persuasion") + g.checkMod("acrobatics")) / 2
+		}
+	default:
+		if fn, ok := fvExtPlays[a.ID]; ok {
+			m, w, p, goOn := fn(g, b, f, ch)
+			if !goOn {
+				return
+			}
+			mod, wild, pre = m, w, p
 		}
 	}
 	if !g.cuSpend(g.fvFee(a)) {

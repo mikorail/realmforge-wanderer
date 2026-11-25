@@ -189,7 +189,14 @@ func cqRunKind(t *testing.T, kind string) {
 	if a.Attr == attr && a.MaxHP == hp && a.AVNat == av && a.DVNat == dv {
 		t.Errorf("no perk granted")
 	}
-	if len(g.Deeds) != deeds+1 || g.Deeds[deeds].Kind != "companion" {
+	gotCompDeed := false
+	for _, d := range g.Deeds[deeds:] {
+		if d.Kind == "companion" {
+			gotCompDeed = true
+			break
+		}
+	}
+	if !gotCompDeed {
 		t.Errorf("no deed recorded")
 	}
 	if mq := g.cqMirror(q); mq == nil || !mq.Closed {

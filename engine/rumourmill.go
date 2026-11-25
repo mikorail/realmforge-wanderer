@@ -5,6 +5,7 @@ import (
 	"math"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -31,6 +32,39 @@ func init() {
 	modeDraws["rm"] = func(g *Game) { g.rmDraw() }
 	paEntries = append(paEntries, paEntry{Name: "Rumours", Keywords: "rumors gossip heard tidings news verify truth", Cat: "Screen", Label: "screen",
 		Func: func(g *Game) { g.rm().sel = 0; g.Mode = "rm" }})
+	saRumourSink = rmSink
+	fqRumourSink = rmSink
+	dzRumourSink = rmSink
+	mgRumourSink = rmSink
+	sqRumourSink = rmSink
+	htRumourSink = rmSink
+}
+
+// rmSink receives external rumours from socialplay, factionquests, afflictions, monsterecology, sieges and heists.
+func rmSink(g *Game, kind, subject, text string) {
+	if g == nil || g.W == nil || text == "" {
+		return
+	}
+	burg := 0
+	if strings.HasPrefix(subject, "burg:") {
+		if id, err := strconv.Atoi(strings.TrimPrefix(subject, "burg:")); err == nil && g.W.burgByID[id] != nil {
+			burg = id
+		}
+	}
+	if burg == 0 && g.Cur != nil && g.Cur.Burg > 0 {
+		burg = g.Cur.Burg
+	}
+	if burg == 0 {
+		if b := g.rmNearestBurg(g.W.Idx(g.WX, g.WY)); b != nil {
+			burg = b.ID
+		}
+	}
+	b := g.W.burgByID[burg]
+	if b == nil {
+		return
+	}
+	key := fmt.Sprintf("sink:%s:%s:%d:%d", kind, subject, lvDay(g), HashStr(text)%99991)
+	g.rmAdd("free", key, burg, rmRum{P: b.P, Place: b.Name, A: subject, X: text})
 }
 
 // rmSeed is what the contract board reads: a hunt suggested by a rumour in the air of a town.
@@ -93,7 +127,12 @@ type rmState struct {
 	Sent  int             `json:"se,omitempty"`
 	Vers  int             `json:"ve,omitempty"`
 
-	sel int
+	sel      int
+	poolTown int
+	poolDay  int
+	poolNext int
+	poolLen  int
+	pool     []*rmRum
 }
 
 func (g *Game) rm() *rmState {
@@ -273,8 +312,14 @@ func (g *Game) rmAdd(kind, key string, burg int, f rmRum) *rmRum {
 	if burg <= 0 || g.W.burgByID[burg] == nil || st.Seen[key] {
 		return nil
 	}
-	if len(st.Seen) > 900 {
-		st.Seen = map[string]bool{}
+	if len(st.Seen) > 500 {
+		fresh := make(map[string]bool, len(st.Rums)+16)
+		for _, r := range st.Rums {
+			if r != nil && r.Key != "" {
+				fresh[r.Key] = true
+			}
+		}
+		st.Seen = fresh
 	}
 	st.Seen[key] = true
 	tp, ok := rmTpls[kind]
@@ -314,6 +359,9 @@ func (g *Game) rmPool(town int) []*rmRum {
 		return nil
 	}
 	day := lvDay(g)
+	if st.pool != nil && st.poolTown == town && st.poolDay == day && st.poolNext == st.Next && st.poolLen == len(st.Rums) {
+		return st.pool
+	}
 	var out []*rmRum
 	for _, r := range st.Rums {
 		sb := g.W.burgByID[r.Burg]
@@ -332,6 +380,7 @@ func (g *Game) rmPool(town int) []*rmRum {
 		}
 		return out[i].ID > out[j].ID
 	})
+	st.poolTown, st.poolDay, st.poolNext, st.poolLen, st.pool = town, day, st.Next, len(st.Rums), out
 	return out
 }
 
@@ -464,7 +513,7 @@ func rmEnter(g *Game, zn *Zone) {
 		return
 	}
 	p := g.W.Idx(zn.WX, zn.WY)
-	for _, h := range append([]*rmHeard(nil), st.Heard...) {
+	for _, h := range st.Heard {
 		if h.Ver == 0 && h.P >= 0 && h.P == p {
 			g.rmVerify(h)
 		}
@@ -764,6 +813,14 @@ func (g *Game) rmDaily(st *rmState, day int) {
 		}
 	}
 	st.Rums = keep
+	if len(st.Asked) > 0 {
+		suf := ":" + strconv.Itoa(day)
+		for k := range st.Asked {
+			if !strings.HasSuffix(k, suf) {
+				delete(st.Asked, k)
+			}
+		}
+	}
 }
 
 // ---------------------------------------------------------------- screen

@@ -297,7 +297,11 @@ func crEnter(g *Game, zn *Zone) {
 	}
 	s := crSt(g)
 	if zn.Kind == "town" && zn.Burg > 0 {
-		s.Want = "t"
+		if g.Turn > 0 {
+			s.Want = "t"
+		}
+	} else if s.Want == "t" {
+		s.Want = ""
 	}
 	if s.Amb > 0 && !g.OnWorld {
 		n := s.Amb

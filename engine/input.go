@@ -67,6 +67,10 @@ func (g *Game) Key(k string) Out {
 	}
 	switch g.Mode {
 	case "dead":
+		if (k == "h" || k == "H") && g.lpHasHeir() {
+			g.lpOpen()
+			return out
+		}
 		if (k == "h" || k == "H") && g.fmContinueAsHeir() {
 			return out
 		}

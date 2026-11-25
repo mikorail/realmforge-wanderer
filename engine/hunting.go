@@ -51,6 +51,32 @@ func init() {
 		achDef{"hn_cull", "Pest Warden", "Finish five cull jobs for lodges.", "Hunt", "", 5, func(g *Game, st *acState) int { return g.hnl().Culls }},
 		achDef{"hn_tracker", "Woodsman", "Reach the fourth tracking rank.", "Hunt", "Woodsman", 4, func(g *Game, st *acState) int { return g.hn().Rank }},
 	)
+	fvRegisterAct(fvAct{
+		ID:    "hunt",
+		Name:  "Hunting and tracking contest",
+		Short: "the hunting contest",
+		Fee:   1,
+		Intro: "Huntsmen lay a cold trail out past the gate and set hides and antlers by the scales. Tracking skill, keen eyes and real trophies count.",
+		Opts:  [3]string{"Follow the cold trail through the brush", "Present your finest hunting record", "Stalk and loose at the moving wood-stag"},
+		Kinds: [3]string{"survival", "perception", "survival"},
+		Legs:  []string{"the spoor", "the stalk", "the quarry"},
+	}, []string{"harvest", "midwinter", "war", "spring"}, func(g *Game, b *BurgData, f *FeastData, ch int) (int, bool, string, bool) {
+		rank := g.hn().Rank
+		hnl := g.hnl()
+		switch ch {
+		case 0:
+			return g.checkMod("survival") + rank, false, "You drop to one knee and read the pressed grass.", true
+		case 1:
+			bonus := mini(5, len(hnl.Journal)/2+hnl.Trophies)
+			pre := "You lay out your hunter's tally before the lodge judges."
+			if hnl.Taken == 0 {
+				pre = "You have no kills logged yet and must talk up your field craft."
+			}
+			return g.checkMod("perception") + bonus, false, pre, true
+		default:
+			return g.checkMod("survival") + rank/2 + g.Skills["missile"], true, "You slip behind the willow blinds as the cord-pulled stag leaps.", true
+		}
+	})
 }
 
 // ---------------------------------------------------------------- state

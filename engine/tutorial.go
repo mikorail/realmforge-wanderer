@@ -64,8 +64,10 @@ func tuSeen(g *Game, what string) {
 func tuTurn(g *Game) { tuPoll(g) }
 
 func tuSide(g *Game) []string {
-	tuPoll(g)
 	st := g.tu()
+	if st.On && !st.Done {
+		tuPoll(g)
+	}
 	if !st.On || st.Done || g.P == nil || st.Step >= len(tuSteps) {
 		return nil
 	}
@@ -129,7 +131,7 @@ func tuBase(g *Game, st *tuState) {
 }
 
 func tuOfferOK(g *Game, st *tuState) bool {
-	return !st.Offered && !st.Never && !st.On && g.Pref("tu_on") && g.Turn <= 300 && g.Mode == "main" && !g.OnWorld
+	return !st.Offered && !st.Never && !st.On && g.Prefs != nil && g.Prefs["tu_on"] && g.Turn <= 300 && g.Mode == "main" && !g.OnWorld
 }
 
 func tuPoll(g *Game) {

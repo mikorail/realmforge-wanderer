@@ -262,7 +262,7 @@ func TestSkyFall(t *testing.T) {
 	// walk off into the void
 	hp := g.P.HP + 1000
 	g.P.HP, g.P.MaxHP = hp, hp
-	for x := 0; x < MW; x++ {
+	for x := 1; x < MW; x++ {
 		if g.Cur.At(x, g.P.Y) == TVoid {
 			g.P.X = x - 1
 			g.Cur.Set(x-1, g.P.Y, TCloud)
@@ -546,6 +546,7 @@ func TestDungeonDescentToBoss(t *testing.T) {
 
 func TestSpireClimb(t *testing.T) {
 	g := newGame(t, nil)
+	g.SetPref("cutscenes", false)
 	wx, wy, zx, zy, s := findSiteZone(g, func(s *Site) bool { return s.Kind == "tower" && s.Theme == "trials" })
 	if s == nil {
 		t.Fatal("no Spire of Trials placed")

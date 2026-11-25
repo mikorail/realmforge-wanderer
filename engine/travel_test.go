@@ -24,14 +24,24 @@ func TestTvJourneyEatsFromPack(t *testing.T) {
 	food := g.MakeFood(g.R, 1)
 	food.Count = 10
 	g.give(food)
+	totalFood := func() int {
+		n := 0
+		for _, it := range g.P.Inv {
+			if it.Kind == "food" {
+				n += maxi(1, it.Count)
+			}
+		}
+		return n
+	}
+	before := totalFood()
 	g.Hunger, g.Thirst = 0, 0
 	t0 := g.Turn
 	g.tvJourney(5 * DayLen)
 	if g.Turn-t0 != 5*DayLen {
 		t.Fatalf("journey passed %d turns", g.Turn-t0)
 	}
-	if food.Count >= 10 {
-		t.Errorf("five days on the road ate nothing from the pack")
+	if totalFood() >= before {
+		t.Errorf("five days on the road ate nothing from the pack (%d -> %d)", before, totalFood())
 	}
 	if g.Hunger > 2400 {
 		t.Errorf("starving with food in the pack: hunger %d", g.Hunger)

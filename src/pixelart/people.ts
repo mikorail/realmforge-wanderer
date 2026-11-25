@@ -57,7 +57,7 @@ const pick = <T,>(a: readonly T[], n: number): T => a[n % a.length];
 
 type BuildId = 'avg' | 'slim' | 'stocky' | 'bulky' | 'small' | 'lean';
 type HeadId = 'round' | 'long' | 'wide' | 'skull';
-type HairStyle = 'short' | 'long' | 'bald' | 'topknot' | 'mohawk' | 'curly' | 'ponytail';
+type HairStyle = 'short' | 'long' | 'bald' | 'topknot' | 'mohawk' | 'curly' | 'ponytail' | 'braid' | 'bob';
 interface Sp {
 	b: BuildId;
 	head: HeadId;
@@ -81,15 +81,15 @@ interface Sp {
 	slimOdds?: number; // 1 in n individuals use the slim build instead
 }
 
-const SKIN_HUMAN = ['#f0c7a0', '#d9a577', '#b57d54', '#8a5a3b', '#5d3b27', '#f5d9bd'];
-const HAIR = ['#2a1b12', '#5a3a1e', '#8a6a2a', '#c9a24a', '#a8441d', '#d8d0c0', '#101010'];
+const SKIN_HUMAN = ['#f0c7a0', '#d9a577', '#c8926a', '#b57d54', '#8a5a3b', '#5d3b27', '#482d1e', '#f5d9bd'];
+const HAIR = ['#2a1b12', '#5a3a1e', '#6e3b1f', '#8a6a2a', '#c9a24a', '#d8c89e', '#a8441d', '#9e4b2b', '#d8d0c0', '#a8adb8', '#101010', '#1d2230', '#5c2330'];
 
 const SPECIES: Record<string, Sp> = {
-	human: { b: 'avg', head: 'round', skin: SKIN_HUMAN, hair: HAIR, styles: ['short', 'long', 'short', 'ponytail', 'topknot', 'long', 'curly', 'bald'], beard: 1, eye: 'z', slimOdds: 4 },
-	dwarf: { b: 'stocky', head: 'wide', skin: ['#e0a98a', '#c98a68', '#b5744f'], hair: ['#8a3a18', '#5a2a12', '#c9c0b0', '#d9a441'], styles: ['short', 'long', 'bald'], beard: 2, eye: 'z' },
-	elf: { b: 'slim', head: 'long', skin: ['#f2dcc4', '#e8cfae', '#d9c2a0'], hair: ['#e8dcc0', '#c9a24a', '#2a2018', '#9aa7b8'], styles: ['long', 'long', 'ponytail', 'short'], ears: 'point', eye: 'e' },
-	void_elf: { b: 'slim', head: 'long', skin: ['#8a86a8', '#6c6890', '#a49cc0'], hair: ['#e8e4f4', '#2a2438', '#b8a8e8'], styles: ['long', 'short', 'ponytail'], ears: 'point', eye: 'q' },
-	halfling: { b: 'small', head: 'round', skin: ['#e8bd94', '#d4a279', '#c28e66'], hair: ['#6a4020', '#8a5a2a', '#3a2412'], styles: ['curly', 'short', 'curly'], ears: 'small', feet: 'bare', eye: 'z' },
+	human: { b: 'avg', head: 'round', skin: SKIN_HUMAN, hair: HAIR, styles: ['short', 'long', 'short', 'ponytail', 'topknot', 'braid', 'bob', 'long', 'curly', 'bald'], beard: 1, eye: 'z', slimOdds: 4 },
+	dwarf: { b: 'stocky', head: 'wide', skin: ['#e0a98a', '#c98a68', '#b5744f'], hair: ['#8a3a18', '#5a2a12', '#c9c0b0', '#d9a441', '#9e4b2b'], styles: ['short', 'long', 'braid', 'bald'], beard: 2, eye: 'z' },
+	elf: { b: 'slim', head: 'long', skin: ['#f2dcc4', '#e8cfae', '#d9c2a0'], hair: ['#e8dcc0', '#c9a24a', '#2a2018', '#9aa7b8', '#d8c89e'], styles: ['long', 'long', 'ponytail', 'braid', 'bob', 'short'], ears: 'point', eye: 'e' },
+	void_elf: { b: 'slim', head: 'long', skin: ['#8a86a8', '#6c6890', '#a49cc0'], hair: ['#e8e4f4', '#2a2438', '#b8a8e8', '#a8adb8'], styles: ['long', 'short', 'ponytail', 'braid'], ears: 'point', eye: 'q' },
+	halfling: { b: 'small', head: 'round', skin: ['#e8bd94', '#d4a279', '#c28e66'], hair: ['#6a4020', '#8a5a2a', '#3a2412', '#9e4b2b', '#c9a24a'], styles: ['curly', 'short', 'bob', 'curly'], ears: 'small', feet: 'bare', eye: 'z' },
 	orc: { b: 'bulky', head: 'wide', skin: ['#6a8a3a', '#7a9a48', '#58762e'], hair: ['#181410', '#2a1b12'], styles: ['mohawk', 'topknot', 'bald', 'mohawk'], ears: 'point', snout: 1, tusks: true, eye: 'y' },
 	goblin: { b: 'small', head: 'long', skin: ['#8aa04a', '#9ab058', '#788c3a'], ears: 'long', snout: 1, eye: 'y' },
 	ogor: { b: 'bulky', head: 'wide', skin: ['#9a8478', '#8a7468', '#a89488'], snout: 1, horns: 'small', tusks: true, eye: 'y' },
@@ -213,6 +213,12 @@ function hairCells(style: HairStyle, head: string[]): Cell[] {
 	} else if (style === 'topknot') out.push([2, -1, 'h'], [2, -2, 'h'], [3, -1, 'H']);
 	else if (style === 'curly') out.push([1, -1, 'h'], [3, -1, 'h'], [W - 2, -1, 'H'], [W - 1, 2, 'H']);
 	else if (style === 'ponytail') out.push([-1, 2, 'h'], [-1, 3, 'H'], [-2, 4, 'H'], [-1, 1, 'h']);
+	else if (style === 'braid') {
+		out.push([-1, 2, 'h'], [-1, 3, 'H'], [-1, 4, 'h'], [-1, 5, 'H'], [-1, 6, 'h'], [-1, 7, 'y']);
+	} else if (style === 'bob') {
+		for (let y = 2; y < H - 1; y++) out.push([0, y, 'h'], [W - 1, y, 'H']);
+		out.push([0, H - 1, 'H']);
+	}
 	return out;
 }
 function beardCells(big: boolean, W: number, H: number): Cell[] {
@@ -253,9 +259,9 @@ function hornCells(kind: NonNullable<Sp['horns']>, W: number, c: [string, string
 
 // ---------------------------------------------------------------- outfits
 
-type HeadGear = 'none' | 'helm' | 'greathelm' | 'hood' | 'cap' | 'hat' | 'pointy' | 'crown' | 'circlet' | 'turban' | 'goggles' | 'mask' | 'bandana';
+type HeadGear = 'none' | 'helm' | 'greathelm' | 'hood' | 'cap' | 'hat' | 'pointy' | 'crown' | 'circlet' | 'turban' | 'goggles' | 'mask' | 'bandana' | 'mitre' | 'feathered' | 'widebrim' | 'cowl' | 'wreath';
 type Back = 'none' | 'cloak' | 'cape' | 'pack' | 'quiver';
-type Item = 'none' | 'sword' | 'dagger' | 'axe' | 'mace' | 'hammer' | 'spear' | 'staff' | 'bow' | 'gun' | 'wand' | 'whip' | 'knives' | 'purse' | 'book' | 'lantern' | 'wrench' | 'orb';
+type Item = 'none' | 'sword' | 'dagger' | 'axe' | 'mace' | 'hammer' | 'spear' | 'staff' | 'bow' | 'gun' | 'wand' | 'whip' | 'knives' | 'purse' | 'book' | 'lantern' | 'wrench' | 'orb' | 'lute' | 'flask' | 'scroll' | 'rapier' | 'horn' | 'greataxe' | 'censer';
 type Body = 'tunic' | 'robe' | 'coat' | 'apron' | 'rags';
 interface Kit {
 	cloth: string[]; // accent colour choices
@@ -305,38 +311,69 @@ const KITS: Record<string, Kit> = {
 	bandit: kit({ cloth: ['#5a4a2a', '#3a3a3a', '#6a2a2a'], head: 'bandana', item: 'dagger', armor: 1, legs: ['G', 'z'] }),
 	thief: kit({ cloth: ['#3a3a44', '#4a3a2a'], head: 'hood', mask: true, back: 'cloak', item: 'knives', armor: 1, legs: ['G', 'z'], boots: ['z', 'z'], cl: ['d', 'D', 'F'] }),
 	hunter: kit({ cloth: ['#4a6a3a', '#6a5a3a'], head: 'hood', back: 'quiver', item: 'bow', armor: 1, legs: ['T', 'W'], cl: ['E', 'z', 'e'] }),
+	huntsman: kit({ cloth: ['#3a5a34', '#5a4a2e'], head: 'hood', back: 'quiver', item: 'bow', armor: 1, legs: ['T', 'W'], cl: ['E', 'z', 'e'] }),
+	warden: kit({ cloth: ['#2e523a', '#485838'], head: 'cap', back: 'cloak', item: 'spear', armor: 2, tabard: true, legs: ['G', 'z'], cl: ['E', 'z', 'e'] }),
 	notable: kit({ cloth: ['#7a2a5a', '#2a4a7a', '#8a6a1a'], head: 'circlet', back: 'cape', fine: true, cl: ['A', 'z', 'a'], belt: 'Y' }),
 	noble: kit({ cloth: ['#7a2a5a', '#2a4a7a', '#8a2a2a'], head: 'crown', back: 'cape', fine: true, ermine: true, cl: ['r', 'R', 'r'], belt: 'Y', legs: ['A', 'z'] }),
-	villager: kit({ cloth: ['#8a6a4a', '#6a7a4a', '#7a5a6a', '#5a6a8a', '#8a7a3a', '#6a5a4a'] }),
+	villager: kit({ cloth: ['#8a6a4a', '#6a7a4a', '#7a5a6a', '#5a6a8a', '#8a7a3a', '#6a5a4a', '#4a6a7a', '#8a4a52', '#5a7a5a', '#7a6a3a', '#6a4a7a', '#9a6a4a'] }),
 	farmer: kit({ cloth: ['#8a7a3a', '#6a7a4a', '#7a5a3a'], head: 'hat', cl: ['t', 'T', 'x'], legs: ['T', 'W'] }),
 	sailor: kit({ cloth: ['#3a5a8a', '#2a3a6a'], head: 'bandana', stripes: true, legs: ['x', 'g'] }),
 	beggar: kit({ cloth: ['#7a6a50', '#5a5040', '#6a5a4a'], body: 'rags', legs: ['T', 'W'], boots: ['k', 'K'], belt: 'T' }),
 	desert: kit({ cloth: ['#c8b080', '#a08a60'], head: 'turban', cl: ['x', 'g', 'x'], legs: ['t', 'T'] }),
 	miner: kit({ cloth: ['#6a5a4a', '#5a5a5a'], head: 'helm', item: 'hammer', legs: ['G', 'z'] }),
+	inquisitor: kit({ cloth: ['#6e1d26', '#2e2a34', '#4e1e2c'], body: 'coat', head: 'widebrim', back: 'cloak', item: 'censer', armor: 1, fine: true, cl: ['z', 'z', 'G'], legs: ['G', 'z'], belt: 'Y' }),
+	pilgrim: kit({ cloth: ['#8a6f48', '#745e40', '#6d6252'], body: 'robe', head: 'widebrim', back: 'pack', item: 'staff', cl: ['w', 'W', 't'], tip: ['w', 'W'], belt: 'T' }),
+	chronicler: kit({ cloth: ['#38487a', '#5a324e', '#325a52'], body: 'robe', head: 'cap', item: 'scroll', fine: true, cl: ['A', 'z', 'a'] }),
+	librarian: kit({ cloth: ['#2d5a62', '#4c3866', '#5a4432'], body: 'robe', head: 'goggles', item: 'book', fine: true, cl: ['A', 'z', 'a'] }),
+	bard: kit({ cloth: ['#9a2e46', '#2e7458', '#6a3488', '#b06424'], head: 'feathered', back: 'cape', item: 'lute', fine: true, cl: ['a', 'A', 'y'], legs: ['T', 'W'], belt: 'Y' }),
+	alchemist: kit({ cloth: ['#3a6a58', '#4a4e78', '#685432'], body: 'apron', apronC: ['t', 'T'], head: 'goggles', back: 'pack', item: 'flask', legs: ['G', 'z'] }),
+	fence: kit({ cloth: ['#3b3844', '#4a3642', '#3a443c'], body: 'coat', head: 'hat', back: 'cloak', item: 'purse', cl: ['G', 'z', 'g'], legs: ['G', 'z'], boots: ['z', 'z'] }),
+	nomad: kit({ cloth: ['#b88248', '#9a5838', '#c8a66a'], head: 'turban', back: 'cloak', item: 'spear', cl: ['t', 'T', 'x'], legs: ['T', 'W'], tip: ['x', 'm'] }),
+	assassin: kit({ cloth: ['#24242c', '#362028', '#202c2a'], head: 'cowl', mask: true, back: 'cloak', item: 'knives', armor: 1, cl: ['z', 'z', 'G'], legs: ['z', 'z'], boots: ['z', 'z'] }),
+	artificer: kit({ cloth: ['#7c5028', '#4a5a68', '#6a422c'], body: 'apron', head: 'goggles', back: 'pack', item: 'wrench', armor: 1, fine: true, legs: ['M', 'G'], belt: 'Y' }),
+	druid: kit({ cloth: ['#345c36', '#4a5e32', '#524834'], body: 'robe', head: 'wreath', back: 'cloak', item: 'staff', cl: ['E', 'z', 'e'], tip: ['v', 'e'], belt: 'W' }),
+	herald: kit({ cloth: ['#2a4e8c', '#982834', '#2e6a4a'], head: 'feathered', back: 'cape', item: 'horn', tabard: true, fine: true, cl: ['y', 'Y', 'x'], legs: ['x', 'g'], belt: 'Y' }),
+	executioner: kit({ cloth: ['#262428', '#4c1e22'], head: 'cowl', mask: true, bare: true, item: 'greataxe', armor: 1, cl: ['z', 'z', 'G'], legs: ['z', 'z'], boots: ['z', 'z'], belt: 'M' }),
+	duellist: kit({ cloth: ['#2c5868', '#8a2a38', '#343c68'], body: 'coat', head: 'feathered', back: 'cape', item: 'rapier', armor: 1, fine: true, cl: ['a', 'A', 'x'], legs: ['G', 'z'], belt: 'Y' }),
 };
 const ROLE_ALIAS: [RegExp, string][] = [
-	[/^guard|watch|sentr|warden/, 'guard'],
+	[/^warden/, 'warden'],
+	[/^huntsman/, 'huntsman'],
+	[/inquisitor|witch[- ]?hunter|zealot|templar[- ]?judge/, 'inquisitor'],
+	[/executioner|headsman/, 'executioner'],
+	[/duell?ist|fencer|swashbuckler|bravo/, 'duellist'],
+	[/herald|crier|trumpeter|messenger/, 'herald'],
+	[/bard|minstrel|troubadour|skald|musician|singer/, 'bard'],
+	[/druid|archdruid|grove[- ]?keeper|wilder/, 'druid'],
+	[/artificer|engineer|inventor|clockwork|mechanist/, 'artificer'],
+	[/alchem|transmuter|elixir/, 'alchemist'],
+	[/chronicler|annalist|historian|archivist/, 'chronicler'],
+	[/librar|curator|bookkeeper/, 'librarian'],
+	[/pilgrim|wayfarer|penitent/, 'pilgrim'],
+	[/fence|smuggler|broker|black[- ]?market/, 'fence'],
+	[/assassin|cutthroat|hitman|slayer|shadowblade/, 'assassin'],
+	[/nomad|caravan|desert|bedouin|wanderer/, 'nomad'],
+	[/^guard|watch|sentr/, 'guard'],
 	[/soldier|militia|captain|sergeant|mercenar|warrior|fighter/, 'soldier'],
 	[/knight|paladin|champion|templar/, 'knight'],
 	[/merchant|trader|shop|vendor|peddler|banker/, 'merchantR'],
 	[/smith|armou?rer|carpenter|mason|tinker|wright|cooper/, 'smith'],
 	[/miner|digger|quarr/, 'miner'],
 	[/cook|innkeep|baker|brewer|butcher|tavern|bartend/, 'cook'],
-	[/priest|cleric|acolyte|healer|shrine|oracle/, 'priest'],
-	[/monk|hermit|pilgrim|ascetic/, 'monk'],
+	[/priest|cleric|acolyte|healer|shrine|oracle|bishop/, 'priest'],
+	[/monk|hermit|ascetic/, 'monk'],
 	[/elder|chief|sage|headman/, 'elder'],
-	[/mage|wizard|sorcer|warlock|witch|magus|mystic|shaman|druid/, 'mage'],
-	[/scholar|scribe|librar|teacher|student/, 'scholarR'],
-	[/apothecar|alchem|herbal|doctor|physician/, 'apothecary'],
+	[/mage|wizard|sorcer|warlock|witch|magus|mystic|shaman/, 'mage'],
+	[/scholar|scribe|teacher|student/, 'scholarR'],
+	[/apothecar|herbal|doctor|physician/, 'apothecary'],
 	[/bandit|raider|brigand|outlaw|pirate/, 'bandit'],
-	[/rogue|thief|assassin|spy|cutpurse/, 'thief'],
+	[/rogue|thief|spy|cutpurse/, 'thief'],
 	[/hunter|scout|ranger|archer|trapper/, 'hunter'],
 	[/noble|king|queen|lord|lady|prince|duke|baron|count/, 'noble'],
 	[/notable|mayor|magistrate|envoy|official|courtier/, 'notable'],
 	[/farm|herd|shepherd|peasant|field|garden/, 'farmer'],
 	[/sailor|fisher|boat|deckhand/, 'sailor'],
 	[/beggar|vagrant|urchin|refugee|outcast/, 'beggar'],
-	[/nomad|caravan|desert/, 'desert'],
 ];
 function kitFor(a: QudActor): Kit {
 	if (a.p && a.c && KITS[a.c]) return KITS[a.c];
@@ -378,6 +415,13 @@ const HELD: Partial<Record<Item, Held>> = {
 	lantern: { rest: ['.+.', '.M.', 'MyM', '.M.'] },
 	wrench: { rest: ['.+.', '.M.', 'M.M'], up: ['M.M', '.M.', '.M.', '.+.'], fwd: ['+MM.', '...M', '..M.'] },
 	orb: { rest: ['xc', 'cc', '+.'] },
+	lute: { rest: ['.+.', '.w.', 'wtw', 'tWt'], up: ['tWt', 'wtw', '.w.', '.+.'] },
+	flask: { rest: ['.+.', '.x.', 'cvc', '.v.'] },
+	scroll: { rest: ['+t', 'tx', 'tx', '.t'] },
+	rapier: { rest: ['.+.', 'yYy', '.x.', '.m.', '.x.'], up: ['.x.', '.m.', '.x.', 'yYy', '.+.'], fwd: ['.y....', '+Yxmxm', '.y....'] },
+	horn: { rest: ['.+.', '.Y.', 'yYy'], up: ['yYy', '.Y.', '.+.'] },
+	greataxe: { rest: ['+...', 'w...', 'wmxm', 'wMmM', 'w..M'], up: ['wmxm', 'wMmM', 'w...', 'w...', '+...'], fwd: ['+wwww', '..mmM', '..xMM'] },
+	censer: { rest: ['.+.', '.Y.', 'yry', '.Y.'] },
 };
 const isPole = (it: Item) => it === 'spear' || it === 'staff';
 
@@ -441,8 +485,13 @@ function applyGear(k: Kit, a: QudActor): Kit {
 		: /circlet|laurel|halo/.test(hd) ? 'circlet'
 		: /great ?helm|close helm|armet|bascinet|visor/.test(hd) ? 'greathelm'
 		: /helm|kabuto|casque|sallet|morion|shako/.test(hd) ? 'helm'
+		: /mitre|biretta/.test(hd) ? 'mitre'
+		: /feather|plume|tricorne|beret/.test(hd) ? 'feathered'
+		: /wide[- ]?brim|pilgrim|inquisitor|hunter hat/.test(hd) ? 'widebrim'
+		: /wreath|antler|leaf crown/.test(hd) ? 'wreath'
 		: /wizard|pointed|witch/.test(hd) ? 'pointy'
-		: /hood|cowl/.test(hd) ? 'hood'
+		: /cowl|executioner/.test(hd) ? 'cowl'
+		: /hood/.test(hd) ? 'hood'
 		: /turban|pagri|kolah|keffiyeh|headcloth/.test(hd) ? 'turban'
 		: /goggle|lens|monocle/.test(hd) ? 'goggles'
 		: /mask|veil|face/.test(hd) ? 'mask'
@@ -614,7 +663,7 @@ export function personSprite(a: QudActor, h: number, pose: Pose, frame: number):
 	const item = L.item;
 	const pole = isPole(item);
 	const ranged = item === 'bow' || item === 'gun';
-	const melee = !ranged && item !== 'none' && !['purse', 'book', 'lantern', 'orb'].includes(item);
+	const melee = !ranged && item !== 'none' && !['purse', 'book', 'lantern', 'orb', 'lute', 'flask', 'scroll', 'horn', 'censer'].includes(item);
 
 	let nearArm: ArmState = 'down', farArm: ArmState = 'down';
 	let ori: keyof Held | 'pole' | 'poleUp' | 'poleFwd' | 'hide' = 'rest';
@@ -794,7 +843,7 @@ export function personSprite(a: QudActor, h: number, pose: Pose, frame: number):
 	const P = (cs: Cell[]) => cs.forEach(([x, y, c]) => put(g, hx + x, hy + y, c));
 	if (sp.ears && k.head !== 'hood' && k.head !== 'greathelm') P(earCells(sp.ears, W));
 	P(headCells);
-	const hairOn = k.head !== 'hood' && k.head !== 'greathelm' && k.head !== 'turban';
+	const hairOn = k.head !== 'hood' && k.head !== 'cowl' && k.head !== 'greathelm' && k.head !== 'turban';
 	if (hairOn || L.hairStyle === 'long') P(hairCells(hairOn ? L.hairStyle : 'long', head).filter(([, y]) => hairOn || y >= 2));
 	if (L.beard && k.head !== 'greathelm') P(beardCells(L.beard === 2, W, H));
 	P(gearCells(k, W, H));
@@ -915,6 +964,33 @@ function gearCells(k: Kit, W: number, H: number): Cell[] {
 			row(1, 0, W - 1, () => 'A');
 			out.push([-1, 1, 'a'], [-2, 2, 'A']);
 			break;
+		case 'mitre':
+			row(0, 0, W - 1, (x) => (x === Math.floor(W / 2) ? 'y' : 'C'));
+			row(-1, 0, W - 1, () => 'y');
+			row(-2, 1, W - 2, (x) => (x === 1 ? 'I' : 'C'));
+			row(-3, 2, W - 3, () => 'C');
+			break;
+		case 'feathered':
+			row(0, -1, W, () => 'V');
+			row(-1, 0, W - 1, (x) => (x === 0 ? 'I' : 'C'));
+			out.push([0, -2, 'r'], [-1, -3, 'y'], [1, -2, 'r']);
+			break;
+		case 'widebrim':
+			row(0, -2, W + 1, (x) => (x < 0 ? 'C' : 'V'));
+			row(-1, 1, W - 2, () => (k.fine ? 'y' : 'V'));
+			row(-2, 1, W - 2, (x) => (x === 1 ? 'I' : 'C'));
+			row(-3, 2, W - 3, () => 'C');
+			break;
+		case 'cowl':
+			row(-1, 0, W - 1, (x) => (x === 0 ? 'I' : 'C'));
+			row(0, -1, W, () => 'C');
+			row(1, -1, W, () => 'V');
+			for (let y = 2; y < H; y++) out.push([-1, y, 'C'], [0, y, 'V'], [W, y, 'V']);
+			break;
+		case 'wreath':
+			row(0, 0, W - 1, (x) => (x % 2 === 0 ? 'e' : 'E'));
+			out.push([0, -1, 'v'], [W - 1, -1, 'e'], [Math.floor(W / 2), -1, 'y']);
+			break;
 	}
 	if (k.mask || k.head === 'mask') {
 		row(4, 1, W - 1, (x) => (x === W - 1 ? 'V' : 'C'));
@@ -977,6 +1053,19 @@ export const SAMPLE_PEOPLE: PersonSample[] = [
 	{ label: 'cook', actor: A({ s: 'giant', r: 'cook' }) },
 	{ label: 'apothecary', actor: A({ s: 'goblin', r: 'apothecary' }) },
 	{ label: 'nomad', actor: A({ s: 'lizardfolk', r: 'nomad' }) },
+	{ label: 'inquisitor', actor: A({ s: 'human', r: 'inquisitor' }) },
+	{ label: 'pilgrim', actor: A({ s: 'human', r: 'pilgrim' }) },
+	{ label: 'chronicler', actor: A({ s: 'elf', r: 'chronicler' }) },
+	{ label: 'librarian', actor: A({ s: 'halfling', r: 'librarian' }) },
+	{ label: 'bard', actor: A({ s: 'human', r: 'bard' }) },
+	{ label: 'alchemist', actor: A({ s: 'dwarf', r: 'alchemist' }) },
+	{ label: 'fence', actor: A({ s: 'ratfolk', r: 'fence' }) },
+	{ label: 'assassin', actor: A({ s: 'void_elf', r: 'assassin' }) },
+	{ label: 'artificer', actor: A({ s: 'dwarf', r: 'artificer' }) },
+	{ label: 'druid', actor: A({ s: 'elf', r: 'druid' }) },
+	{ label: 'herald', actor: A({ s: 'human', r: 'herald' }) },
+	{ label: 'executioner', actor: A({ s: 'orc', r: 'executioner' }) },
+	{ label: 'duellist', actor: A({ s: 'human', r: 'duellist' }) },
 	// species and armour tiers / weapons
 	{ label: 'goblin dagger', actor: A({ s: 'goblin', r: 'bandit', w: 'shortblade' }) },
 	{ label: 'ogor axe', actor: A({ s: 'ogor', w: 'axe', a: 1 }) },

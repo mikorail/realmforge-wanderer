@@ -360,6 +360,7 @@ func agNaturalDeath(g *Game, age int) {
 	g.deed("death", fmt.Sprintf("The wanderer %s, %s, died of old age in %s at the age of %d, and was mourned.", g.P.Name, g.Sk.Calling(g.Calling), place, age), 0, 0)
 	g.Mode = "dead"
 	g.agOnDeath(true)
+	g.lpOnDeath() // legacy succession record (legacyplay.go)
 	_ = st
 	g.qcOnDeath()
 }

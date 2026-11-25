@@ -61,6 +61,14 @@ function brick(v: number): Grid {
 	}
 	if (v % 3 === 0) put(g, 3 + (v % 5), 1 + ((v >> 2) % 4) * 4, 'D');
 	if (v % 5 === 1) put(g, 8 - (v % 3), 9, 'D');
+	// mossy mortar and ivy creeping on weathered bricks
+	if (v === 7 || v === 14) {
+		const mx = 2 + (v % 5);
+		dots(g, [[mx, 3, 'e'], [mx + 1, 3, 'E'], [mx + 1, 4, 'e'], [mx + 2, 7, 'E'], [mx + 1, 7, 'e']]);
+	} else if (v === 11) {
+		// hairline masonry crack
+		dots(g, [[4, 5, 'o'], [5, 6, 'D'], [5, 7, 'o'], [6, 8, 'D']]);
+	}
 	return g;
 }
 
@@ -86,6 +94,19 @@ function ashlar(v: number): Grid {
 		const n = hx(v, k, 99);
 		const x = 1 + (n % 10), y = 1 + ((n >> 4) % 18);
 		if (g[y][x] === 'F') g[y][x] = n & 64 ? 'd' : 'l';
+	}
+	// occasional hanging wall banner or creeping moss on ashlar blocks
+	if (v === 11) {
+		dots(g, [
+			[4, 2, 'm'], [5, 2, 'y'], [6, 2, 'y'], [7, 2, 'm'],
+			[4, 3, 'r'], [5, 3, 'r'], [6, 3, 'R'], [7, 3, 'R'],
+			[4, 4, 'r'], [5, 4, 'y'], [6, 4, 'y'], [7, 4, 'R'],
+			[4, 5, 'r'], [5, 5, 'r'], [6, 5, 'R'], [7, 5, 'R'],
+			[5, 6, 'r'], [6, 6, 'R'],
+			[5, 7, 'R']
+		]);
+	} else if (v === 15) {
+		dots(g, [[2, 4, 'e'], [3, 4, 'E'], [2, 5, 'E'], [8, 9, 'e'], [9, 9, 'E'], [9, 10, 'e']]);
 	}
 	return g;
 }
@@ -158,6 +179,13 @@ function timber(v: number, nm: number): Grid {
 			g[y + 1][11] = 'd';
 			g[y + 2][11] = 'D';
 		}
+	}
+	// wrought-iron strap or carved wall trim on select timber walls
+	if (v === 10) {
+		dots(g, [[5, 5, 'M'], [6, 5, 'm'], [5, 6, 'm'], [6, 6, 'M'], [5, 9, 'M'], [6, 9, 'm']]);
+	} else if (v === 13) {
+		// small hanging cloth pennant
+		dots(g, [[4, 3, 'y'], [5, 3, 'y'], [6, 3, 'Y'], [4, 4, 'u'], [5, 4, 'u'], [6, 4, 'U'], [4, 5, 'u'], [5, 5, 'U'], [5, 6, 'U']]);
 	}
 	return g;
 }
@@ -449,6 +477,17 @@ function cobbles(v: number): Rows {
 		for (let x = 0; x < PW; x++) g[c * 5 + 4][x] = 'D';
 	}
 	for (let x = 0; x < PW; x++) if (x % 6 === 5) for (let y = 0; y < PH; y++) if (g[y][x] === 'o') g[y][x] = 'D';
+	// cracked cobbles and mossy crevices by deterministic hash
+	if (v % 4 === 1) {
+		const cx = 1 + (v % 4), cy = 5 + ((v >> 2) % 2) * 5;
+		dots(g, [[cx, cy + 1, 'o'], [cx + 1, cy + 2, 'D'], [cx + 2, cy + 2, 'o']]);
+	}
+	if (v % 6 === 0) {
+		dots(g, [[5, 4, 'e'], [6, 4, 'E'], [2, 9, 'E'], [8, 14, 'e'], [9, 14, 'E']]);
+	} else if (v % 6 === 3) {
+		// worn/chipped corner stone
+		dots(g, [[7, 6, 'o'], [8, 7, 'D'], [7, 7, 'l']]);
+	}
 	return toRows(g);
 }
 
@@ -498,6 +537,12 @@ function flagstones(v: number): Rows {
 		// a cracked flag
 		const cx = 1 + (n >> 3) % 8;
 		dots(g, [[cx, 9, 'D'], [cx + 1, 10, 'D'], [cx + 1, 11, 'd']]);
+	} else if (n % 4 === 2) {
+		// mossy seam along flagstone joint
+		dots(g, [[4, 6, 'e'], [5, 6, 'E'], [7, 13, 'E'], [8, 13, 'e']]);
+	} else if (v === 15) {
+		// subtle carved corner inlay
+		dots(g, [[1, 1, 'l'], [2, 1, 'd'], [1, 2, 'd'], [2, 2, 'l']]);
 	}
 	return toRows(g);
 }
@@ -634,6 +679,13 @@ function gate(bars: boolean, v: number): Rows {
 		}
 	}
 	if (v % 4 === 0) put(g, 1, 9, 'D');
+	else if (v % 4 === 2) {
+		// banner hanging on the left gate pier
+		dots(g, [[1, 6, 'y'], [1, 7, 'r'], [1, 8, 'r'], [1, 9, 'R'], [1, 10, 'R']]);
+	} else if (v % 4 === 3) {
+		// iron torch sconce on the right pier
+		dots(g, [[10, 7, 'y'], [10, 8, 'n'], [10, 9, 'M'], [10, 10, 'M']]);
+	}
 	return toRows(g);
 }
 
@@ -758,6 +810,21 @@ function roof(v: number): Rows {
 	}
 	const n = hx(v, 1);
 	if (n % 3 === 0) put(g, 1 + (n >> 3) % 10, 1 + ((n >> 7) % 4) * 4, 'D'); // a slipped tile
+	// varied roof trim: ridge cresting, moss patches, or attic vent glint
+	if (v % 5 === 0) {
+		// decorative ridge trim across top course
+		for (let x = 0; x < PW; x++) {
+			g[0][x] = x % 3 === 1 ? 'L' : 'l';
+			g[1][x] = x % 3 === 1 ? 'l' : 'd';
+		}
+	} else if (v % 5 === 2) {
+		// weathered roof moss on shingles
+		const mx = 2 + (n % 6), my = 4 + ((n >> 4) % 3) * 4;
+		dots(g, [[mx, my, 'e'], [mx + 1, my, 'E'], [mx + 1, my + 1, 'e'], [mx, my + 1, 'E']]);
+	} else if (v === 13) {
+		// small dormer / attic vent louver
+		dots(g, [[4, 7, 'o'], [5, 7, 'L'], [6, 7, 'l'], [7, 7, 'o'], [4, 8, 'o'], [5, 8, 'z'], [6, 8, 'z'], [7, 8, 'o'], [4, 9, 'o'], [5, 9, 'w'], [6, 9, 'W'], [7, 9, 'o']]);
+	}
 	return toRows(g);
 }
 
@@ -1584,9 +1651,19 @@ function wellSprite(f: number): Rows {
 }
 
 function pillar(v: number): Rows {
-	if ((v & 3) !== 3) return PILLAR;
+	const kind = v & 3;
+	if (kind === 0) return PILLAR;
 	const g = fromRows(PILLAR);
-	dots(g, [[6, 8, 'o'], [5, 9, 'o'], [6, 10, 'o'], [6, 11, 'D']]);
+	if (kind === 1) {
+		// gilded capital trim
+		dots(g, [[2, 1, 'y'], [4, 1, 'y'], [7, 1, 'y'], [9, 1, 'Y'], [3, 3, 'y'], [8, 3, 'Y']]);
+	} else if (kind === 2) {
+		// ivy wrapping the shaft
+		dots(g, [[3, 6, 'e'], [4, 7, 'E'], [5, 8, 'e'], [6, 9, 'e'], [7, 10, 'E'], [8, 11, 'e'], [7, 12, 'E'], [6, 13, 'e']]);
+	} else {
+		// cracked shaft
+		dots(g, [[6, 8, 'o'], [5, 9, 'o'], [6, 10, 'o'], [6, 11, 'D']]);
+	}
 	return toRows(g);
 }
 
@@ -1615,9 +1692,18 @@ function window_(v: number): Rows {
 		g[15][x] = x === 1 ? 'x' : 'm';
 		g[16][x] = 'G';
 	}
-	if (v % 4 === 0) {
-		// a flower box
-		for (let x = 3; x <= 9; x++) g[14][x] = x & 1 ? 'r' : 'e';
+	const wKind = v & 3;
+	if (wKind === 0) {
+		// a flower box with varied blooms
+		const fl = ['r', 'y', 'q', 'p'][(v >> 2) & 3];
+		for (let x = 3; x <= 9; x++) g[14][x] = x & 1 ? fl : 'e';
+	} else if (wKind === 1) {
+		// leaded stained-glass glint
+		dots(g, [[4, 5, 'y'], [8, 6, 'c'], [4, 10, 'c'], [8, 11, 'y']]);
+	} else if (wKind === 2) {
+		// cloth banner draped beneath the sill
+		const [bc, bd] = (v >> 2) & 1 ? ['r', 'R'] : ['u', 'U'];
+		dots(g, [[4, 16, bc], [5, 16, bc], [6, 16, bd], [7, 16, bd], [4, 17, bc], [5, 17, 'y'], [6, 17, bd], [7, 17, bd], [5, 18, bc], [6, 18, bd]]);
 	}
 	return toRows(g);
 }
