@@ -24,3 +24,6 @@ Caves-of-Qud-style ASCII roguelike (Go engine compiled to WASM, Vite + Svelte 5 
 2. If the package fails to build because of another agent's half-written file, wait and retry; never edit it.
 3. Agents report: functions added, exact hook lines, test results. The coordinator wires, runs the full tests and the fuzzer, rebuilds the wasm, then commits.
 4. Branch per task in cloud sessions (`claude/<topic>`), open a PR to `master`.
+
+## Remaining work (any agent: Claude, Gemini/agy, others)
+See `docs/HANDOFF_REMAINING.md`: four ready prompts plus the rules to follow. Where it conflicts with the list above, the handoff wins (it asks for no new test files, one build at the end, and no commits unless asked).
