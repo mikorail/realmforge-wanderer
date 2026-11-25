@@ -233,6 +233,16 @@ func (g *Game) uwAlertGuards(state int, zn *Zone) {
 	}
 }
 
+func uwCrimeKind(why string, n int) string {
+	low := strings.ToLower(why)
+	for _, k := range []string{"murder", "assault", "theft", "forgery", "smuggling", "trespass"} {
+		if strings.Contains(low, k) {
+			return k
+		}
+	}
+	return etCrimeFor(n)
+}
+
 func (g *Game) uwAddBounty(state, n int, why string) {
 	if n <= 0 {
 		return
@@ -244,8 +254,12 @@ func (g *Game) uwAddBounty(state, n int, why string) {
 	st.Bounty[state] = mini(st.Bounty[state]+n, 6000)
 	g.knCrime(g.Cur.Burg, "player", why) // witnessed crimes become spreading facts (knowledge.go)
 	g.Msg(fmt.Sprintf("{{R|Crime witnessed%s! Bounty with %s: %d %s.}}", why, g.uwRealm(state), st.Bounty[state], g.Sk.Currency))
-	if s := g.etLawLine(state, etCrimeFor(n)); s != "" { // local law in the culture's words (etiquette.go)
-		g.Msg("{{K|" + s + "}}")
+	law := g.etLawLine(state, uwCrimeKind(why, n))
+	if law == "" {
+		law = g.etLawLine(state, etCrimeFor(n))
+	}
+	if law != "" { // local law in the culture's words (etiquette.go)
+		g.Msg("{{K|" + law + "}}")
 	}
 	if state > 0 {
 		g.Rep[uwFac(state)] -= mini(n/5+1, 90)
@@ -338,6 +352,9 @@ func (g *Game) uwJail(state int) {
 	g.uwClearBounty(state)
 	st.Jailed++
 	g.Msg(fmt.Sprintf("{{Y|You serve %d hours in the cells of %s.}}", hours, g.uwRealm(state)))
+	if s := g.etLawLine(state, etCrimeFor(b)); s != "" {
+		g.Msg("{{K|" + s + "}}")
+	}
 	if len(lost) > 0 {
 		g.Msg("{{R|Confiscated: " + strings.Join(lost, ", ") + ".}}")
 	}
@@ -463,6 +480,9 @@ func (g *Game) uwSearchMenu(state int, items []*Item, mutant bool) {
 		names = append(names, "{{G|your mutations}}")
 	}
 	text := fmt.Sprintf("A watch-captain of %s steps into your path. \"Search. Open your pack.\"\n\nThey find: %s.\n\nFine: {{W|%d %s}}.", g.uwRealm(state), strings.Join(names, ", "), fine, g.Sk.Currency)
+	if s := g.etLawLine(state, "smuggling"); s != "" {
+		text += "\n\n{{K|" + s + "}}"
+	}
 	opts := []Option{{"{{W|Submit.}} They confiscate the goods and take the fine (jail if you can't pay).", func() {
 		g.uwSeize(state, items)
 		if g.P.Gold >= fine {

@@ -1041,10 +1041,20 @@ func (g *Game) fvPlay(b *BurgData, f *FeastData, a *fvAct, ch int) {
 			}
 			mod = g.gmPerfMod(it)
 			pre = "You play " + it.Name + " for the dancers."
+			if line, bonus := g.pmFestivalLine(b, f, it); line != "" {
+				pre = line
+				mod += bonus
+			}
 		case 1:
 			mod = g.checkMod("acrobatics")
+			if line, _ := g.pmFestivalLine(b, f, nil); line != "" {
+				pre = line
+			}
 		default:
 			mod = (g.checkMod("persuasion") + g.checkMod("acrobatics")) / 2
+			if line, _ := g.pmFestivalLine(b, f, nil); line != "" {
+				pre = line
+			}
 		}
 	default:
 		if fn, ok := fvExtPlays[a.ID]; ok {

@@ -137,8 +137,16 @@ func (g *Game) stockTailor(a *Actor, bd *BurgData, r *Rng) {
 		}
 	}
 	tier := clampi(a.Level/3, 0, 5)
+	var localDress string
+	if bd != nil {
+		localDress = pdDress(cgPack(g.W, bd.Culture), "common")
+	}
 	for _, sl := range attireSlots {
-		a.Inv = append(a.Inv, g.MakeAttire(sphere, sl, tier+r.Int(-1, 1), r))
+		it := g.MakeAttire(sphere, sl, tier+r.Int(-1, 1), r)
+		if sl == "body" && localDress != "" {
+			it.Lore += " Local cut: " + pdClean(localDress) + "."
+		}
+		a.Inv = append(a.Inv, it)
 	}
 	for i := 0; i < r.Int(4, 7); i++ {
 		a.Inv = append(a.Inv, g.MakeAttire(sphere, Pick(r, attireSlots), tier+r.Int(-1, 2), r))
@@ -257,7 +265,11 @@ func tailorCost(it *Item) int { return 25 * (it.Tier + 1) }
 
 // tailorMenu: pick an equipped item, then an appearance source from the pack.
 func (g *Game) tailorMenu(a *Actor) {
-	g.Popup = Wrap("\"Tell me which garment to remake, and which fashion to remake it after.\"", 100)
+	intro := "\"Tell me which garment to remake, and which fashion to remake it after.\""
+	if note := g.pdTailorNote(); note != "" {
+		intro += "{{K|" + note + "}}"
+	}
+	g.Popup = Wrap(intro, 100)
 	g.Opts = nil
 	back := Option{"Enough for now.", func() { g.talkMenu(g.greeting(a)) }}
 	for _, p := range g.P.Body {

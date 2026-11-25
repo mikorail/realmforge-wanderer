@@ -135,6 +135,8 @@ const loTqBase = 1000
 
 var (
 	loTqSeed  string
+	loTqWorld *WorldData
+	loTqCount int
 	loTqList  []tqGood
 	loTqState *Game
 )
@@ -186,15 +188,28 @@ func loTqBuild(w *WorldData) []tqGood {
 	return out
 }
 
+func loTqPackCount(w *WorldData) int {
+	n := 0
+	for i := range w.Cultures {
+		if p := w.cpOf(i); p != nil && p.Material != nil {
+			n += len(p.Material.TradeGoods)
+		}
+	}
+	return n
+}
+
 func loTqEnsure(g *Game) {
 	if g == nil || g.W == nil {
 		return
 	}
 	loTqState = g
-	if loTqSeed == g.W.Seed && loTqList != nil {
+	cnt := loTqPackCount(g.W)
+	if loTqWorld == g.W && loTqSeed == g.W.Seed && loTqCount == cnt && loTqList != nil {
 		return
 	}
+	loTqWorld = g.W
 	loTqSeed = g.W.Seed
+	loTqCount = cnt
 	loTqList = loTqBuild(g.W)
 	if loTqList == nil {
 		loTqList = []tqGood{}

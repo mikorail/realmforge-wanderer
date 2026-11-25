@@ -5,7 +5,7 @@
 // src/scales.ts) and "pure chiptune" (pulse / triangle / noise only).
 import type { QudMusic } from './qud';
 import { loadSettings, type InstrumentFlavour, type MusicStyle } from './settings';
-import { profileOf, styleKey, type MusicStyleFrame } from './culturemusic';
+import { profileFor, styleKey, type MusicStyleFrame } from './culturemusic';
 import { createGarden, gardenFor, type Garden, type GardenStyle } from './garden';
 import { FEELS, GENERIC, GENRE_COLOUR, MOOD_LEADS, PROFILES, SCALES, type GenreColour, type Profile } from './scales';
 import { INST, clap, createKit, disposeKit, drone2, hit, sweep, tex, type Kit, type TexKind } from './instruments';
@@ -231,8 +231,12 @@ function makePiece(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour, f
 	const col: GenreColour = GENRE_COLOUR[m.genre] ?? {};
 	const cfg = MOODS[m.mood] ?? MOODS.wild;
 	const dead = m.mood === 'dead';
-	const sph: Profile | null = (m.sphere || m.mstyle ? profileOf(m) : undefined) ?? null;
+	const baseProf = m.sphere ? PROFILES[m.sphere] : undefined;
+	const sph: Profile | null = (m.mstyle ? profileFor(m.mstyle, baseProf) : baseProf) ?? null;
 	const prof = sph ?? GENERIC;
+	const hasPack = !!m.mstyle;
+	// profileFor places culture-pack scales, instruments and feels at the front: bias toward index 0 when a pack is active
+	const pickBias = <T,>(a: T[]): T => (hasPack && a.length > 1 && rng() < 0.65 ? a[0] : pick(a));
 	const dark = m.mood === 'dungeon' || m.mood === 'underdark' || m.mood === 'crypt';
 	const feast = !dead && !!m.feast && m.mood === 'town';
 	const tower = m.mood === 'tower';
@@ -241,7 +245,7 @@ function makePiece(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour, f
 	let scaleName: string;
 	if (dead) scaleName = 'aeolian';
 	else if (fight) scaleName = pick(['aeolian', 'harmonicMinor', 'dorian', 'phrygian']);
-	else if (sph && rng() < (dark ? 0.3 : 0.5)) scaleName = pick(sph.scales);
+	else if (sph && sph.scales.length && rng() < (hasPack && m.mstyle?.scaleWord ? (dark ? 0.45 : 0.72) : (dark ? 0.3 : 0.5))) scaleName = pickBias(sph.scales);
 	else if (col.scales && rng() < (col.scaleW ?? 0)) scaleName = pick(col.scales);
 	else scaleName = rng() < gen.w ? pick(gen.scales) : pick(cfg.scales);
 	scaleName = TAME[scaleName] ?? scaleName;
@@ -251,7 +255,7 @@ function makePiece(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour, f
 	// rhythmic feel
 	let feelId = 'four';
 	if (!dead) {
-		feelId = feast && prof.feastFeel ? prof.feastFeel : pick(prof.feels);
+		feelId = feast && prof.feastFeel ? prof.feastFeel : pickBias(prof.feels);
 		if (col.feels && rng() < (col.feelW ?? 0)) feelId = pick(col.feels);
 		if (ODD_FEELS.has(feelId) && rng() < 0.8) feelId = 'four';
 		if (fight) feelId = rng() < 0.75 ? 'four' : 'six8';
@@ -265,12 +269,12 @@ function makePiece(m: QudMusic, style: MusicStyle, flavour: InstrumentFlavour, f
 
 	// instruments
 	const leadPool = feast && prof.feastLeads ? prof.feastLeads : prof.leads;
-	let lead = pick(leadPool);
+	let lead = pickBias(leadPool);
 	const lm = MOOD_LEADS[m.mood];
-	if (lm && rng() < lm.w) lead = pick(lm.leads);
+	if (lm && rng() < (hasPack ? lm.w * 0.6 : lm.w)) lead = pick(lm.leads);
 	if (col.lead && rng() < (col.leadW ?? 0)) lead = col.lead;
 	if (dead) lead = prof.lament ?? 'duduk';
-	let harm = pick(prof.plucks);
+	let harm = pickBias(prof.plucks);
 	if (col.harm && rng() < (col.harmW ?? 0)) harm = col.harm;
 	const bass = col.bass && rng() < (col.bassW ?? 0) ? col.bass : prof.bass;
 	let pad = prof.pad ?? (m.mood === 'crypt' ? 'organ' : dark ? 'wet' : 'sine');
@@ -420,6 +424,7 @@ export function createMusic(): MusicHandle {
 	let started = false;
 	let disposed = false;
 	let st: QudMusic | null = null;
+	let rawMstyle: MusicStyleFrame | null | undefined = null;
 	let cur: Player | null = null;
 	let activeKey = '';
 	let pendingKey: string | null = null;
@@ -1094,7 +1099,11 @@ export function createMusic(): MusicHandle {
 		try {
 			const f = loadSettings().instrumentFlavour;
 			const cm = loadSettings().cultureMusic !== false;
-			if (cm !== cultureOn) { cultureOn = cm; requeue(); }
+			if (cm !== cultureOn) {
+				cultureOn = cm;
+				if (st) st = cultureOn && rawMstyle ? { ...st, mstyle: rawMstyle } : { ...st, mstyle: undefined };
+				requeue();
+			}
 			if (f !== flavour) { flavour = f; requeue(); }
 		} catch { /* settings unavailable */ }
 	}
@@ -1103,6 +1112,7 @@ export function createMusic(): MusicHandle {
 		setState(m: QudMusic, mstyle?: MusicStyleFrame | null) {
 			if (disposed) return;
 			syncFlavour();
+			rawMstyle = mstyle;
 			st = cultureOn && mstyle ? { ...m, mstyle } : m;
 			const bolt = m.bolt ?? 0;
 			if (thunderOn && lastBolt >= 0 && bolt > lastBolt && enabled && ensure()) thunder();

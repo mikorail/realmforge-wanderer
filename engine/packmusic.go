@@ -261,3 +261,38 @@ func (g *Game) pmBuskTip(it *Item) int {
 	}
 	return n + mini(l, 4)
 }
+
+// pmFestivalLine flavours the festival dance and music contest with Material.Music; returns (line, bonus).
+func (g *Game) pmFestivalLine(b *BurgData, f *FeastData, it *Item) (string, int) {
+	if g == nil || g.W == nil || b == nil {
+		return "", 0
+	}
+	m := g.pmMusic(b.Culture)
+	if m == nil {
+		return "", 0
+	}
+	feast := ""
+	if f != nil {
+		feast = f.Name
+	}
+	h := HashStr(g.W.Seed + ":pmfv:" + b.Name + ":" + feast)
+	form := ""
+	if len(m.Forms) > 0 {
+		form = strings.ToLower(strings.TrimSpace(m.Forms[int(h%uint64(len(m.Forms)))]))
+	}
+	inst := pmTrim(m.Instruments[int((h>>8)%uint64(len(m.Instruments)))])
+	if it != nil {
+		bonus := 0
+		if g.pmBuskTip(it) > 0 {
+			bonus = 1
+		}
+		if form != "" {
+			return fmt.Sprintf("You play %s for the dancers, striking up a %s.", it.Name, form), bonus
+		}
+		return fmt.Sprintf("You play %s for the dancers alongside the local %s players.", it.Name, inst), bonus
+	}
+	if form != "" {
+		return fmt.Sprintf("You take the floor to the sound of %s playing a %s.", inst, form), 0
+	}
+	return fmt.Sprintf("You take the floor to the sound of local %s.", inst), 0
+}

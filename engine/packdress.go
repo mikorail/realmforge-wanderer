@@ -237,6 +237,15 @@ func (g *Game) pdFeast(b *BurgData, f *FeastData, riteHasDress bool) string {
 
 var pdTailorRoles = map[string]bool{"tailor": true, "weaver": true, "dyer": true, "seamstress": true}
 
+// pdTailorNote returns a short local dress note for attire.go's tailorMenu, or "" without a pack.
+func (g *Game) pdTailorNote() string {
+	_, p := g.cgHere()
+	if t := pdDress(p, "common"); t != "" {
+		return " Around here folk favour " + pdClean(t) + "."
+	}
+	return ""
+}
+
 func pdTalk(g *Game, a *Actor) []Option {
 	if !cgOK(g, a) || !pdTailorRoles[a.Role] {
 		return nil

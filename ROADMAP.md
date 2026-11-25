@@ -242,15 +242,15 @@ Waves A to F added breadth (100+ systems). Wave G (Realmforge exports, modding S
 **Order**
 1. (done 2026-11-20) Shared schema: one optional `culturePack` per culture (and `voice` per person) in the world file, defined once in `engine/world.go` and `realmforge/src/lib/adventure/` together.
 2. (done 2026-11-20, four agents) Realmforge generators: customs and ritual; voice, proverbs and literature; religion and material culture. Pure, deterministic, side rngs only.
-3. (done 2026-11-21, six agents; callers of the remaining voice kinds, culture goods in `tq`, buildings/dress/music/games from the pack still open) Wanderer dialogue engine and culture in play (consumes the pack):
+3. (done 2026-11-21; culture leftovers wired 2026-11-25) Wanderer dialogue engine and culture in play (consumes the pack):
    - Voice grammar per NPC (culture, species, caste, age, mood, goals, speech tics), so two people say the same thing differently.
    - Topic webs: ask about a subject, the NPC answers from what they know, follow-ups unlock, NPCs remember what you asked.
    - Barks and overheard chatter: vendors, guards, gossip between NPCs you can eavesdrop on.
    - Branching quest conversations where skill checks change tone, not just a number.
    - Etiquette and taboos with consequences, hospitality rules, joinable rituals and holy days, proverbs, oaths and poetry in each culture's voice, law that differs per realm.
    - Literature (`literature.go`) draws on the exported corpus; culture-specific food, crafts and goods.
-4. (done 2026-11-22 as procedural art, needs an eye check: gear on sprites, poses, expression portraits, item and status icons, culture building trim, spell particles; vignette illustrations still open) Visual depth: equipment visible on sprites (weapon, armour, cloak, hat) layered by species; real animation frames for attack, cast, hurt and death; portraits with expressions; item and UI icons; culture-specific building tiles; spell particles and lighting; procedural vignette images for key story beats.
-5. (done 2026-11-22 as synthesised layers, needs an ear check: soundscapes, species voices and speech blips, combat layers and stingers, item foley, culture music and performers; `profileFor` into music.ts/garden.ts still to wire) Audio depth: location soundscapes (tavern murmur, market crowd, dungeon drips, ship creaks); species voices (grunts, cries, chatter); layered combat music and stingers for story beats; foley per item and material; culture-specific ambience.
+4. (done 2026-11-22 as procedural art; procedural vignettes `src/vignettes.ts` wired 2026-11-25) Visual depth: equipment visible on sprites (weapon, armour, cloak, hat) layered by species; real animation frames for attack, cast, hurt and death; portraits with expressions; item and UI icons; culture-specific building tiles; spell particles and lighting; procedural vignette images for key story beats.
+5. (done 2026-11-22 as synthesised layers; `profileFor` wired into `music.ts`/`garden.ts` and garden balance pass 2026-11-25) Audio depth: location soundscapes (tavern murmur, market crowd, dungeon drips, ship creaks); species voices (grunts, cries, chatter); layered combat music and stingers for story beats; foley per item and material; culture-specific ambience.
 6. Clarity and quality: in-game encyclopedia, better tooltips, a "what can I do here" overview; a balance and pacing pass (nothing has been playtested); performance and save size (a long run's save is about 5 MB); a stability sweep for load crashes (a nil-map crash after load was found and fixed in wave F).
 
 **Rules (unchanged)**: no LLM/AI API calls (grammars, templates and simulation only); agents own new files; coordinator wires hooks; no test suites or playtest bots (fuzz, `go vet`, svelte-check, Realmforge `npm run check` and `selftest` only); close the browser tab after any check.
@@ -263,5 +263,5 @@ Ranked by impact, after the visual, audio and clarity steps of the depth waves a
 3. **Visible NPC lives**: schedules shown in town zones (sleep, eat, market, worship, home), driven by what the life simulation already knows.
 4. **Relationship and consequence screens**: a web of who loves, owes or hates whom and what your actions changed.
 5. **Load time and save size**: lazy decoding of the world file (the iron-lantern sample is 8.6 MB), smaller saves (a long run is about 5 MB).
-6. **Leftovers from the culture-in-play step**: callers for the unused `dvSay` kinds (apology, praise, insult, curse, oath, gossip opener), `etLawLine` in crime messages, culture trade goods in the trade ledger (`tq`), pack buildings, dress, music and games, and a polish pass on awkward generated lines ("As the gods is my judge", "An oath sworn on the sacred oath", a religion named "No faith").
+6. **Leftovers from the culture-in-play step** (done 2026-11-25): callers for all `dvSay` kinds (apology, praise, insult, curse, oath, gossip opener), `etLawLine` in crime messages, culture trade goods in the trade ledger (`tq`), pack buildings, dress, music and games, and text polish on generated lines.
 Realmforge-side ideas are in `../realmforge/ROADMAP.md` ("More culture depth").

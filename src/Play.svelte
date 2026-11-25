@@ -39,6 +39,7 @@
 	import IconCard from './IconCard.svelte';
 	import StatusStrip from './StatusStrip.svelte';
 	import type { IconRowInfo, IconStatusInfo } from './icons';
+	import { drawVignette, vignetteKindForCue, cueLabel, type VignetteKind } from './vignettes';
 
 	let { api, first, world, onquit }: { api: QudApi; first: QudFrame; world: string | null; onquit: () => void } = $props();
 
@@ -64,6 +65,11 @@
 	let settingsOpen = $state(false);
 	let saga = $state<SagaData | null>(null);
 	let dead = $state(first.dead);
+	let beatCard = $state<{ kind: VignetteKind; label: string; seed: string; isDeath: boolean } | null>(null);
+	let beatCanvas = $state<HTMLCanvasElement | null>(null);
+	let beatTimer: ReturnType<typeof setTimeout> | null = null;
+	let deathDismissed = $state(false);
+	let lastBeatAt = 0;
 	let iconRows = $state<IconRowInfo[] | undefined>(undefined);
 	let iconStatus = $state<IconStatusInfo | undefined>(undefined);
 	let iconsRaw = '';
@@ -372,6 +378,25 @@
 		frame = f;
 		replayTap(api, f);
 		dead = f.dead;
+		if (f.dead && !deathDismissed) {
+			if (beatTimer) { clearTimeout(beatTimer); beatTimer = null; }
+			if (!beatCard?.isDeath) {
+				beatCard = { kind: 'death', label: 'Your Tale Has Ended', seed: `${f.music.seed}:death`, isDeath: true };
+			}
+		} else if (!f.dead && f.cues?.length) {
+			const nowMs = performance.now();
+			if (nowMs - lastBeatAt > 5000) {
+				for (const c of f.cues) {
+					const vk = vignetteKindForCue(c.kind);
+					if (!vk) continue;
+					lastBeatAt = nowMs;
+					beatCard = { kind: vk, label: cueLabel(c.kind), seed: `${f.music.seed}:${c.kind}:${keys}`, isDeath: false };
+					if (beatTimer) clearTimeout(beatTimer);
+					beatTimer = setTimeout(() => { beatTimer = null; if (!beatCard?.isDeath) beatCard = null; }, 4500);
+					break;
+				}
+			}
+		}
 		music.setState(f.music, f.mstyle);
 		sfx.setState(f.music);
 		gsfx.handleFrame(f, k);
@@ -634,6 +659,12 @@
 	}
 
 	$effect(() => {
+		const card = beatCard;
+		if (beatCanvas && card) {
+			drawVignette(beatCanvas, { kind: card.kind, seed: card.seed, title: card.label });
+		}
+	});
+	$effect(() => {
 		void ctlH;
 		void touch;
 		resize();
@@ -662,7 +693,7 @@
 		mq.addEventListener('change', onmq);
 		applyAudio();
 		applyEngine();
-		music.setState(frame.music);
+		music.setState(frame.music, frame.mstyle);
 		sfx.setState(frame.music);
 		resize();
 		// the play area shrinks when touch controls appear: refit the grid whenever it changes size
@@ -688,6 +719,7 @@
 		};
 	});
 	onDestroy(() => {
+		if (beatTimer) clearTimeout(beatTimer);
 		music.dispose();
 		sfx.dispose();
 		gsfx.dispose();
@@ -725,6 +757,20 @@
 	<button class="quit" onclick={retire} title="End this life honourably and enter the Hall of Fame">Retire</button>
 	<button class="quit" onclick={quit} title="Save and return to the title screen">Save &amp; quit</button>
 </div>
+{#if beatCard && !saga}
+	<div class="beat-card" class:death={beatCard.isDeath} role="status" aria-live="polite">
+		<canvas bind:this={beatCanvas} aria-hidden="true"></canvas>
+		<div class="beat-bar">
+			<span>{beatCard.label}</span>
+			<div class="beat-acts">
+				{#if beatCard.isDeath}
+					<button onclick={readSaga} title="Read your saga (S)">Saga (S)</button>
+				{/if}
+				<button onclick={() => { if (beatCard?.isDeath) deathDismissed = true; beatCard = null; }} aria-label="Dismiss">×</button>
+			</div>
+		</div>
+	</div>
+{/if}
 {#if saga}
 	<Saga {saga} onclose={() => (saga = null)} />
 {/if}
@@ -782,5 +828,44 @@
 	.gear:hover,
 	.quit:hover {
 		opacity: 1;
+	}
+	.beat-card {
+		position: fixed;
+		right: 12px;
+		bottom: 12px;
+		z-index: 20;
+		width: 244px;
+		background: rgba(11, 20, 21, 0.94);
+		border: 1px solid #155352;
+		color: #cfc041;
+		font-family: 'Share Tech Mono', monospace;
+		font-size: 12px;
+		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+	}
+	.beat-card.death {
+		border-color: #98875f;
+	}
+	.beat-card canvas {
+		width: 100%;
+		aspect-ratio: 180 / 76;
+		image-rendering: pixelated;
+		display: block;
+		cursor: default;
+	}
+	.beat-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 6px;
+		padding: 4px 6px;
+		border-top: 1px solid #155352;
+	}
+	.beat-acts {
+		display: flex;
+		gap: 4px;
+	}
+	.beat-acts button {
+		padding: 1px 6px;
+		font-size: 11px;
 	}
 </style>

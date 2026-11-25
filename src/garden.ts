@@ -15,8 +15,8 @@
 
 import type { QudMusic } from './qud';
 import { INST, type Kit } from './instruments';
-import { SCALES, PROFILES } from './scales';
-import { profileOf, styleKey } from './culturemusic';
+import { SCALES, PROFILES, type Profile } from './scales';
+import { profileFor, styleKey } from './culturemusic';
 
 export type GardenStyle = 'drift' | 'pastoral' | 'desert';
 
@@ -55,8 +55,8 @@ export function gardenFor(m: QudMusic): GardenStyle {
 	return 'drift';
 }
 
-export function gardenKey(m: QudMusic, gs: GardenStyle): string {
-	return `${gs}|${m.seed}|${m.mood}|${m.genre}|${m.biome | 0}|${(m.season ?? 0) | 0}|${m.sphere ?? ''}|${styleKey(m)}|${m.day ? 1 : 0}|${m.feast ? 1 : 0}`;
+export function gardenKey(m: QudMusic, gs: GardenStyle, cultural = true): string {
+	return `${gs}|${cultural ? 1 : 0}|${m.seed}|${m.mood}|${m.genre}|${m.biome | 0}|${(m.season ?? 0) | 0}|${m.sphere ?? ''}|${styleKey(m)}|${m.day ? 1 : 0}|${m.feast ? 1 : 0}`;
 }
 
 export interface Garden {
@@ -84,12 +84,12 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 	hallLp.type = 'lowpass';
 	hallLp.frequency.value = 4200;
 	const hallOut = c.createGain();
-	hallOut.gain.value = 0.55;
+	hallOut.gain.value = 0.45;
 	hallIn.connect(hallLp).connect(hall).connect(hallOut).connect(out);
 
 	const AHEAD = 0.6;
-	/** per-style bus level, matched by offline render (about -35 dB raw before the compressor and master volume) */
-	const LEVEL: Record<GardenStyle, number> = { drift: 1.8, pastoral: 1, desert: 1.35 };
+	/** per-style bus level, balanced to leave headroom for weather SFX and prevent clipping */
+	const LEVEL: Record<GardenStyle, number> = { drift: 1.45, pastoral: 0.92, desert: 1.15 };
 	let scene: Scene | null = null;
 	const dying = new Set<GainNode>();
 
@@ -138,7 +138,8 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 		hl.type = 'lowpass';
 		hl.frequency.value = 320;
 		const hg = c.createGain();
-		hg.gain.setValueAtTime(vel * 0.5, t);
+		hg.gain.setValueAtTime(0.0001, t);
+		hg.gain.linearRampToValueAtTime(vel * 0.42, t + 0.004);
 		hg.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
 		hs.connect(hl).connect(hg).connect(d);
 		hs.start(t, Math.random());
@@ -209,27 +210,27 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 		xs[2].connect(sg).connect(lp);
 		end(xs[0], xs[1], xs[2], sg, lp, g);
 	}
-	/** Qud drone: beating saws (root, root, fifth) through a filter that breathes */
-	function drone(d: AudioNode, t: number, midi: number, dur: number, vel: number, lo = 260, hi = 900) {
+	/** Qud drone: beating saws (root, root, optional fifth) through a filter that breathes */
+	function drone(d: AudioNode, t: number, midi: number, dur: number, vel: number, lo = 260, hi = 900, fifthGain = 0.4) {
 		const f = mtof(midi);
 		const stop = t + dur + 0.1;
 		const lp = c.createBiquadFilter();
 		lp.type = 'lowpass';
 		lp.frequency.value = (lo + hi) / 2;
-		lp.Q.value = 1.4;
+		lp.Q.value = 1.25;
 		const lfo = o('sine', 0.025 + (midi % 5) * 0.006, t, stop);
 		const lg = c.createGain();
 		lg.gain.value = (hi - lo) / 2;
 		lfo.connect(lg).connect(lp.frequency);
 		const g = c.createGain();
 		g.gain.setValueAtTime(0, t);
-		g.gain.linearRampToValueAtTime(vel, t + dur * 0.3);
-		g.gain.setValueAtTime(vel, t + dur * 0.7);
+		g.gain.linearRampToValueAtTime(vel, t + dur * 0.35);
+		g.gain.setValueAtTime(vel, t + dur * 0.65);
 		g.gain.linearRampToValueAtTime(0, t + dur);
 		lp.connect(g).connect(d);
 		const xs = [o('sawtooth', f, t, stop, -4), o('sawtooth', f, t, stop, 5), o('sawtooth', f * 1.5, t, stop, 1), o('sine', f / 2, t, stop)];
 		const fg = c.createGain();
-		fg.gain.value = 0.45;
+		fg.gain.value = fifthGain;
 		xs[0].connect(lp);
 		xs[1].connect(lp);
 		xs[2].connect(fg).connect(lp);
@@ -270,11 +271,12 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 		const x = o('square', f, t, t + 0.4);
 		const lp = c.createBiquadFilter();
 		lp.type = 'lowpass';
-		lp.Q.value = 5;
+		lp.Q.value = 4.2;
 		lp.frequency.setValueAtTime(cut, t);
 		lp.frequency.exponentialRampToValueAtTime(Math.max(180, f), t + 0.2);
 		const g = c.createGain();
-		g.gain.setValueAtTime(vel, t);
+		g.gain.setValueAtTime(0.0001, t);
+		g.gain.linearRampToValueAtTime(vel, t + 0.004);
 		g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
 		x.connect(lp).connect(g).connect(d);
 		end(x, lp, g);
@@ -301,7 +303,8 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 			x.frequency.setValueAtTime(130, t);
 			x.frequency.exponentialRampToValueAtTime(62, t + 0.25);
 			const g = c.createGain();
-			g.gain.setValueAtTime(vel, t);
+			g.gain.setValueAtTime(0.0001, t);
+			g.gain.linearRampToValueAtTime(vel, t + 0.004);
 			g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
 			x.connect(g).connect(d);
 			end(x, g);
@@ -313,7 +316,8 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 			bp.frequency.value = 2600;
 			bp.Q.value = 2.5;
 			const g = c.createGain();
-			g.gain.setValueAtTime(vel, t);
+			g.gain.setValueAtTime(0.0001, t);
+			g.gain.linearRampToValueAtTime(vel, t + 0.003);
 			g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
 			s.connect(bp).connect(g).connect(d);
 			s.start(t, Math.random());
@@ -325,7 +329,7 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 
 	function newBus(t: number, fadeIn: number, level = 1): GainNode {
 		const b = c.createGain();
-		b.gain.setValueAtTime(0, t);
+		b.gain.setValueAtTime(0.0001, t);
 		b.gain.linearRampToValueAtTime(level, t + fadeIn);
 		b.connect(out);
 		b.connect(hallIn);
@@ -333,14 +337,19 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 	}
 	function retire(b: GainNode, t: number, fade: number) {
 		b.gain.cancelScheduledValues(t);
-		b.gain.setValueAtTime(b.gain.value, t);
+		b.gain.setValueAtTime(Math.max(0.0001, b.gain.value), t);
 		b.gain.linearRampToValueAtTime(0, t + fade);
 		dying.add(b);
 		setTimeout(() => { dying.delete(b); try { b.disconnect(); } catch { /* gone */ } }, (fade + 9) * 1000);
 	}
 
 	// ---------- shared composition helpers ----------
-	interface Ctx { r: () => number; scale: number[]; base: number; m: QudMusic; cultural: boolean; prof: (typeof PROFILES)[string] | undefined }
+	interface Ctx { r: () => number; scale: number[]; base: number; m: QudMusic; cultural: boolean; prof: Profile | undefined }
+	function resolveProfile(m: QudMusic, cultural: boolean): Profile | undefined {
+		if (!cultural) return undefined;
+		const base = m.sphere ? PROFILES[m.sphere] : undefined;
+		return m.mstyle ? profileFor(m.mstyle, base) : base;
+	}
 	function deg(x: Ctx, i: number): number {
 		const n = x.scale.length;
 		return x.base + x.scale[((i % n) + n) % n] + 12 * Math.floor(i / n);
@@ -349,100 +358,135 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 	const fresh = (next: number, until: number) => (next < until - AHEAD - 0.5 ? until - AHEAD + 0.05 : next);
 	function wxSoft(m: QudMusic): number {
 		const w = m.wx ?? '';
-		return /storm|blizzard|tempest/.test(w) ? 0.6 : /rain|snow|fog|smog|sand|ash/.test(w) ? 0.8 : 1;
+		return /storm|blizzard|tempest/.test(w) ? 0.52 : /rain|snow|fog|smog|sand|ash/.test(w) ? 0.75 : 1;
 	}
 
 	// ---------- drift: Eno + C418 ----------
+	const DRIFT_SCALES = new Set(['lydian', 'ionian', 'majPent', 'mixolydian', 'dorian', 'aeolian', 'minPent', 'yo', 'hirajoshi', 'insen', 'shang', 'ryukyu', 'tizita', 'hexa', 'pentachord']);
+	const DRIFT_TIMBRES = new Set(['harp', 'koto', 'kora', 'kalimba', 'marimba', 'gamelan', 'musicbox', 'vibes', 'lute', 'guitar', 'bell']);
 	function driftScene(key: string, m: QudMusic, cultural: boolean, t0: number): Scene {
 		const r = rngOf(hash(key));
 		const night = !m.day || m.mood === 'dead';
-		const scaleName = m.mood === 'dead' ? 'aeolian' : night ? pick(r, ['dorian', 'aeolian', 'majPent', 'lydian']) : pick(r, ['lydian', 'ionian', 'majPent', 'mixolydian', 'dorian']);
-		const x: Ctx = { r, scale: SCALES[scaleName], base: 50 + Math.floor(r() * 8), m, cultural, prof: cultural ? profileOf(m) : PROFILES[m.sphere ?? ''] };
-		const bus = newBus(t0, 6, LEVEL.drift);
-		const voiceKinds = m.mood === 'sea' ? ['glass', 'ep', 'pad'] : m.mood === 'sky' ? ['glass', 'glass', 'ep'] : ['ep', 'piano', 'glass', 'ep'];
-		// Eno loops: incommensurate periods
-		const periods = [17.3, 19.9, 23.1, 26.7, 29.3, 31.9, 37.1].sort(() => r() - 0.5).slice(0, 4 + Math.floor(r() * 2));
+		const prof = resolveProfile(m, cultural);
+		const profScales = prof?.scales.filter((s) => DRIFT_SCALES.has(s) && SCALES[s]) ?? [];
+		let scaleName: string;
+		if (m.mood === 'dead') scaleName = 'aeolian';
+		else if (profScales.length && r() < (m.mstyle?.scaleWord ? 0.72 : 0.45)) scaleName = m.mstyle && r() < 0.7 ? profScales[0] : pick(r, profScales);
+		else scaleName = night ? pick(r, ['dorian', 'aeolian', 'majPent', 'lydian']) : pick(r, ['lydian', 'ionian', 'majPent', 'mixolydian', 'dorian']);
+		const x: Ctx = { r, scale: SCALES[scaleName] ?? SCALES.lydian, base: 50 + Math.floor(r() * 8), m, cultural, prof };
+		const bus = newBus(t0, 6.5, LEVEL.drift);
+		const cultVoice = prof ? [...prof.plucks, ...prof.leads].find((v) => DRIFT_TIMBRES.has(v) && INST[v]) : undefined;
+		const voiceKinds = m.mood === 'sea'
+			? (cultVoice ? ['glass', 'ep', cultVoice] : ['glass', 'ep', 'pad'])
+			: m.mood === 'sky'
+				? (cultVoice ? ['glass', cultVoice, 'ep'] : ['glass', 'glass', 'ep'])
+				: (cultVoice ? ['ep', 'piano', cultVoice, 'glass'] : ['ep', 'piano', 'glass', 'ep']);
+		const pace = clamp(1 / (prof?.tempo ?? 1), 0.85, 1.2);
+		// Eno loops: 3–4 sparse incommensurate periods to avoid dense overlapping clusters
+		const periods = [19.7, 23.3, 29.1, 34.7, 41.3, 47.9].sort(() => r() - 0.5).slice(0, 3 + (r() < 0.45 ? 1 : 0));
 		const chordTones = [0, 2, 4, 6, 8, 9, 11];
 		const loops = periods.map((p, i) => {
-			const nn = 1 + Math.floor(r() * 3);
+			const nn = 1 + (r() < 0.45 ? 1 : 0);
 			const notes: [number, number][] = [];
 			let at = 0;
 			for (let k = 0; k < nn; k++) {
 				notes.push([at, deg(x, pick(r, chordTones) + (i % 2 ? 7 : 0))]);
-				at += 0.8 + r() * 2.4;
+				at += 1.4 + r() * 2.8;
 			}
-			return { p: p * (night ? 1.25 : 1), notes, kind: voiceKinds[i % voiceKinds.length], vel: 0.035 + r() * 0.025, next: t0 + 2 + r() * p };
+			return { p: p * (night ? 1.28 : 1) * pace, notes, kind: voiceKinds[i % voiceKinds.length], vel: 0.028 + r() * 0.016, next: t0 + 3 + r() * p };
 		});
-		let phraseAt = t0 + 8 + r() * 20;
+		let phraseAt = t0 + 10 + r() * 22;
 		let padAt = t0;
-		let restFrom = t0 + 90 + r() * 120;
-		let restTo = restFrom + 25 + r() * 35;
+		let lastClusterAt = -10;
+		// Shaped Eno/C418 breathing room: longer silences between passages
+		let restFrom = t0 + 65 + r() * 85;
+		let restTo = restFrom + 35 + r() * 40;
 		const play = (kind: string, t: number, midi: number, vel: number) => {
 			if (kind === 'piano') piano(bus, t, midi, vel);
-			else if (kind === 'glass') glass(bus, t, midi + 12, vel * 0.7);
-			else if (kind === 'pad') pad(bus, t, midi, 4, vel * 0.8, 0.8, 1.5, 3);
-			else ep(bus, t, midi, vel);
+			else if (kind === 'glass') glass(bus, t, midi + 12, vel * 0.6);
+			else if (kind === 'pad') pad(bus, t, midi, 4.5, vel * 0.72, 0.8, 1.8, 3.5);
+			else if (kind === 'ep') ep(bus, t, midi, vel);
+			else inst(kind)(kit, bus, t, midi, 2.2, vel * 0.72);
 		};
 		return {
 			key, bus,
 			run(until, mm) {
-				const soft = wxSoft(mm) * (mm.danger > 0.5 ? 0.75 : 1);
+				const soft = wxSoft(mm) * (mm.danger > 0.5 ? 0.72 : 1);
 				const resting = (t: number) => t >= restFrom && t < restTo;
 				padAt = fresh(padAt, until);
 				phraseAt = fresh(phraseAt, until);
 				for (const L of loops) if (L.next < until - AHEAD - 0.5) L.next += Math.ceil((until - AHEAD - L.next) / L.p) * L.p;
 				if (padAt < until) {
-					// low pad, root or a neighbour chord, now and then
-					const root = pick(r, [0, 0, 3, 5, -2]);
-					pad(bus, padAt, deg(x, root) - 12, 26, 0.03 * soft, 0.7);
-					if (r() < 0.5) pad(bus, padAt + 2, deg(x, root + 4) - 12, 22, 0.018 * soft, 0.7);
-					padAt += 24 + r() * 12;
+					// low pad, thinned during rest silences for genuine breathing room
+					const restMul = resting(padAt) ? 0.42 : 1;
+					if (!resting(padAt) || r() < 0.45) {
+						const root = pick(r, [0, 0, 3, 5, -2]);
+						pad(bus, padAt, deg(x, root) - 12, 26, 0.024 * soft * restMul, 0.7, 4, 5);
+						if (!resting(padAt) && r() < 0.45) pad(bus, padAt + 2.5, deg(x, root + 4) - 12, 22, 0.014 * soft, 0.7, 4, 5);
+					}
+					padAt += (28 + r() * 14) * pace;
 				}
 				for (const L of loops) {
 					while (L.next < until) {
-						if (!resting(L.next) && r() < 0.85) for (const [dt, midi] of L.notes) play(L.kind, L.next + dt, midi, L.vel * soft * (mm.wx === 'fog' ? 0.8 : 1));
+						const crowded = Math.abs(L.next - lastClusterAt) < 1.8;
+						if (!resting(L.next) && !crowded && r() < 0.78) {
+							for (const [dt, midi] of L.notes) play(L.kind, L.next + dt, midi, L.vel * soft * (mm.wx === 'fog' ? 0.8 : 1));
+							lastClusterAt = L.next;
+						}
 						L.next += L.p;
 					}
 				}
 				if (phraseAt < until) {
-					// a C418-style piano thought: a few notes, rubato, a long last note
+					// a C418-style piano thought: a few unhurried notes, rubato, a long last note
 					if (!resting(phraseAt)) {
 						let t = phraseAt;
 						let i = 7 + Math.floor(r() * 5);
-						const n = 3 + Math.floor(r() * 6);
-						if (r() < 0.6) { piano(bus, t, deg(x, 0) - 12, 0.05 * soft); piano(bus, t + 0.02, deg(x, 4) - 12, 0.035 * soft); }
+						const n = 3 + Math.floor(r() * 4);
+						if (r() < 0.55) { piano(bus, t, deg(x, 0) - 12, 0.038 * soft); piano(bus, t + 0.03, deg(x, 4) - 12, 0.026 * soft); }
 						for (let k = 0; k < n; k++) {
-							piano(bus, t, deg(x, i), (0.06 + r() * 0.03) * soft);
-							if (r() < 0.2) piano(bus, t, deg(x, i - 2), 0.03 * soft);
+							piano(bus, t, deg(x, i), (0.048 + r() * 0.02) * soft);
+							if (r() < 0.16) piano(bus, t, deg(x, i - 2), 0.024 * soft);
 							i += pick(r, [-2, -1, -1, 1, 1, 2, 0, -3]);
 							i = clamp(i, 4, 15);
-							t += (k === n - 2 ? 1.8 : 0.55) + r() * 1.1;
+							t += (k === n - 2 ? 2.0 : 0.75) + r() * 1.25;
 						}
+						lastClusterAt = phraseAt;
 					}
-					phraseAt += 22 + r() * 45;
+					phraseAt += (30 + r() * 50) * pace;
 				}
-				if (until > restTo) { restFrom = restTo + 100 + r() * 140; restTo = restFrom + 25 + r() * 40; }
+				if (until > restTo) { restFrom = restTo + 75 + r() * 110; restTo = restFrom + 35 + r() * 45; }
 			},
 		};
 	}
 
 	// ---------- pastoral: Stardew ----------
 	const PROGS = [[0, 4, 5, 3], [0, 3, 0, 4], [0, 5, 3, 4], [3, 4, 2, 5], [0, 3, 4, 3], [5, 3, 0, 4]];
-	const RHYTHMS = [
+	const RHYTHMS_4 = [
 		[[0, 2], [2, 1], [3, 1], [4, 4]],
 		[[0, 1], [1, 1], [2, 2], [4, 2], [6, 2]],
 		[[0, 3], [3, 1], [4, 2], [6, 2]],
 		[[0, 2], [2, 2], [4, 1], [5, 1], [6, 2]],
 		[[1, 1], [2, 1], [3, 1], [4, 4]],
-	]; // [eighth offset, length in eighths] per bar
+	]; // [eighth offset, length in eighths] per 8-eighth bar
+	const RHYTHMS_6 = [
+		[[0, 2], [2, 1], [3, 3]],
+		[[0, 3], [3, 2], [5, 1]],
+		[[0, 1], [1, 2], [3, 1], [4, 2]],
+		[[0, 2], [2, 2], [4, 2]],
+	]; // [eighth offset, length in eighths] per 6-eighth (waltz / 6/8) bar
+	const PASTORAL_SCALES = new Set(['ionian', 'mixolydian', 'majPent', 'lydian', 'dorian', 'yo', 'hexa', 'pentachord', 'shang', 'ryukyu', 'tizita', 'bati']);
+	const NIGHT_PLUCKS = new Set(['harp', 'koto', 'kora', 'kalimba', 'lute']);
 	function pastoralScene(key: string, m: QudMusic, cultural: boolean, t0: number): Scene {
 		const r = rngOf(hash(key));
 		const season = (m.season ?? 0) | 0;
 		const night = !m.day;
-		const prof = cultural ? profileOf(m) : undefined;
-		const scaleName = season === 2 && r() < 0.6 ? 'dorian' : pick(r, ['ionian', 'ionian', 'mixolydian', 'majPent', 'lydian']);
-		const x: Ctx = { r, scale: SCALES[scaleName], base: 53 + Math.floor(r() * 7), m, cultural, prof };
-		const bus = newBus(t0, 3, LEVEL.pastoral);
+		const prof = resolveProfile(m, cultural);
+		const profScales = prof?.scales.filter((s) => PASTORAL_SCALES.has(s) && SCALES[s]) ?? [];
+		const scaleName = profScales.length && r() < (m.mstyle?.scaleWord ? 0.78 : 0.55)
+			? (m.mstyle && r() < 0.7 ? profScales[0] : pick(r, profScales))
+			: (season === 2 && r() < 0.6 ? 'dorian' : pick(r, ['ionian', 'ionian', 'mixolydian', 'majPent', 'lydian']));
+		const x: Ctx = { r, scale: SCALES[scaleName] ?? SCALES.ionian, base: 53 + Math.floor(r() * 7), m, cultural, prof };
+		const bus = newBus(t0, 3.5, LEVEL.pastoral);
 		// the band, by season (spring flute & harp, summer whistle & guitar, autumn fiddle & guitar, winter music box & piano)
 		const band = [
 			{ lead: 'flute', pluck: 'harp' },
@@ -452,8 +496,21 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 		][season];
 		let leadName = night ? 'piano' : band.lead;
 		let pluckName = night ? 'piano' : band.pluck;
-		if (prof && !night) { leadName = prof.leads[0] ?? leadName; pluckName = prof.plucks[0] ?? pluckName; }
-		const bpm = clamp((night ? 72 : 88) + r() * 12 - (season === 3 ? 8 : 0) + (m.feast ? 12 : 0), 60, 112);
+		if (prof) {
+			const cLead = prof.leads.find((v) => INST[v]);
+			const cPluck = prof.plucks.find((v) => INST[v]);
+			if (!night) {
+				if (cLead) leadName = cLead;
+				if (cPluck) pluckName = cPluck;
+			} else if (cPluck && NIGHT_PLUCKS.has(cPluck) && r() < 0.45) {
+				pluckName = cPluck;
+			}
+		}
+		const triple = !!prof && (prof.feels[0] === 'waltz' || prof.feels[0] === 'six8');
+		const steps = triple ? 6 : 8;
+		const rhythms = triple ? RHYTHMS_6 : RHYTHMS_4;
+		const tempoMul = clamp(prof?.tempo ?? 1, 0.85, 1.15);
+		const bpm = clamp(((night ? 70 : 86) + r() * 12 - (season === 3 ? 8 : 0) + (m.feast ? 12 : 0)) * tempoMul, 58, 112);
 		const e8 = 60 / bpm / 2;
 		const prog = pick(r, PROGS);
 		const progB = pick(r, PROGS);
@@ -461,9 +518,9 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 		const motif = (): [number, number, number][] => {
 			const out: [number, number, number][] = [];
 			for (let bar = 0; bar < 2; bar++) {
-				const rh = pick(r, RHYTHMS);
+				const rh = pick(r, rhythms);
 				let i = pick(r, [2, 4, 7, 4]);
-				for (const [o8, l] of rh) { out.push([bar * 8 + o8, l, i]); i += pick(r, [-1, 1, 1, -2, 2, 0, -1]); }
+				for (const [o8, l] of rh) { out.push([bar * steps + o8, l, i]); i += pick(r, [-1, 1, 1, -2, 2, 0, -1]); }
 			}
 			return out;
 		};
@@ -473,11 +530,11 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 		let next = t0 + 0.2;
 		const form = [0, 0, 1, 0];
 		const playLead = (t: number, midi: number, dur: number, vel: number) => {
-			if (leadName === 'piano') piano(bus, t, midi, vel * 1.1);
+			if (leadName === 'piano') piano(bus, t, midi, vel * 0.95);
 			else inst(leadName)(kit, bus, t, midi, dur, vel);
 		};
 		const playPluck = (t: number, midi: number, dur: number, vel: number) => {
-			if (pluckName === 'piano') piano(bus, t, midi, vel * 0.8);
+			if (pluckName === 'piano') piano(bus, t, midi, vel * 0.72);
 			else inst(pluckName)(kit, bus, t, midi, dur, vel);
 		};
 		return {
@@ -492,28 +549,31 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 					const root = deg(x, chord) - 12;
 					const third = deg(x, chord + 2);
 					const fifth = deg(x, chord + 4) - 12;
-					// fingerpicking: bass, fifth, tenth, fifth, octave, fifth, tenth, fifth
-					const pat = [root, fifth, third, fifth, root + 12, fifth, third, fifth];
-					for (let k = 0; k < 8; k++) {
+					if (bar % 8 === 0) pad(bus, next, root, steps * e8 * 3.5, 0.015 * soft, 0.75, 2.2, 3);
+					// fingerpicking: crisp accompaniment sitting cleanly beneath the melody
+					const pat = triple
+						? [root, fifth, third, root + 12, fifth, third]
+						: [root, fifth, third, fifth, root + 12, fifth, third, fifth];
+					for (let k = 0; k < steps; k++) {
 						const t = next + k * e8 + (k % 2 ? e8 * 0.04 : 0);
 						if (night && k % 2) continue;
-						playPluck(t, pat[k], e8 * 1.6, (k === 0 ? 0.075 : 0.05) * soft);
-						if (!raining && !night && k % 2 === 1 && mm.day) shaker(bus, t, (k === 3 || k === 7 ? 0.018 : 0.011) * soft);
+						playPluck(t, pat[k], e8 * 1.35, (k === 0 ? 0.052 : 0.032) * soft);
+						if (!raining && !night && k % 2 === 1 && mm.day) shaker(bus, t, (k === 3 || k === steps - 1 ? 0.012 : 0.008) * soft);
 					}
-					// melody: rests through the intro and every 4th bar for breath
+					// melody: rests through the intro and every 8th bar for breath
 					const intro = bar < 4;
 					if (!intro && bar % 8 !== 7) {
 						const mot = sec === 1 ? B : A;
 						const half = bar % 2;
 						for (const [o8, l, i] of mot) {
-							if (Math.floor(o8 / 8) !== half) continue;
-							const t = next + (o8 % 8) * e8;
-							playLead(t, deg(x, i + chord % 2), l * e8 * 0.95, 0.07 * soft);
+							if (Math.floor(o8 / steps) !== half) continue;
+							const t = next + (o8 % steps) * e8;
+							playLead(t, deg(x, i + chord % 2), l * e8 * 0.92, 0.068 * soft);
 						}
 					}
-					next += 8 * e8;
+					next += steps * e8;
 					bar++;
-					if (bar % 32 === 0) next += e8 * 4; // a breath between rounds
+					if (bar % 32 === 0) next += e8 * 6; // a breath between rounds
 				}
 			},
 		};
@@ -524,30 +584,39 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 	function desertScene(key: string, m: QudMusic, cultural: boolean, t0: number): Scene {
 		const r = rngOf(hash(key));
 		const under = UNDER.has(m.mood);
-		const prof = cultural ? profileOf(m) : undefined;
-		const near = prof?.scales.filter((s) => DESERT_SCALES.includes(s) || ['uncanny', 'wholetone', 'octatonic', 'bhairav', 'todi'].includes(s)) ?? [];
+		const prof = resolveProfile(m, cultural);
+		const near = prof?.scales.filter((s) => DESERT_SCALES.includes(s) || ['uncanny', 'wholetone', 'octatonic', 'bhairav', 'todi', 'homayun', 'rast', 'marwa', 'hirajoshi', 'insen', 'pelog'].includes(s)) ?? [];
 		const genreScales: Record<string, string[]> = { cyberpunk: ['aeolian', 'phrygian'], biopunk: ['wholetone', 'phrygDom'], atompunk: ['lydian', 'wholetone'], twilight: ['harmonicMinor', 'aeolian'], wasteland: ['phrygDom', 'minPent'] };
-		const scaleName = near.length && r() < 0.7 ? pick(r, near) : pick(r, genreScales[m.genre] ?? DESERT_SCALES);
+		const scaleName = near.length && r() < (m.mstyle?.scaleWord ? 0.85 : 0.7)
+			? (m.mstyle && r() < 0.75 ? near[0] : pick(r, near))
+			: pick(r, genreScales[m.genre] ?? DESERT_SCALES);
 		const x: Ctx = { r, scale: SCALES[scaleName] ?? SCALES.hijaz, base: (under ? 40 : 45) + Math.floor(r() * 6), m, cultural, prof };
 		const bus = newBus(t0, 7, LEVEL.desert);
-		const leadVoice = prof && r() < 0.6 ? pick(r, prof.leads) : 'synth';
+		const leadPool = prof?.leads.filter((v) => INST[v]) ?? [];
+		const leadVoice = leadPool.length && r() < (m.mstyle ? 0.75 : 0.55)
+			? (m.mstyle && r() < 0.7 ? leadPool[0] : pick(r, leadPool))
+			: 'synth';
+		const fifthGain = prof?.drone === 'fifth' ? 0.45 : prof?.drone === 'none' ? 0.22 : 0.32;
+		const tempoMul = clamp(prof?.tempo ?? 1, 0.85, 1.15);
+		const droneDur = 26;
 		let droneAt = t0;
-		let phraseAt = t0 + 6 + r() * 12;
-		let bellAt = t0 + 4 + r() * 10;
+		let phraseAt = t0 + 7 + r() * 12;
+		let phraseEnd = t0;
+		let bellAt = t0 + 5 + r() * 10;
 		// the analog sequence: an odd-length pattern so it rolls against the bar
 		const arpLen = pick(r, [5, 6, 7, 9]);
 		const arp = Array.from({ length: arpLen }, () => pick(r, [0, 2, 4, 7, 4, 1, 9]));
-		const arpBpm = 96 + r() * 20;
+		const arpBpm = clamp((92 + r() * 18) * tempoMul, 74, 120);
 		const s16 = 60 / arpBpm / 4;
-		let arpOn = !under || m.mood === 'tower' ? r() < 0.6 : false;
+		let arpOn = !under || m.mood === 'tower' ? r() < 0.55 : false;
 		let arpNext = t0 + 4;
 		let arpI = 0;
-		let arpSwitch = t0 + 40 + r() * 60;
+		let arpSwitch = t0 + 36 + r() * 55;
 		const drumOk = !under && m.day && m.mood !== 'sea';
 		const maqsum = [1, 2, 0, 2, 1, 0, 2, 0]; // D T . T D . T .
 		let drumNext = t0 + 12;
 		let drumI = 0;
-		let drumOn = drumOk && r() < 0.5;
+		let drumOn = drumOk && r() < 0.45;
 		let drumSwitch = t0 + 30 + r() * 50;
 		let lastLead: number | undefined;
 		return {
@@ -561,45 +630,48 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 				arpNext = fresh(arpNext, until);
 				drumNext = fresh(drumNext, until);
 				if (droneAt < until) {
-					drone(bus, droneAt, x.base - 12, 26, (under ? 0.05 : 0.038) * soft, under ? 180 : 260, under ? 600 : 1000 + 600 * tense);
-					droneAt += 20;
+					// crossfade overlap matched to the 35% attack / 35% release ramp for constant energy
+					drone(bus, droneAt, x.base - 12, droneDur, (under ? 0.038 : 0.028) * soft, under ? 180 : 250, under ? 560 : 940 + 550 * tense, fifthGain);
+					droneAt += droneDur * 0.7;
 				}
 				if (phraseAt < until) {
 					// an ornamented modal phrase: grace notes, slides, a long held tone
 					let t = phraseAt;
 					let i = 7 + pick(r, [0, 1, 2, 4]);
-					const n = 3 + Math.floor(r() * 5);
+					const n = 3 + Math.floor(r() * 4);
 					for (let k = 0; k < n; k++) {
 						const midi = deg(x, i);
-						const len = k === n - 1 ? 2.5 + r() * 2 : 0.35 + r() * 0.7;
+						const len = k === n - 1 ? 2.6 + r() * 2 : 0.4 + r() * 0.7;
 						if (leadVoice === 'synth') {
-							if (r() < 0.3) lead(bus, t - 0.07, deg(x, i + 1), 0.06, 0.05 * soft);
-							lead(bus, t, midi, len, 0.07 * soft, r() < 0.4 ? lastLead : undefined);
-						} else inst(leadVoice)(kit, bus, t, midi, len, 0.07 * soft);
+							if (r() < 0.28) lead(bus, t - 0.07, deg(x, i + 1), 0.06, 0.038 * soft);
+							lead(bus, t, midi, len, 0.058 * soft, r() < 0.4 ? lastLead : undefined);
+						} else inst(leadVoice)(kit, bus, t, midi, len, 0.058 * soft);
 						lastLead = midi;
-						t += len + (r() < 0.25 ? 0.4 : 0.05);
+						t += len + (r() < 0.25 ? 0.45 : 0.08);
 						i += pick(r, [-1, -1, 1, -2, 1, 0, 2]);
 						i = clamp(i, 3, 12);
 					}
-					phraseAt = t + (under ? 14 : 8) + r() * (under ? 30 : 22);
+					phraseEnd = t + 0.8;
+					phraseAt = t + (under ? 16 : 10) + r() * (under ? 32 : 24);
 				}
 				if (bellAt < until) {
-					glass(bus, bellAt, deg(x, pick(r, [7, 9, 11, 14])) + 12, 0.03 * soft, 6);
-					bellAt += (under ? 7 : 11) + r() * 14;
+					if (bellAt > phraseEnd) glass(bus, bellAt, deg(x, pick(r, [7, 9, 11, 14])) + 12, 0.024 * soft, 5.5);
+					bellAt += (under ? 9 : 13) + r() * 15;
 				}
-				if (until > arpSwitch) { arpOn = (!under || mm.mood === 'tower') && !arpOn && r() < 0.7; arpSwitch += 50 + r() * 70; }
+				if (until > arpSwitch) { arpOn = (!under || mm.mood === 'tower') && !arpOn && r() < 0.65; arpSwitch += 48 + r() * 68; }
 				while (arpNext < until) {
 					if (arpOn) {
-						const cut = 600 + 1800 * (0.5 + 0.5 * Math.sin(arpNext * 0.11)) + 1500 * tense;
-						blip(bus, arpNext, deg(x, arp[arpI % arpLen]), (arpI % arpLen === 0 ? 0.035 : 0.022) * soft, cut);
+						const duck = arpNext < phraseEnd ? 0.55 : 1;
+						const cut = 560 + 1600 * (0.5 + 0.5 * Math.sin(arpNext * 0.11)) + 1400 * tense;
+						blip(bus, arpNext, deg(x, arp[arpI % arpLen]), (arpI % arpLen === 0 ? 0.026 : 0.017) * soft * duck, cut);
 					}
 					arpI++;
 					arpNext += s16 * 2;
 				}
-				if (until > drumSwitch) { drumOn = drumOk && !drumOn && r() < 0.6; drumSwitch += 35 + r() * 60; }
+				if (until > drumSwitch) { drumOn = drumOk && !drumOn && r() < 0.55; drumSwitch += 35 + r() * 60; }
 				while (drumNext < until) {
 					const hit = maqsum[drumI % 8];
-					if (drumOn && hit) drum(bus, drumNext, hit === 1, (hit === 1 ? 0.06 : 0.03) * soft);
+					if (drumOn && hit) drum(bus, drumNext, hit === 1, (hit === 1 ? 0.044 : 0.022) * soft);
 					drumI++;
 					drumNext += s16 * 2;
 				}
@@ -610,7 +682,7 @@ export function createGarden(c: AudioContext, kit: Kit, out: AudioNode): Garden 
 	return {
 		get playing() { return scene !== null; },
 		tick(m, gs, cultural, now) {
-			const key = gardenKey(m, gs);
+			const key = gardenKey(m, gs, cultural);
 			if (!scene || scene.key !== key) {
 				const at = now + 0.05;
 				if (scene) retire(scene.bus, at, 5);

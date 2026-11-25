@@ -258,6 +258,9 @@ func (g *Game) tqCanBuy(bd *BurgData, d *tqGood) bool {
 	if g.tqBanned(bd.State, d) {
 		return false
 	}
+	if loTqCulture(d) == bd.Culture {
+		return true
+	}
 	if g.W.Sector(bd, d.Prod) > 0.03 {
 		return true
 	}

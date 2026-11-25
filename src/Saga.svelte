@@ -2,12 +2,15 @@
 	/** Full-screen saga reader: chapter pages, journey map, stats, epitaph, copy / download / share. */
 	import { onMount } from 'svelte';
 	import { drawSagaMap, sagaText, sagaStatsLine, downloadSagaText, downloadSagaMap, CHAPTER_COLORS, type SagaData } from './saga';
+	import { drawVignette, vignetteKindForChapter } from './vignettes';
 
 	let { saga, onclose }: { saga: SagaData; onclose: () => void } = $props();
 	let page = $state(0);
 	let mapIdx = $state(0);
 	let note = $state('');
 	let canvas = $state<HTMLCanvasElement | null>(null);
+	let heroCanvas = $state<HTMLCanvasElement | null>(null);
+	let vigCanvas = $state<HTMLCanvasElement | null>(null);
 	const last = $derived(saga.chapters.length - 1);
 	const ch = $derived(saga.chapters[page]);
 	const colorOf = (i: number) => CHAPTER_COLORS[i % CHAPTER_COLORS.length];
@@ -15,6 +18,30 @@
 	$effect(() => {
 		void mapIdx;
 		if (canvas) drawSagaMap(canvas, saga, mapIdx);
+	});
+	$effect(() => {
+		if (heroCanvas) {
+			drawVignette(heroCanvas, {
+				kind: saga.dead ? 'epitaph' : 'crown',
+				seed: `${saga.seed}:${saga.world}:hero`,
+				title: saga.title,
+				accent: '#cfc041',
+				artW: 160,
+				artH: 56,
+			});
+		}
+	});
+	$effect(() => {
+		const c = ch;
+		const p = page;
+		if (vigCanvas && c) {
+			drawVignette(vigCanvas, {
+				kind: vignetteKindForChapter(c.kind, c.title, c.text, saga.dead),
+				seed: `${saga.seed}:${saga.world}:${p}:${c.kind}`,
+				title: c.title,
+				accent: colorOf(p),
+			});
+		}
 	});
 
 	async function copy(withSeed: boolean) {
@@ -41,13 +68,17 @@
 </script>
 
 <div class="saga" role="dialog" aria-label="Saga">
-	<header>
-		<h1>{saga.title}</h1>
-		<div class="dim">{saga.subtitle}</div>
-		<div class="dim">{saga.chronicler}</div>
+	<header class="hero">
+		<canvas class="hero-vig" bind:this={heroCanvas} aria-hidden="true"></canvas>
+		<div class="hero-meta">
+			<h1>{saga.title}</h1>
+			<div class="dim">{saga.subtitle}</div>
+			<div class="dim">{saga.chronicler}</div>
+		</div>
 	</header>
 	<div class="body">
 		<article>
+			<canvas class="chap-vig" bind:this={vigCanvas} aria-label={`Illustration for ${ch.title}`}></canvas>
 			<h2 style:color={colorOf(page)}>{ch.title}</h2>
 			<p>{ch.text}</p>
 			{#if page === last}
@@ -102,6 +133,32 @@
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
+	}
+	.hero {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		flex-wrap: wrap;
+	}
+	.hero-vig {
+		width: 160px;
+		height: 56px;
+		image-rendering: pixelated;
+		border: 1px solid #155352;
+		display: block;
+		flex: none;
+	}
+	.hero-meta {
+		min-width: 0;
+	}
+	.chap-vig {
+		width: 100%;
+		max-width: 480px;
+		aspect-ratio: 180 / 76;
+		image-rendering: pixelated;
+		border: 1px solid #155352;
+		display: block;
+		margin-bottom: 10px;
 	}
 	h1 {
 		color: #cfc041;
